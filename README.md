@@ -27,6 +27,14 @@ npm run demo
 
 This uses `data/acceptance.sqlite` on port 4174. Credentials are printed by the local script. Never run the demo environment as a public production deployment.
 
+To replace **both local databases and uploads** with a curated fictional screenshot dataset, stop the local servers first, then run:
+
+```sh
+npm run seed:screenshots -- --reset-local-data
+```
+
+The script archives the entire previous `data/` directory under ignored `backups/` before creating fresh databases. It prepares eight fictional profiles, public/private conversations, project illustrations, and events. It refuses production/Vercel execution or a reset while ports 4173/4174 are running. Start `npm run demo` afterward. The screenshot account is `author@devdevian.test`, with the local test password printed by the script. `npm run check:screenshots` verifies the prepared pages on port 4174 without resetting them.
+
 ## Product model
 
 - **Public feed:** publications organized by user-created topics and technologies. Questions and code reviews support accepted answers; discussions and showcases share the reply system.
