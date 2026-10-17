@@ -432,6 +432,11 @@ async function initialize(path) {
   const child = spawn(process.execPath, ["server.mjs"], {
     env: {
       ...process.env,
+      TURSO_DATABASE_URL: "",
+      TURSO_AUTH_TOKEN: "",
+      UPLOAD_DRIVER: "local",
+      DB_DRIVER: "",
+      VERCEL: "",
       NODE_ENV: "development",
       DEMO_MODE: "1",
       DB_PATH: path,

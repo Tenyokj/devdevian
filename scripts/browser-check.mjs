@@ -14,6 +14,10 @@ mkdirSync(artifacts, { recursive: true });
 const server = spawn(process.execPath, ["server.mjs"], {
   env: {
     ...process.env,
+    TURSO_DATABASE_URL: "",
+    TURSO_AUTH_TOKEN: "",
+    UPLOAD_DRIVER: "local",
+    VERCEL: "",
     NODE_ENV: "test",
     DEMO_MODE: "1",
     AUTH_TEST_UNVERIFIED: "1",
@@ -66,46 +70,120 @@ try {
   await page.goto(base);
   await expect(page.locator(".landing-hero .hero-logo")).toBeVisible();
   await expect(page.locator(".landing-faq details")).toHaveCount(7);
-  await expect(page.getByRole("button", {name:/Switch to .* theme/})).toHaveCount(0);
-  await page.getByRole("tab",{name:"Code reviews",exact:true}).click();
+  await page.locator(".landing-screenshot img").evaluateAll(async (images) => {
+    images.forEach((img) => (img.loading = "eager"));
+    await Promise.all(images.map((img) => img.decode()));
+  });
+  await expect(page.locator(".landing-screenshot img")).toHaveCount(4);
+  await expect(page.locator(".screenshot-placeholder")).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: /Switch to .* theme/ }),
+  ).toHaveCount(0);
+  await page.getByRole("tab", { name: "Code reviews", exact: true }).click();
   await expect(page.getByRole("tabpanel")).toContainText("error handling");
-  await page.getByRole("tab",{name:"Code reviews",exact:true}).press("ArrowRight");
-  await expect(page.getByRole("tab",{name:"Show & tell",exact:true})).toBeFocused();
-  await page.getByRole("button",{name:"Try the suggested change",exact:true}).click();
-  await expect(page.locator(".landing-code-card pre")).toContainText("if (!response.ok)");
-  await context.grantPermissions(["clipboard-read", "clipboard-write"], { origin: base });
-  await page.getByRole("button", { name: "Copy example code", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Copy example code", exact: true })).toContainText("Copied");
-  expect(await page.evaluate(() => navigator.clipboard.readText())).toContain("if (!response.ok)");
-  await page.getByRole("button",{name:"Suggestion applied · reset example",exact:true}).click();
-  await expect(page.locator(".landing-code-card pre")).not.toContainText("if (!response.ok)");
+  await page
+    .getByRole("tab", { name: "Code reviews", exact: true })
+    .press("ArrowRight");
+  await expect(
+    page.getByRole("tab", { name: "Show & tell", exact: true }),
+  ).toBeFocused();
+  await page
+    .getByRole("button", { name: "Try the suggested change", exact: true })
+    .click();
+  await expect(page.locator(".landing-code-card pre")).toContainText(
+    "if (!response.ok)",
+  );
+  await context.grantPermissions(["clipboard-read", "clipboard-write"], {
+    origin: base,
+  });
+  await page
+    .getByRole("button", { name: "Copy example code", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Copy example code", exact: true }),
+  ).toContainText("Copied");
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toContain(
+    "if (!response.ok)",
+  );
+  await page
+    .getByRole("button", {
+      name: "Suggestion applied · reset example",
+      exact: true,
+    })
+    .click();
+  await expect(page.locator(".landing-code-card pre")).not.toContainText(
+    "if (!response.ok)",
+  );
   await page.locator(".faq-list summary").first().click();
-  await expect(page.locator(".faq-list details").first()).toHaveAttribute("open", "");
-  for (const [name, width, height] of [["desktop",1440,1000],["tablet",834,1112],["mobile",390,844]]) {
-    await page.setViewportSize({width,height});
+  await expect(page.locator(".faq-list details").first()).toHaveAttribute(
+    "open",
+    "",
+  );
+  await page.locator(".faq-list summary").first().click();
+  await expect(page.locator(".faq-list details").first()).not.toHaveAttribute(
+    "open",
+    "",
+  );
+  await page.locator(".faq-list summary").first().press("Enter");
+  await expect(page.locator(".faq-list details").first()).toHaveAttribute(
+    "open",
+    "",
+  );
+  for (const [name, width, height] of [
+    ["desktop", 1440, 1000],
+    ["tablet", 834, 1112],
+    ["mobile", 390, 844],
+  ]) {
+    await page.setViewportSize({ width, height });
     // Reveal each section as a visitor would before recording the full page.
     await page.evaluate(async () => {
-      for (const section of document.querySelectorAll('[data-reveal]')) {
-        section.scrollIntoView();
-        await new Promise(resolve => setTimeout(resolve, 70));
+      for (const section of document.querySelectorAll("[data-reveal]")) {
+        section.scrollIntoView({ behavior: "instant" });
+        await new Promise((resolve) => setTimeout(resolve, 70));
       }
-      window.scrollTo(0, 0);
+      window.scrollTo({ top: 0, behavior: "instant" });
     });
     await page.waitForTimeout(800);
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
-    await page.screenshot({path:artifacts+"/landing-"+name+".png",fullPage:true,animations:"disabled"});
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBeTruthy();
+    await page.screenshot({
+      path: artifacts + "/landing-" + name + ".png",
+      fullPage: true,
+      animations: "disabled",
+    });
   }
   await page.goto(base + "/#faq");
   await expect(page.locator(".landing-faq")).toBeVisible();
   const reduced = await context.newPage();
   await reduced.emulateMedia({ reducedMotion: "reduce" });
   await reduced.goto(base);
-  expect(await reduced.locator(".hero-logo-stage").evaluate(e => getComputedStyle(e).animationName)).toBe("none");
+  expect(
+    await reduced
+      .locator(".hero-logo-stage")
+      .evaluate((e) => getComputedStyle(e).animationName),
+  ).toBe("none");
   await expect(reduced.locator(".landing-intro")).toHaveCSS("opacity", "1");
   await reduced.close();
-  await page.setViewportSize({width:1440,height:1000});
+  await page.setViewportSize({ width: 1440, height: 1000 });
   await page.evaluate(() => localStorage.setItem("devdevian-theme", "light"));
   await page.goto(base + "/app");
+  await expect(page.locator(".post-card")).toHaveCount(0);
+  await expect(page.locator(".empty-state")).toContainText(
+    "A good place for the first word",
+  );
+  const firstPost = await second.request.post(base + "/api/posts", {
+    data: {
+      kind: "discussion",
+      topic: "web",
+      title: "Welcome to the developer forum",
+      body: "A place for practical questions and thoughtful feedback.",
+    },
+  });
+  expect(firstPost.ok()).toBeTruthy();
+  await page.reload();
   await page.waitForSelector(".post-card");
   await page.waitForTimeout(300);
   const shot = async (name) => {
@@ -161,7 +239,17 @@ try {
   await page.getByRole("button", { name: "Save profile", exact: true }).click();
   await expect(page.locator(".profile-handle")).toHaveText("@alex_browser");
   await expect(page.locator(".profile-info .avatar img")).toBeVisible();
-  const avatarMetrics=await page.locator('.profile-info .avatar').evaluate(e=>({width:e.clientWidth,height:e.clientHeight,padding:getComputedStyle(e).padding,fit:getComputedStyle(e.querySelector('img')).objectFit}));expect(avatarMetrics.width).toBe(avatarMetrics.height);expect(avatarMetrics.padding).toBe('0px');expect(avatarMetrics.fit).toBe('cover');
+  const avatarMetrics = await page
+    .locator(".profile-info .avatar")
+    .evaluate((e) => ({
+      width: e.clientWidth,
+      height: e.clientHeight,
+      padding: getComputedStyle(e).padding,
+      fit: getComputedStyle(e.querySelector("img")).objectFit,
+    }));
+  expect(avatarMetrics.width).toBe(avatarMetrics.height);
+  expect(avatarMetrics.padding).toBe("0px");
+  expect(avatarMetrics.fit).toBe("cover");
   await shot("profile");
   expect(
     await page
@@ -173,6 +261,7 @@ try {
   await page.locator('a[href="#feed"]').first().click();
   await page
     .getByRole("button", { name: "Start a conversation", exact: true })
+    .first()
     .click();
   await page.getByRole("button", { name: "Choose topic", exact: true }).click();
   await page
@@ -232,13 +321,27 @@ try {
   await expect(page.locator("[id^=reply-]").first()).toBeVisible();
   await expect(page.locator(".inline-mention")).toContainText("@builder_1");
   await shot("conversation");
-  await page.getByRole("button", { name: "Archive conversation", exact: true }).click();
-  await expect(page.getByRole("dialog")).toContainText("Archiving stops new replies");
-  await page.getByRole("button", { name: "Confirm archive", exact: true }).click();
-  await expect(page.locator(".conversation-lifecycle")).toContainText("New replies are closed");
-  await page.getByRole("button", { name: "Restore conversation", exact: true }).click();
-  await page.getByRole("button", { name: "Confirm restore", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Archive conversation", exact: true })).toBeVisible();
+  await page
+    .getByRole("button", { name: "Archive conversation", exact: true })
+    .click();
+  await expect(page.getByRole("dialog")).toContainText(
+    "Archiving stops new replies",
+  );
+  await page
+    .getByRole("button", { name: "Confirm archive", exact: true })
+    .click();
+  await expect(page.locator(".conversation-lifecycle")).toContainText(
+    "New replies are closed",
+  );
+  await page
+    .getByRole("button", { name: "Restore conversation", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Confirm restore", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Archive conversation", exact: true }),
+  ).toBeVisible();
 
   await page.locator(".global-search").click();
   await expect(
@@ -360,15 +463,23 @@ try {
     "Browser builders live meetup",
   );
   await expect(page.locator(".event-card .entity-banner")).toBeVisible();
-  await expect(page.locator('.event-filters input[type=date]')).toHaveCount(1);
-  await page.getByLabel("Events on date", {exact:true}).fill("2030-01-21");
+  await expect(page.locator(".event-filters input[type=date]")).toHaveCount(1);
+  await page.getByLabel("Events on date", { exact: true }).fill("2030-01-21");
   await expect(page.locator(".event-card")).toHaveCount(0);
-  await page.getByLabel("Events on date", {exact:true}).fill("2030-01-20");
-  await expect(page.locator(".event-card h2")).toHaveText("Browser builders live meetup");
-  await page.getByLabel("Events on date", {exact:true}).fill("");
+  await page.getByLabel("Events on date", { exact: true }).fill("2030-01-20");
+  await expect(page.locator(".event-card h2")).toHaveText(
+    "Browser builders live meetup",
+  );
+  await page.getByLabel("Events on date", { exact: true }).fill("");
   await shot("event");
-  const reportPostId=postHash.split('/')[1];
-  expect((await page.request.post(base+'/api/posts/'+reportPostId+'/report',{data:{reason:'Browser acceptance report for moderation.'}})).ok()).toBeTruthy();
+  const reportPostId = postHash.split("/")[1];
+  expect(
+    (
+      await page.request.post(base + "/api/posts/" + reportPostId + "/report", {
+        data: { reason: "Browser acceptance report for moderation." },
+      })
+    ).ok(),
+  ).toBeTruthy();
   await page
     .getByRole("button", { name: "Open settings", exact: true })
     .click();
@@ -395,15 +506,34 @@ try {
     .click();
   await expect(page.locator(".account-button")).toContainText("Riley Reviewer");
   await page.locator('a[href="#moderation/public"]').click();
-  await page.getByRole('button',{name:'Review report',exact:true}).click();
-  await expect(page.getByRole('dialog')).toBeInViewport();
-  await page.locator('.modal .select-trigger').click();
-  await page.getByRole('option',{name:'Resolve · hide spam publication',exact:true}).click();
-  await page.locator('textarea[name=note]').fill('Spam hidden during the browser acceptance check.');
-  await page.getByRole('button',{name:'Save decision',exact:true}).click();
-  await expect(page.locator('.form-success')).toContainText('Publication hidden');
-  const anonymous=await browser.newContext();expect((await anonymous.request.get(base+'/api/posts/'+reportPostId)).status()).toBe(404);await anonymous.close();
-  await page.getByRole('button',{name:'Reviewed',exact:true}).click();await expect(page.locator('.report-card')).toContainText('RESOLVED');await shot('moderation-decision');
+  await page
+    .getByRole("button", { name: "Review report", exact: true })
+    .click();
+  await expect(page.getByRole("dialog")).toBeInViewport();
+  await page.locator(".modal .select-trigger").click();
+  await page
+    .getByRole("option", {
+      name: "Resolve · hide spam publication",
+      exact: true,
+    })
+    .click();
+  await page
+    .locator("textarea[name=note]")
+    .fill("Spam hidden during the browser acceptance check.");
+  await page
+    .getByRole("button", { name: "Save decision", exact: true })
+    .click();
+  await expect(page.locator(".form-success")).toContainText(
+    "Publication hidden",
+  );
+  const anonymous = await browser.newContext();
+  expect(
+    (await anonymous.request.get(base + "/api/posts/" + reportPostId)).status(),
+  ).toBe(404);
+  await anonymous.close();
+  await page.getByRole("button", { name: "Reviewed", exact: true }).click();
+  await expect(page.locator(".report-card")).toContainText("RESOLVED");
+  await shot("moderation-decision");
 
   await page
     .getByRole("button", { name: "Open settings", exact: true })
@@ -418,7 +548,11 @@ try {
   await expect(page.getByRole("dialog", { name: "Sign out?" })).toBeVisible();
   await page.getByRole("button", { name: "Stay here", exact: true }).click();
   await page.setViewportSize({ width: 834, height: 1112 });
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBeTruthy();
   await shot("tablet-profile");
   await page.setViewportSize({ width: 390, height: 844 });
   await page.waitForTimeout(250);

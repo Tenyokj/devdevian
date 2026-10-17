@@ -3,6 +3,11 @@ import { DatabaseSync } from "node:sqlite";
 import { mkdirSync } from "node:fs";
 import { randomBytes, scryptSync } from "node:crypto";
 mkdirSync("data", { recursive: true });
+// Local demo tooling must never inherit a cloud production database.
+process.env.TURSO_DATABASE_URL = "";
+process.env.TURSO_AUTH_TOKEN = "";
+process.env.UPLOAD_DRIVER = "local";
+process.env.VERCEL = "";
 process.env.DB_PATH = "data/acceptance.sqlite";
 process.env.PORT = process.env.DEMO_PORT || "4174";
 process.env.MODERATOR_EMAILS = "moderator@devdevian.test";

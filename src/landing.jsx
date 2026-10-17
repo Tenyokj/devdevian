@@ -215,9 +215,54 @@ function Screenshot({ name, label, compact = false }) {
       <figcaption>
         <span className="landing-status-dot" />
         {label}
-        <span>{media[name] && !failed ? "DEVDEVIAN" : "SCREENSHOT SPACE"}</span>
+        <span>
+          {media[name] && !failed ? "PRODUCT PREVIEW" : "SCREENSHOT SPACE"}
+        </span>
       </figcaption>
     </figure>
+  );
+}
+
+// Keep native details semantics, including keyboard activation, while animating
+// the measured height in both directions. Rapid clicks reverse from the current size.
+function FAQItem({ children, ...props }) {
+  const element = useRef(null);
+  const animation = useRef(null);
+  const desired = useRef(false);
+  useEffect(() => () => animation.current?.cancel(), []);
+  const toggle = (event) => {
+    if (!event.target.closest("summary")) return;
+    if (
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
+      !element.current.animate
+    )
+      return;
+    event.preventDefault();
+    const node = element.current;
+    const start = node.getBoundingClientRect().height;
+    desired.current = animation.current ? !desired.current : !node.open;
+    animation.current?.cancel();
+    node.open = true;
+    const end = desired.current
+      ? node.scrollHeight
+      : node.querySelector("summary").getBoundingClientRect().height;
+    node.style.overflow = "hidden";
+    const current = node.animate(
+      [{ height: start + "px" }, { height: end + "px" }],
+      { duration: 280, easing: "cubic-bezier(.22,1,.36,1)" },
+    );
+    animation.current = current;
+    current.onfinish = () => {
+      if (animation.current !== current) return;
+      node.open = desired.current;
+      node.style.overflow = "";
+      animation.current = null;
+    };
+  };
+  return (
+    <details {...props} ref={element} onClick={toggle}>
+      {children}
+    </details>
   );
 }
 
@@ -729,7 +774,7 @@ export default function Landing() {
           </div>
           <div className="faq-list">
             {questions.map(([question, answer], i) => (
-              <details key={question}>
+              <FAQItem key={question}>
                 <summary>
                   <span className="faq-number">0{i + 1}</span>
                   <span>{question}</span>
@@ -743,7 +788,7 @@ export default function Landing() {
                     </a>
                   )}
                 </div>
-              </details>
+              </FAQItem>
             ))}
           </div>
         </section>

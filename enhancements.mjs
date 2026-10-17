@@ -5,12 +5,8 @@ import {
 } from "./preferences.mjs";
 import { randomUUID } from "node:crypto";
 import { pageRows, scopeSQL, memberOf } from "./spaces.mjs";
-export const normalizeName = (value) =>
-  String(value)
-    .normalize("NFKC")
-    .trim()
-    .replace(/\s+/gu, " ")
-    .toLocaleLowerCase("en");
+import { normalizeName, literalPattern } from "./search-sql.mjs";
+export { normalizeName } from "./search-sql.mjs";
 export function manages(db, user, id) {
   return (
     !!user &&
@@ -62,6 +58,13 @@ export function registerEnhancements(app, db, required, seed) {
   db.exec(`CREATE TABLE IF NOT EXISTS taxonomy(id TEXT PRIMARY KEY,kind TEXT NOT NULL,name TEXT NOT NULL,normalized TEXT NOT NULL,created_by INTEGER,UNIQUE(kind,normalized));
  CREATE TABLE IF NOT EXISTS entity_details(kind TEXT,entity_id TEXT,data TEXT NOT NULL,PRIMARY KEY(kind,entity_id));
  CREATE TABLE IF NOT EXISTS validators(community_id TEXT,user_id INTEGER,PRIMARY KEY(community_id,user_id));`);
+  if (
+    !db
+      .prepare("PRAGMA table_info(taxonomy)")
+      .all()
+      .some((c) => c.name === "match_pattern")
+  )
+    db.exec("ALTER TABLE taxonomy ADD COLUMN match_pattern TEXT");
   const cols = db.prepare("PRAGMA table_info(users)").all();
   for (const [n, t] of [
     ["username", "TEXT"],
@@ -104,11 +107,20 @@ export function registerEnhancements(app, db, required, seed) {
     "Next.js",
     "Figma",
   ])
-    db.prepare("INSERT OR IGNORE INTO taxonomy VALUES(?,?,?,?,NULL)").run(
+    db.prepare(
+      "INSERT OR IGNORE INTO taxonomy(id,kind,name,normalized) VALUES(?,?,?,?)",
+    ).run(
       "tech-" + normalizeName(name),
       "technology",
       name,
       normalizeName(name),
+    );
+  for (const t of db
+    .prepare("SELECT id,name FROM taxonomy WHERE match_pattern IS NULL")
+    .all())
+    db.prepare("UPDATE taxonomy SET match_pattern=? WHERE id=?").run(
+      literalPattern(t.name),
+      t.id,
     );
   function taxonomy(req, kind, paged = false) {
     const params = [kind];
@@ -162,13 +174,9 @@ export function registerEnhancements(app, db, required, seed) {
     if (recent >= 200)
       return res.status(429).json({ error: "Catalog creation limit reached." });
     const id = randomUUID();
-    db.prepare("INSERT INTO taxonomy VALUES(?,?,?,?,?)").run(
-      id,
-      kind,
-      name,
-      normalized,
-      req.user.id,
-    );
+    db.prepare(
+      "INSERT INTO taxonomy(id,kind,name,normalized,created_by,match_pattern) VALUES(?,?,?,?,?,?)",
+    ).run(id, kind, name, normalized, req.user.id, literalPattern(normalized));
     res.status(201).json({ id, name, post_count: 0 });
   });
   const ownerOf = (kind, id) =>
@@ -509,12 +517,9 @@ export function registerEnhancements(app, db, required, seed) {
       req.body.username !== undefined &&
       req.body.username !== req.user.username
     )
-      return res
-        .status(409)
-        .json({
-          error:
-            "Your username is permanent. Change your display name instead.",
-        });
+      return res.status(409).json({
+        error: "Your username is permanent. Change your display name instead.",
+      });
     let pending;
     if (createKind && req.body?.details && req.user) {
       try {
@@ -584,12 +589,10 @@ export function registerEnhancements(app, db, required, seed) {
       req.body.username !== undefined &&
       req.body.username !== req.user.username
     )
-      return res
-        .status(409)
-        .json({
-          error:
-            "Your username is permanent. You can change your display name in Edit profile.",
-        });
+      return res.status(409).json({
+        error:
+          "Your username is permanent. You can change your display name in Edit profile.",
+      });
     const privacy = req.body.privacy ?? req.user.privacy;
     const updates = req.body.preferences ?? {};
     if (
@@ -623,18 +626,14 @@ export function registerEnhancements(app, db, required, seed) {
   });
   app.post("/api/account/username", required, (req, res) => {
     if (req.user.username_locked)
-      return res
-        .status(409)
-        .json({
-          error: "Your username has already been chosen and cannot be changed.",
-        });
+      return res.status(409).json({
+        error: "Your username has already been chosen and cannot be changed.",
+      });
     if (!validUsername(req.body.username))
-      return res
-        .status(400)
-        .json({
-          error:
-            "Choose 3–30 letters, digits or underscores, starting with a letter.",
-        });
+      return res.status(400).json({
+        error:
+          "Choose 3–30 letters, digits or underscores, starting with a letter.",
+      });
     try {
       const r = db
         .prepare(
@@ -705,8 +704,8 @@ export function importPublicTechnologies(db) {
       const name = raw.normalize("NFKC").trim().replace(/\s+/gu, " ");
       if (name.length >= 2 && name.length <= 60 && !/[\x00-\x1f]/.test(name))
         db.prepare(
-          "INSERT OR IGNORE INTO taxonomy(id,kind,name,normalized) VALUES(?,'technology',?,?)",
-        ).run(randomUUID(), name, normalizeName(name));
+          "INSERT OR IGNORE INTO taxonomy(id,kind,name,normalized,match_pattern) VALUES(?,'technology',?,?,?)",
+        ).run(randomUUID(), name, normalizeName(name), literalPattern(name));
     }
   }
 }

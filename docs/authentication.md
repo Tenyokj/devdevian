@@ -33,4 +33,4 @@ The server stores a hash of each code, expiry, attempt count, and resend timing.
 
 Email registration chooses a permanent username before verification. New OAuth users choose it once at first sign-in. Usernames are case-insensitively unique in the database. Display names remain editable. Platform moderator privileges come from `MODERATOR_EMAILS`; community owners appoint their own validators.
 
-Provider setup alone does not make local SQLite and uploads deployable to Vercel. Finish the [storage migration](deployment.md) before production launch.
+Provider setup alone does not make local SQLite and uploads deployable to Vercel. Configure the [cloud storage adapters](deployment.md) and verify the hosted flows before production launch.

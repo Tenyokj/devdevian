@@ -1,6 +1,8 @@
+import { assertRuntime, allowedOrigin } from "./runtime-config.mjs";
 import { preferences, validUsername } from "./preferences.mjs";
 import { existsSync } from "node:fs";
 if (existsSync(".env")) process.loadEnvFile(".env");
+assertRuntime();
 import { registerAuth } from "./auth.mjs";
 import {
   registerEnhancements,
@@ -14,11 +16,14 @@ import { registerEventManagement } from "./event-management.mjs";
 import { registerModeration } from "./moderation.mjs";
 import { registerActivity } from "./activity.mjs";
 import { communities, registerDomain } from "./domain.mjs";
-import { DatabaseSync } from "node:sqlite";
-import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
-import { mkdirSync } from "node:fs";
-mkdirSync("data", { recursive: true });
-const db = new DatabaseSync(process.env.DB_PATH || "data/arc.sqlite");
+import { openDatabase } from "./database.mjs";
+import {
+  randomBytes,
+  scryptSync,
+  timingSafeEqual,
+  createHash,
+} from "node:crypto";
+const db = await openDatabase();
 db.exec(
   `PRAGMA journal_mode=WAL; CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY,email TEXT UNIQUE NOT NULL,password TEXT NOT NULL,name TEXT NOT NULL,bio TEXT DEFAULT '',location TEXT DEFAULT '',role TEXT DEFAULT 'Builder'); CREATE TABLE IF NOT EXISTS sessions(token TEXT PRIMARY KEY,user_id INTEGER NOT NULL,expires INTEGER NOT NULL); CREATE TABLE IF NOT EXISTS memberships(user_id INTEGER,kind TEXT,item TEXT,PRIMARY KEY(user_id,kind,item)); CREATE TABLE IF NOT EXISTS posts(id INTEGER PRIMARY KEY,user_id INTEGER,title TEXT,body TEXT,created TEXT DEFAULT CURRENT_TIMESTAMP);`,
 );
@@ -42,24 +47,48 @@ app.use("/api", (req, res, next) => {
   if (
     req.method !== "GET" &&
     req.headers.origin &&
-    req.headers.origin !== `${req.protocol}://${req.headers.host}`
+    req.headers.origin !== allowedOrigin(req)
   )
     return res.status(403).json({ error: "Invalid request origin." });
   next();
 });
-const attempts = new Map();
+db.exec(
+  "CREATE TABLE IF NOT EXISTS auth_rate_limits(key TEXT PRIMARY KEY,window_start INTEGER NOT NULL,hits INTEGER NOT NULL)",
+);
 function rate(req, res, next) {
-  const key = req.ip;
-  const current = attempts.get(key) || { count: 0, time: Date.now() };
-  if (Date.now() - current.time > 900000) {
-    current.count = 0;
-    current.time = Date.now();
-  }
-  current.count++;
-  attempts.set(key, current);
-  if (current.count > 40)
+  const now = Date.now(),
+    window = 900000;
+  const address =
+    typeof req.body?.email === "string"
+      ? req.body.email.trim().toLowerCase()
+      : null;
+  // A per-account limit survives instance changes and IP rotation. Verification
+  // codes also have their own persistent attempt counter in auth.mjs.
+  const key = createHash("sha256")
+    .update(address ? "email:" + address : "ip:" + req.ip)
+    .digest("hex");
+  const current = db
+    .prepare(
+      `INSERT INTO auth_rate_limits(key,window_start,hits) VALUES(?,?,1)
+    ON CONFLICT(key) DO UPDATE SET
+      hits=CASE WHEN window_start<? THEN 1 ELSE hits+1 END,
+      window_start=CASE WHEN window_start<? THEN excluded.window_start ELSE window_start END
+    RETURNING hits,window_start`,
+    )
+    .get(key, now, now - window, now - window);
+  if (key.startsWith("00"))
+    db.prepare("DELETE FROM auth_rate_limits WHERE window_start<?").run(
+      now - 86400000,
+    );
+  if (current.hits > 40)
     return res
       .status(429)
+      .set(
+        "Retry-After",
+        String(
+          Math.max(1, Math.ceil((current.window_start + window - now) / 1000)),
+        ),
+      )
       .json({ error: "Too many attempts. Try again in 15 minutes." });
   next();
 }
@@ -157,12 +186,9 @@ function required(req, res, next) {
   if (!req.user)
     return res.status(401).json({ error: "Please sign in to continue." });
   if (req.user.username_locked === 0 && !req.path.endsWith("/account/username"))
-    return res
-      .status(409)
-      .json({
-        error:
-          "Choose your permanent username to finish creating your account.",
-      });
+    return res.status(409).json({
+      error: "Choose your permanent username to finish creating your account.",
+    });
   next();
 }
 registerEnhancements(app, db, required, communities);
@@ -391,18 +417,20 @@ registerActivity(app, db, required);
 registerModeration(app, db, required);
 registerEventManagement(app, db, required);
 registerReplies(app, db);
-if (process.env.NODE_ENV === "production" || process.env.DEMO_MODE === "1") {
-  app.use(express.static("dist"));
-  app.get("/{*path}", (req, res) =>
-    res.sendFile(`${process.cwd()}/dist/index.html`),
-  );
-} else {
-  const { createServer } = await import("vite");
-  const vite = await createServer({
-    server: { middlewareMode: true },
-    appType: "spa",
-  });
-  app.use(vite.middlewares);
+if (process.env.VERCEL !== "1") {
+  if (process.env.NODE_ENV === "production" || process.env.DEMO_MODE === "1") {
+    app.use(express.static("dist"));
+    app.get("/{*path}", (req, res) =>
+      res.sendFile(`${process.cwd()}/dist/index.html`),
+    );
+  } else {
+    const { createServer } = await import("vite");
+    const vite = await createServer({
+      server: { middlewareMode: true },
+      appType: "spa",
+    });
+    app.use(vite.middlewares);
+  }
 }
 app.use((error, req, res, next) => {
   console.error(error.message);
@@ -417,11 +445,13 @@ app.use((error, req, res, next) => {
     .json({
       error:
         error.type === "entity.too.large"
-          ? "Files must be 10 MB or smaller."
+          ? "Files must be 4 MB or smaller."
           : "Something went wrong. Please try again.",
     });
 });
+export default app;
 const port = Number(process.env.PORT) || 4173;
-app.listen(port, "127.0.0.1", () =>
-  console.log(`Devdevian is ready at http://127.0.0.1:${port}`),
-);
+if (process.env.VERCEL !== "1")
+  app.listen(port, "127.0.0.1", () =>
+    console.log(`Devdevian is ready at http://127.0.0.1:${port}`),
+  );

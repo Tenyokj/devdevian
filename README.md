@@ -2,11 +2,11 @@
 
 A work in good company. Devdevian is a developer community platform for questions, discussions, code reviews, projects, events, and private communities.
 
-**Status:** early development release. Local development and acceptance testing work. Production hosting, durable cloud storage, and live identity/email provider configuration are not complete.
+**Status:** early development release. Local development and acceptance testing work. Cloud database and private object-storage adapters are implemented and tested locally. Cloud resources, live identity/email configuration, and hosted verification are still required before publishing v0.1.0.
 
 ## Run locally
 
-Use Node.js 24 LTS (or a compatible newer release) and npm. The server uses the built-in `node:sqlite` API.
+Use Node.js 24 LTS (or a compatible newer release) and npm. The local server uses `node:sqlite`; production uses Turso/libSQL.
 
 ```sh
 npm ci
@@ -35,6 +35,8 @@ npm run seed:screenshots -- --reset-local-data
 
 The script archives the entire previous `data/` directory under ignored `backups/` before creating fresh databases. It prepares eight fictional profiles, public/private conversations, project illustrations, and events. It refuses production/Vercel execution or a reset while ports 4173/4174 are running. Start `npm run demo` afterward. The screenshot account is `author@devdevian.test`, with the local test password printed by the script. `npm run check:screenshots` verifies the prepared pages on port 4174 without resetting them.
 
+To return both working databases to an empty state, stop the local servers and run `npm run data:empty -- --empty-local-data`. The old data directory is archived under ignored `backups/`. Screenshot assets are preserved.
+
 ## Product model
 
 - **Public feed:** publications organized by user-created topics and technologies. Questions and code reviews support accepted answers; discussions and showcases share the reply system.
@@ -58,7 +60,7 @@ npm start                # local production-mode server, after building
 
 Before the first browser test, install Chromium with `npx playwright install chromium`. Tests create isolated databases and never reset the development database. Browser artifacts are written to the ignored `.test-data/browser/` directory.
 
-Landing screenshots are configured in `src/landing-media.json`; see the [capture guide](public/landing/README.md). Unconfigured images retain labeled placeholders. The landing has a fixed dark palette and respects reduced-motion preferences without changing the forum's saved theme.
+Landing screenshots are configured in `src/landing-media.json`; see the [capture guide](public/landing/README.md). The four supplied screenshots are included in `public/screenshots`. The landing has a fixed dark palette and respects reduced-motion preferences without changing the forum's saved theme.
 
 Server modules live at the repository root, React UI in `src/`, and tests in `tests/`. `scripts/demo.mjs` is local acceptance tooling. Comments explain important access, transaction, timezone, and identity boundaries.
 
@@ -66,7 +68,7 @@ Server modules live at the repository root, React UI in `src/`, and tests in `te
 
 The local server stores SQLite data in `data/arc.sqlite` and uploaded files in `data/uploads/`. `DB_PATH` selects a different database file. These files, backups, environment files, test artifacts, and personal notes are excluded from Git.
 
-See [authentication configuration](docs/authentication.md) and [deployment status and plan](docs/deployment.md). Local SQLite and uploads must be replaced by durable services before deploying this application to Vercel Functions. A successful frontend build does not verify a production backend.
+See [authentication configuration](docs/authentication.md) and [deployment instructions](docs/deployment.md). On Vercel, configure Turso and a private S3-compatible bucket; startup refuses ephemeral local storage. Run `npm run release:check` to check configuration without printing secrets. A successful frontend build does not verify a production backend.
 
 ## Contribute and report issues
 

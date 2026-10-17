@@ -198,11 +198,9 @@ test("developer interface smoke test in a simulated DOM", async () => {
       "true",
     );
     assert.match(document.body.textContent, /A little curiosity/);
-    assert.equal(document.querySelectorAll(".post-card").length, 4);
-    assert.match(
-      document.querySelector(".example-notice").textContent,
-      /example conversations/,
-    );
+    assert.equal(document.querySelectorAll(".post-card").length, 0);
+    assert.equal(document.querySelector(".example-notice"), null);
+    assert.match(document.querySelector(".empty-state").textContent, /A good place for the first word/);
     await act(async () =>
       document.querySelector(".intro-actions .primary").click(),
     );

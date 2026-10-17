@@ -1,43 +1,65 @@
 # Deployment
 
-## Intended URL layout
+The landing (`/`), application (`/app`), and API (`/api/*`) share one Vercel project. `devdevian.vercel.app` can serve all three if the name is available. A second domain or an `app.` subdomain is unnecessary.
 
-One project and one public origin are sufficient:
+## Current status
 
-| Path | Purpose |
+The repository contains a Vercel function, a Turso/libSQL database adapter, and private S3-compatible uploads. API tests exercise both local SQLite and the libSQL SDK; a local S3 contract fixture checks upload/download authorization. These checks do not verify a real remote database, bucket, or hosted OAuth callback. No cloud resources or deployment have been created by these scripts.
+
+## 1. Create separate cloud resources
+
+Create an **empty libSQL database** in [Turso](https://docs.turso.tech/sdk/ts/reference) and generate its database token. Use the libSQL-compatible service, not an incompatible database engine. Keep the URL and token in server environment variables. Startup creates the schema and initial topic catalog, without accounts or sample publications. Never import `data/`, screenshot fixtures, or local sessions into production.
+
+Create a private S3-compatible bucket, for example [Cloudflare R2](https://developers.cloudflare.com/r2/). Generate credentials scoped to this bucket for object reads, writes, and deletion. Do not enable public bucket access. Downloads pass through the authenticated API, which checks ownership and community membership. Browser-to-bucket CORS is unnecessary. Files are limited to 4 MB to fit Vercel's function payload limits.
+
+Use separate databases, buckets, and credentials for development/preview and production. An unpredictable preview deployment must never mutate production data. Review current free-tier quotas and billing settings before creating resources; free quotas do not guarantee unlimited free usage.
+
+## 2. Import the repository into Vercel
+
+Import `Tenyokj/devdevian`, select the repository root, and use Node.js 24. The committed `vercel.json` selects Vite, runs `npm run build`, serves `dist`, and routes API requests to `api/index.mjs`. Do not deploy until the server environment is configured.
+
+Set these values in Vercel's environment settings, scoped to the appropriate environment:
+
+| Variable | Value |
 | --- | --- |
-| `/` | Public landing page |
-| `/app` | Developer application (hash routes currently handle inner screens) |
-| `/api/*` | Server requests, uploads, and OAuth callbacks |
+| `APP_URL` | Exact stable HTTPS origin, e.g. `https://devdevian.vercel.app` |
+| `TURSO_DATABASE_URL` | Database's `libsql://` URL |
+| `TURSO_AUTH_TOKEN` | Token for that database |
+| `UPLOAD_DRIVER` | `s3` |
+| `S3_ENDPOINT` | Provider's HTTPS S3 endpoint |
+| `S3_REGION` | Provider region; `auto` for R2 |
+| `S3_BUCKET` | Private bucket name |
+| `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | Bucket-scoped server credentials |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Production Google OAuth web client |
+| `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` | Production GitHub OAuth App |
+| `RESEND_API_KEY`, `MAIL_FROM` | Verified transactional sender, when available |
+| `MODERATOR_EMAILS` | Comma-separated trusted platform moderator emails |
 
-`devdevian.vercel.app` is an intended free Vercel address, subject to availability. No domain has been reserved or deployment completed. An `app.` subdomain is not required.
+Never prefix secrets with `VITE_`. Never set `DEMO_MODE` or `AUTH_TEST_UNVERIFIED` in a hosted environment. Do not upload `.env`, SQLite files, or backups. Redeploy after changing environment variables.
 
-## Current constraint
+With the equivalent values in a private local `.env`, `npm run release:check` reports missing variable names without displaying their values. This validates configuration, not connectivity. Normal local development should keep its own local-only `.env`; do not run development commands against production credentials.
 
-The backend uses synchronous `node:sqlite` queries and local uploaded files. Vercel Functions do not provide a durable shared local filesystem. Deploying this server unchanged would not produce a persistent working forum.
+## 3. Connect identity and email
 
-The next infrastructure milestone is to select cloud database/object storage services with suitable free quotas, migrate the data-access implementation, and test private file access. No external database adapter is implemented yet. Do not assume that adding a `DATABASE_URL` environment variable changes the existing storage implementation.
+See [authentication](authentication.md). Exact callbacks for the example origin:
 
-References: [Express on Vercel](https://vercel.com/docs/frameworks/backend/express), [SQLite support](https://vercel.com/kb/guide/is-sqlite-supported-in-vercel), [rewrites](https://vercel.com/docs/routing/rewrites).
+- Google: `https://devdevian.vercel.app/api/auth/google/callback`
+- GitHub: `https://devdevian.vercel.app/api/auth/github/callback`
 
-## Release sequence
+Use separate OAuth applications for local development and a stable testing deployment. The free `vercel.app` hostname cannot be verified as your mail-sending domain. Resend delivery to arbitrary users requires a permitted sender; leave email registration disabled until that exists. OAuth can be configured and tested independently. Do not claim email registration is ready based on a test sender.
 
-1. Connect the source repository to the owner's Vercel account and confirm the available project address.
-2. Implement and test durable database/object storage, including authenticated private downloads and migrations.
-3. Create an **empty production database** using schema migrations; never upload the local demo or development database. The starter taxonomy may be seeded, but accounts, sessions, uploads, posts, and events must start empty.
-4. Create separate preview resources. Preview deployments must not use production data or secrets.
-5. Configure production `APP_URL`, exact provider callbacks, email sender, and explicit moderator accounts. See [authentication](authentication.md).
-6. Verify HTTPS, session cookies, account verification, OAuth state, membership boundaries, upload ownership, moderation, pagination, mobile layouts, and backup restoration against the hosted preview.
-7. Publish the verified version and test Google/GitHub sign-in and email delivery with real accounts on the exact production origin.
+## 4. Verify before announcing v0.1.0
 
-Free service quotas and acceptable-use rules must be checked when selecting providers. A free web address does not provide a mail-sending domain. Some transactional mail services require a verified domain.
+On a stable preview with separate resources, verify:
 
-## Local production-like run
+1. Landing screenshots, navigation into `/app`, mobile layout, and reduced-motion behavior.
+2. Real Google/GitHub sign-in, permanent unique usernames, sign-out, and session persistence.
+3. Create a publication, redeploy, and confirm it survives. Check search, pagination, accepted answers, and archive/restore.
+4. Upload a private community attachment. Members can download it; a separate nonmember and signed-out browser cannot.
+5. Submit a report and membership request; only the authorized owner, validator, or platform moderator can act on its scope.
+6. Once a real sender is configured, check six-digit delivery, expiry, resend limits, and incorrect-code limits.
+7. Confirm no fictional accounts or posts exist in the production database. Establish database backup/export and restoration procedures with the selected provider.
 
-```sh
-npm ci
-npm run build
-NODE_ENV=production DB_PATH=data/production-local.sqlite node server.mjs
-```
+Remote transaction behavior, native SDK packaging on Vercel, cold starts, and actual provider callbacks require hosted validation. The synchronous libSQL adapter prioritizes compatibility for the initial release; it should be measured before increasing traffic. A green frontend build alone is insufficient evidence of a working production forum.
 
-This creates a separate, empty local database. It does not deploy to Vercel. Preserve development data rather than deleting it to prepare a release.
+References: [Express functions](https://vercel.com/docs/frameworks/backend/express), [function limits](https://vercel.com/docs/functions/limitations), [local SQLite constraint](https://vercel.com/kb/guide/is-sqlite-supported-in-vercel), [R2 pricing](https://developers.cloudflare.com/r2/pricing/).

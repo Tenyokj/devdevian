@@ -75,8 +75,8 @@ export function AttachmentPicker({ files, onChange, onBusy }) {
               setError("Up to 5 files per message.");
               return;
             }
-            if (selected.some((f) => !f.size || f.size > 10 * 1024 * 1024)) {
-              setError("Files must be non-empty and at most 10 MB each.");
+            if (selected.some((f) => !f.size || f.size > 4 * 1024 * 1024)) {
+              setError("Files must be non-empty and at most 4 MB each.");
               return;
             }
             setBusy(true);
@@ -106,7 +106,7 @@ export function AttachmentPicker({ files, onChange, onBusy }) {
           }}
         />
       </label>
-      <small>5 files · 10 MB each · photos, PDF, ZIP, text/code</small>
+      <small>5 files · 4 MB each · photos, PDF, ZIP, text/code</small>
       {files.length > 0 && (
         <div className="selected-files">
           {files.map((f) => (

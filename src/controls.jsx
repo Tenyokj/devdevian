@@ -468,7 +468,7 @@ export function MediaPicker({ name, label, multiple = false, initial }) {
         <span>
           {busy ? "Uploading…" : multiple ? "Add images" : "Choose image"}
         </span>
-        <small>PNG, JPG, WebP or GIF · 10 MB</small>
+        <small>PNG, JPG, WebP or GIF · 4 MB</small>
         <input
           type="file"
           accept="image/png,image/jpeg,image/webp,image/gif"
@@ -482,8 +482,8 @@ export function MediaPicker({ name, label, multiple = false, initial }) {
             try {
               const uploaded = [];
               for (const f of picked.slice(0, multiple ? 10 - ids.length : 1)) {
-                if (f.size > 10 * 1024 * 1024)
-                  throw Error("Images must be under 10 MB.");
+                if (f.size > 4 * 1024 * 1024)
+                  throw Error("Images must be under 4 MB.");
                 const r = await fetch("/api/uploads", {
                   method: "POST",
                   headers: {

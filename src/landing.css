@@ -1736,3 +1736,17 @@ body.landing-page {
     display: none;
   }
 }
+
+html:has(body.landing-page) {
+  scroll-behavior: smooth;
+  scroll-padding-top: 26px;
+}
+.landing-screenshot > img {
+  transition: transform .55s cubic-bezier(.22,1,.36,1), box-shadow .55s ease;
+}
+@media (hover:hover) and (prefers-reduced-motion:no-preference) {
+  .landing-screenshot:hover > img { transform: translateY(-4px); box-shadow: 0 25px 85px #58478725; }
+}
+@media (prefers-reduced-motion:reduce) {
+  html:has(body.landing-page) { scroll-behavior: auto; }
+}

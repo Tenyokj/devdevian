@@ -1,6 +1,6 @@
 {
-  "feed": null,
-  "conversation": null,
-  "community": null,
-  "project": null
+  "feed": "/screenshots/feed-screen.png",
+  "conversation": "/screenshots/conversation-screen.png",
+  "community": "/screenshots/community-screen.png",
+  "project": "/screenshots/orbit-screen.png"
 }

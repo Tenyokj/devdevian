@@ -400,11 +400,6 @@ export function registerDomain(app, db, required, profile) {
     const { body, parent_id = null, attachment_ids = [] } = req.body;
     if (!validFiles(db, req.user, attachment_ids))
       return res.status(400).json({ error: "Check your reply attachments." });
-    if (parent_id && replyPath(db, p.id, parent_id).length >= 12)
-      return res.status(400).json({
-        error:
-          "This thread is deeply nested. Reply higher in the conversation.",
-      });
     if (!text(body, 10000, 2))
       return res
         .status(400)
@@ -419,6 +414,11 @@ export function registerDomain(app, db, required, profile) {
       return res.status(400).json({
         error:
           "The reply you are responding to does not belong to this conversation.",
+      });
+    if (parent_id && replyPath(db, p.id, parent_id).length >= 12)
+      return res.status(400).json({
+        error:
+          "This thread is deeply nested. Reply higher in the conversation.",
       });
     if (recentLimit(req.user, "replies", 5, 15))
       return res

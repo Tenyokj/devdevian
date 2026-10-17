@@ -1,7 +1,6 @@
 import express from "express";
 import { randomUUID } from "node:crypto";
-import { mkdirSync, writeFileSync, readFileSync } from "node:fs";
-import { join, dirname } from "node:path";
+import { objectStorage } from "./object-storage.mjs";
 import { canRead } from "./spaces.mjs";
 export function attachments(db, postId, replyId = null) {
   return db
@@ -34,19 +33,15 @@ export function attachFiles(db, postId, user, ids = [], replyId = null) {
     ).run(postId, replyId, id, user.id);
 }
 export function registerUploads(app, db, required) {
-  const folder = join(
-    dirname(process.env.DB_PATH || "data/arc.sqlite"),
-    "uploads",
-  );
-  mkdirSync(folder, { recursive: true });
+  const storage = objectStorage();
   db.exec(
     "CREATE TABLE IF NOT EXISTS uploads(id TEXT PRIMARY KEY,user_id INTEGER NOT NULL,post_id INTEGER,reply_id INTEGER,name TEXT NOT NULL,mime TEXT NOT NULL,size INTEGER NOT NULL,created TEXT DEFAULT CURRENT_TIMESTAMP); CREATE INDEX IF NOT EXISTS uploads_post ON uploads(post_id,reply_id);",
   );
   app.post(
     "/api/uploads",
     required,
-    express.raw({ type: "application/octet-stream", limit: "10mb" }),
-    (req, res) => {
+    express.raw({ type: "application/octet-stream", limit: "4mb" }),
+    async (req, res) => {
       if (!Buffer.isBuffer(req.body) || !req.body.length)
         return res.status(400).json({ error: "Choose a non-empty file." });
       let name;
@@ -98,16 +93,21 @@ export function registerUploads(app, db, required) {
           .status(429)
           .json({ error: "Daily upload limit reached (100 files)." });
       const id = randomUUID();
-      writeFileSync(join(folder, id), b, { flag: "wx" });
-      db.prepare(
-        "INSERT INTO uploads(id,user_id,name,mime,size) VALUES(?,?,?,?,?)",
-      ).run(id, req.user.id, name, mime, b.length);
+      await storage.put(id, b, mime);
+      try {
+        db.prepare(
+          "INSERT INTO uploads(id,user_id,name,mime,size) VALUES(?,?,?,?,?)",
+        ).run(id, req.user.id, name, mime, b.length);
+      } catch (error) {
+        await storage.remove(id).catch(() => {});
+        throw error;
+      }
       res
         .status(201)
         .json({ id, name, mime, size: b.length, url: "/api/uploads/" + id });
     },
   );
-  app.get("/api/uploads/:id", (req, res) => {
+  app.get("/api/uploads/:id", async (req, res) => {
     const f = db.prepare("SELECT * FROM uploads WHERE id=?").get(req.params.id);
     if (!f) return res.status(404).json({ error: "File not found." });
     const permitted = f.post_id
@@ -132,7 +132,7 @@ export function registerUploads(app, db, required) {
       `${f.mime.startsWith("image/") ? "inline" : "attachment"}; filename*=UTF-8''${encodeURIComponent(f.name)}`,
     );
     try {
-      res.send(readFileSync(join(folder, f.id)));
+      res.send(await storage.get(f.id));
     } catch {
       res.status(404).end();
     }

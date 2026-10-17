@@ -1,0 +1,16 @@
+data/
+backups/
+.local-docs/
+.test-data/
+.env
+.env.*
+!.env.example
+.git/
+.github/
+tests/
+scripts/seed-screenshots.mjs
+scripts/check-screenshot-data.mjs
+scripts/demo.mjs
+*.sqlite
+*.sqlite-*
+*.log

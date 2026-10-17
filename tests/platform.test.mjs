@@ -1,3 +1,4 @@
+import { startS3Fixture } from "./s3-fixture.mjs";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
@@ -34,9 +35,16 @@ test("Devdevian application scenarios with an isolated database", async (t) => {
   await new Promise((r) => probe.listen(0, "127.0.0.1", r));
   const port = probe.address().port;
   await new Promise((r) => probe.close(r));
+  const objectStore =
+    process.env.TEST_S3 === "1" ? await startS3Fixture() : null;
   const server = spawn(process.execPath, ["server.mjs"], {
     env: {
       ...process.env,
+      TURSO_DATABASE_URL: "",
+      TURSO_AUTH_TOKEN: "",
+      UPLOAD_DRIVER: "local",
+      VERCEL: "",
+      ...(objectStore?.env || {}),
       NODE_ENV: "test",
       DEMO_MODE: "1",
       AUTH_TEST_UNVERIFIED: "1",
@@ -381,10 +389,22 @@ test("Devdevian application scenarios with an isolated database", async (t) => {
         assert.equal(list.data[0].organizer_name, "Author");
         assert.ok(list.data[0].url);
         // The same instant is Jan 16 in Tokyo and Jan 15 in Kyiv.
-        assert.equal((await anon("/events?date=2030-01-16&timezone=Asia%2FTokyo")).data[0].id, event.id);
-        assert.equal((await anon("/events?date=2030-01-15&timezone=Asia%2FTokyo")).data.length, 0);
+        assert.equal(
+          (await anon("/events?date=2030-01-16&timezone=Asia%2FTokyo")).data[0]
+            .id,
+          event.id,
+        );
+        assert.equal(
+          (await anon("/events?date=2030-01-15&timezone=Asia%2FTokyo")).data
+            .length,
+          0,
+        );
         assert.equal((await anon("/events?date=2030-02-30")).status, 400);
-        assert.equal((await anon("/events?date=2030-01-15&timezone=Invalid%2FZone")).status, 400);
+        assert.equal(
+          (await anon("/events?date=2030-01-15&timezone=Invalid%2FZone"))
+            .status,
+          400,
+        );
       },
     );
     await t.test(
@@ -1956,5 +1976,6 @@ test("Devdevian application scenarios with an isolated database", async (t) => {
     server.kill("SIGTERM");
     await new Promise((r) => server.once("exit", r));
     rmSync(directory, { recursive: true, force: true });
+    await objectStore?.close();
   }
 });

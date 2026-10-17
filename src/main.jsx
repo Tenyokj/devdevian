@@ -82,7 +82,6 @@ import {
 import {
   api,
   types,
-  demoPosts,
   dateOnly,
   dateTime,
   localZone,
@@ -291,7 +290,7 @@ export function App() {
     setDetailError("");
     window.scrollTo(0, 0);
     let active = true;
-    if (page === "post" && !id?.startsWith("demo"))
+    if (page === "post")
       api(
         "/posts/" +
           encodeURIComponent(id) +
@@ -390,10 +389,6 @@ export function App() {
     }
   }
   async function vote(p) {
-    if (p.demo) {
-      setToast("This is an example. Start a real conversation to try it.");
-      return;
-    }
     authorized(async () => {
       try {
         const updated = await api(`/posts/${p.id}/vote`, { method: "POST" });
@@ -432,19 +427,10 @@ export function App() {
   const isFeed =
     ["feed", "tag", "saved"].includes(page) ||
     (page === "community" && community?.is_member);
-  const showExamples =
-    page === "feed" &&
-    !posts.length &&
-    !query &&
-    typeFilter === "all" &&
-    (!posts.pagination || posts.pagination.public_total === 0);
-  let feed = showExamples
-    ? demoPosts
-    : posts.filter(
-        (p) =>
-          page === "saved" ||
-          (page === "community" ? p.community_id === id : !p.community_id),
-      );
+  const feed = posts.filter((p) =>
+    page === "saved" ||
+    (page === "community" ? p.community_id === id : !p.community_id),
+  );
   const create = (kind = "discussion", topic = page === "tag" ? id : "web") =>
     authorized(() =>
       setComposer({
@@ -872,15 +858,6 @@ export function App() {
                           </Select>
                         </label>
                       </div>
-                      {showExamples && (
-                        <div className="example-notice">
-                          <Sparkles size={14} />
-                          <span>
-                            A fresh start. These are example conversations —
-                            yours can be the first real one.
-                          </span>
-                        </div>
-                      )}
                       {feed.length ? (
                         <div className="post-list">
                           {feed.map((p) => (
@@ -890,15 +867,9 @@ export function App() {
                               topicName={topicName(p.topic)}
                               saved={has("post", p.id)}
                               onVote={() => vote(p)}
-                              onSave={() =>
-                                p.demo
-                                  ? setToast("Example posts cannot be saved.")
-                                  : membership("post", p.id)
-                              }
+                              onSave={() => membership("post", p.id)}
                               onOpen={() => go("post/" + p.id)}
-                              onMember={() =>
-                                !p.demo && go("member/" + p.user_id)
-                              }
+                              onMember={() => go("member/" + p.user_id)}
                             />
                           ))}
                         </div>
@@ -1255,11 +1226,6 @@ export function App() {
                     action="Back to the feed"
                     onClick={() => go("feed")}
                   />
-                ) : id?.startsWith("demo") ? (
-                  <DemoDetail
-                    post={demoPosts.find((p) => p.id === id)}
-                    create={create}
-                  />
                 ) : detail ? (
                   <PostDetail
                     post={detail}
@@ -1484,9 +1450,7 @@ function PostCard({
           </span>
         )}
         <span className="post-date">
-          {p.demo
-            ? "EXAMPLE"
-            : dateOnly(p.created) + (p.updated_at ? " · edited" : "")}
+          {dateOnly(p.created) + (p.updated_at ? " · edited" : "")}
         </span>
         </div>
       </div>
@@ -1536,7 +1500,6 @@ function PostCard({
             className={"vote-button " + (p.voted ? "voted" : "")}
             onClick={onVote}
             aria-label={p.voted ? "Remove upvote" : "Upvote conversation"}
-            disabled={p.demo}
           >
             <ArrowUp size={15} />
             {p.vote_count}
@@ -1550,7 +1513,6 @@ function PostCard({
             className={saved ? "is-saved" : ""}
             onClick={onSave}
             aria-label={saved ? "Remove bookmark" : "Save conversation"}
-            disabled={p.demo}
           >
             <Bookmark size={16} fill={saved ? "currentColor" : "none"} />
           </button>
@@ -1673,48 +1635,6 @@ function RightRail({
         <span className="manifesto-line" />
       </div>
     </aside>
-  );
-}
-function DemoDetail({ post, create }) {
-  if (!post) return <Empty title="Example not found." />;
-  return (
-    <div className="detail-layout">
-      <a href="#feed" className="back-link">
-        <ArrowLeft size={15} />
-        Back to the feed
-      </a>
-      <div className="example-notice">
-        <Sparkles size={15} />
-        This is an illustrative conversation. It has no real author, votes, or
-        replies.
-      </div>
-      <article className="post-detail">
-        <span className={"kind-badge " + types[post.kind].color}>
-          {types[post.kind].label}
-        </span>
-        <h1>{post.title}</h1>
-        <div className="detail-author">
-          <Avatar name={post.name} />
-          <span>
-            {post.name}
-            <small>Example developer profile</small>
-          </span>
-        </div>
-        <MD>{post.body}</MD>
-        <div className="post-tags">
-          {tags(post.stack).map((t) => (
-            <span key={t}>{t}</span>
-          ))}
-        </div>
-      </article>
-      <Empty
-        icon={MessagesSquare}
-        title="Make the next conversation a real one."
-        description="Share a question or a project with the community."
-        action="Start a conversation"
-        onClick={() => create(post.kind, post.topic)}
-      />
-    </div>
   );
 }
 function PostDetail({
