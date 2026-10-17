@@ -1,3 +1,4 @@
+import { mailReady, sendVerificationCode as sendCode } from "./mail.mjs";
 import { validUsername } from "./preferences.mjs";
 import {
   randomBytes,
@@ -13,25 +14,6 @@ const configured = (p) =>
     process.env[p.toUpperCase() + "_CLIENT_ID"] &&
     process.env[p.toUpperCase() + "_CLIENT_SECRET"]
   );
-const mailReady = () => !!(process.env.RESEND_API_KEY && process.env.MAIL_FROM);
-async function sendCode(email, code) {
-  const response = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    signal: AbortSignal.timeout(15000),
-    headers: {
-      Authorization: "Bearer " + process.env.RESEND_API_KEY,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      from: process.env.MAIL_FROM,
-      to: [email],
-      subject: "Your Devdevian verification code",
-      text: `Your verification code is ${code}. It expires in 10 minutes. If you did not request this, ignore this email.`,
-    }),
-  });
-  if (!response.ok)
-    throw Error("Email delivery failed. Please try again later.");
-}
 export function registerAuth(app, db, { required, session, profile, rate }) {
   const cols = db.prepare("PRAGMA table_info(users)").all();
   if (!cols.some((c) => c.name === "email_verified"))
@@ -80,12 +62,10 @@ export function registerAuth(app, db, { required, session, profile, rate }) {
           "Enter your name, a valid email and a password with at least 8 characters.",
       });
     if (!validUsername(username))
-      return res
-        .status(400)
-        .json({
-          error:
-            "Choose your permanent username: 3–30 letters, digits or underscores, starting with a letter.",
-        });
+      return res.status(400).json({
+        error:
+          "Choose your permanent username: 3–30 letters, digits or underscores, starting with a letter.",
+      });
     if (
       db
         .prepare("SELECT 1 FROM users WHERE username=? COLLATE NOCASE")
@@ -176,22 +156,18 @@ export function registerAuth(app, db, { required, session, profile, rate }) {
         .status(409)
         .json({ error: "This email is already registered. Sign in instead." });
     if (!validUsername(r.username))
-      return res
-        .status(400)
-        .json({
-          error: "Start registration again and choose your permanent username.",
-        });
+      return res.status(400).json({
+        error: "Start registration again and choose your permanent username.",
+      });
     if (
       db
         .prepare("SELECT 1 FROM users WHERE username=? COLLATE NOCASE")
         .get(r.username)
     )
-      return res
-        .status(409)
-        .json({
-          error:
-            "This username was taken while you were verifying. Start registration again with another username.",
-        });
+      return res.status(409).json({
+        error:
+          "This username was taken while you were verifying. Start registration again with another username.",
+      });
     let id;
     db.exec("BEGIN");
     try {

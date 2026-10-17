@@ -1,3 +1,4 @@
+import { mailReady } from "../mail.mjs";
 import { loadEnvFile } from "node:process";
 import { readFileSync, existsSync } from "node:fs";
 import { assertRuntime, storageKeys } from "../runtime-config.mjs";
@@ -31,7 +32,7 @@ for (const file of Object.values(media))
 console.log(
   "Configuration and screenshot checks passed. No live service connection was attempted.",
 );
-if (!process.env.RESEND_API_KEY || !process.env.MAIL_FROM)
+if (!mailReady())
   console.log(
     "Email registration remains disabled until a verified email sender is configured. OAuth can be tested separately.",
   );
