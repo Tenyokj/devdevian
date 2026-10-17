@@ -50,6 +50,8 @@ npm start                # local production-mode server, after building
 
 Before the first browser test, install Chromium with `npx playwright install chromium`. Tests create isolated databases and never reset the development database. Browser artifacts are written to the ignored `.test-data/browser/` directory.
 
+Landing screenshots are configured in `src/landing-media.json`; see the [capture guide](public/landing/README.md). Unconfigured images retain labeled placeholders. The landing has a fixed dark palette and respects reduced-motion preferences without changing the forum's saved theme.
+
 Server modules live at the repository root, React UI in `src/`, and tests in `tests/`. `scripts/demo.mjs` is local acceptance tooling. Comments explain important access, transaction, timezone, and identity boundaries.
 
 ## Data and configuration

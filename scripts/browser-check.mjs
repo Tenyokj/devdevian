@@ -64,16 +64,45 @@ try {
   expect(registered.ok()).toBeTruthy();
   // Verify both public entry points and responsive landing layouts.
   await page.goto(base);
-  await expect(page.locator(".landing-hero h1")).toContainText("Good code starts");
+  await expect(page.locator(".landing-hero .hero-logo")).toBeVisible();
+  await expect(page.locator(".landing-faq details")).toHaveCount(7);
+  await expect(page.getByRole("button", {name:/Switch to .* theme/})).toHaveCount(0);
+  await page.getByRole("tab",{name:"Code reviews",exact:true}).click();
+  await expect(page.getByRole("tabpanel")).toContainText("error handling");
+  await page.getByRole("tab",{name:"Code reviews",exact:true}).press("ArrowRight");
+  await expect(page.getByRole("tab",{name:"Show & tell",exact:true})).toBeFocused();
+  await page.getByRole("button",{name:"Try the suggested change",exact:true}).click();
+  await expect(page.locator(".landing-code-card pre")).toContainText("if (!response.ok)");
+  await context.grantPermissions(["clipboard-read", "clipboard-write"], { origin: base });
+  await page.getByRole("button", { name: "Copy example code", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Copy example code", exact: true })).toContainText("Copied");
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toContain("if (!response.ok)");
+  await page.getByRole("button",{name:"Suggestion applied · reset example",exact:true}).click();
+  await expect(page.locator(".landing-code-card pre")).not.toContainText("if (!response.ok)");
+  await page.locator(".faq-list summary").first().click();
+  await expect(page.locator(".faq-list details").first()).toHaveAttribute("open", "");
   for (const [name, width, height] of [["desktop",1440,1000],["tablet",834,1112],["mobile",390,844]]) {
     await page.setViewportSize({width,height});
-    await page.waitForTimeout(200);
+    // Reveal each section as a visitor would before recording the full page.
+    await page.evaluate(async () => {
+      for (const section of document.querySelectorAll('[data-reveal]')) {
+        section.scrollIntoView();
+        await new Promise(resolve => setTimeout(resolve, 70));
+      }
+      window.scrollTo(0, 0);
+    });
+    await page.waitForTimeout(800);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
     await page.screenshot({path:artifacts+"/landing-"+name+".png",fullPage:true,animations:"disabled"});
   }
-  await page.getByRole("button",{name:"Switch to light theme",exact:true}).or(page.getByRole("button",{name:"Switch to dark theme",exact:true})).click();
-  await page.goto(base + "/#how-it-works");
-  await expect(page.locator(".landing-steps")).toBeVisible();
+  await page.goto(base + "/#faq");
+  await expect(page.locator(".landing-faq")).toBeVisible();
+  const reduced = await context.newPage();
+  await reduced.emulateMedia({ reducedMotion: "reduce" });
+  await reduced.goto(base);
+  expect(await reduced.locator(".hero-logo-stage").evaluate(e => getComputedStyle(e).animationName)).toBe("none");
+  await expect(reduced.locator(".landing-intro")).toHaveCSS("opacity", "1");
+  await reduced.close();
   await page.setViewportSize({width:1440,height:1000});
   await page.evaluate(() => localStorage.setItem("devdevian-theme", "light"));
   await page.goto(base + "/app");

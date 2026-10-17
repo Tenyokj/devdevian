@@ -2635,6 +2635,6 @@ function Participation({ user, go }) {
 if (!import.meta.env.SSR)
   createRoot(document.getElementById("root")).render(
     window.location.pathname === "/" &&
-    (!window.location.hash || ["#possibilities", "#your-people", "#how-it-works"].includes(window.location.hash))
+    (!window.location.hash || ["#possibilities", "#your-people", "#how-it-works", "#explore", "#community", "#open-source", "#faq"].includes(window.location.hash))
       ? <Landing /> : <App />,
   );
