@@ -193,7 +193,7 @@ try {
   const track = page.locator(".stack-track");
   await page.locator(".stack-ribbon").scrollIntoViewIfNeeded();
   await expect(page.locator(".stack-group").first().locator("a")).toHaveCount(
-    9,
+    10,
   );
   expect(
     await page

@@ -2,9 +2,11 @@
 
 ## Brand marks
 
-The SVGs in `public/brands/` were obtained from [Simple Icons](https://github.com/simple-icons/simple-icons), distributed under [CC0-1.0](https://github.com/simple-icons/simple-icons/blob/develop/LICENSE.md). They represent Supabase, Turso, Vercel, React, Vite, Node.js, GitHub, Google, and Brevo.
+Except for `codex.svg`, the SVGs in `public/brands/` were obtained from [Simple Icons](https://github.com/simple-icons/simple-icons), distributed under [CC0-1.0](https://github.com/simple-icons/simple-icons/blob/develop/LICENSE.md). They represent Supabase, Turso, Vercel, React, Vite, Node.js, GitHub, Google, and Brevo.
 
 CC0 describes the icon collection's copyright licensing; names and marks may still be subject to their owners' trademark policies. Their use identifies technologies and services used by this project and does not imply endorsement, partnership, sponsorship, or ownership of Devdevian.
+
+The Codex entry uses a project-authored terminal glyph (`codex.svg`) to identify the coding-assistant credit; it is not an official OpenAI brand mark. The Codex name belongs to OpenAI.
 
 ## Dependencies and fonts
 

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Pause, Play, ArrowUpRight } from "lucide-react";
 const stack = [
+  ["codex", "Codex", "AI coding assistant", "https://openai.com/codex/"],
   ["supabase", "Supabase", "File storage", "https://supabase.com/"],
   ["turso", "Turso", "Database", "https://turso.tech/"],
   ["vercel", "Vercel", "Hosting", "https://vercel.com/"],
