@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "node server.mjs",
-    "build": "vite build",
+    "build": "vite build && node scripts/prerender.mjs",
     "test": "node --test tests/*.test.mjs",
     "start": "NODE_ENV=production node server.mjs",
     "demo": "npm run build && node scripts/demo.mjs",

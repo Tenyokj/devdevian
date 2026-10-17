@@ -44,6 +44,7 @@ app.disable("x-powered-by");
 app.use(express.json({ limit: "256kb" }));
 app.use("/api", (req, res, next) => {
   res.setHeader("Cache-Control", "no-store");
+  res.setHeader("X-Robots-Tag", "noindex, nofollow");
   if (
     req.method !== "GET" &&
     req.headers.origin &&
@@ -419,9 +420,17 @@ registerEventManagement(app, db, required);
 registerReplies(app, db);
 if (process.env.VERCEL !== "1") {
   if (process.env.NODE_ENV === "production" || process.env.DEMO_MODE === "1") {
-    app.use(express.static("dist"));
-    app.get("/{*path}", (req, res) =>
-      res.sendFile(`${process.cwd()}/dist/index.html`),
+    app.use(express.static("dist", { redirect: false }));
+    app.get(["/privacy", "/terms"], (req, res) =>
+      res.sendFile(`${process.cwd()}/dist${req.path}/index.html`),
+    );
+    app.get(["/app", "/app/{*path}"], (req, res) =>
+      res
+        .set("X-Robots-Tag", "noindex, follow")
+        .sendFile(`${process.cwd()}/dist/app/index.html`),
+    );
+    app.use((req, res) =>
+      res.status(404).sendFile(`${process.cwd()}/dist/404.html`),
     );
   } else {
     const { createServer } = await import("vite");

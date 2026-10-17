@@ -20,7 +20,7 @@ import React, {
   useRef,
   useLayoutEffect,
 } from "react";
-import { createRoot } from "react-dom/client";
+import { createRoot, hydrateRoot } from "react-dom/client";
 import {
   Compass,
   MessagesSquare,
@@ -2554,23 +2554,27 @@ function Participation({ user, go }) {
     />
   );
 }
-if (!import.meta.env.SSR)
-  createRoot(document.getElementById("root")).render(
-    ["/privacy", "/terms"].includes(window.location.pathname) ? (
-      <PolicyPage type={window.location.pathname.slice(1)} />
-    ) : window.location.pathname === "/" &&
-      (!window.location.hash ||
-        [
-          "#possibilities",
-          "#your-people",
-          "#how-it-works",
-          "#explore",
-          "#community",
-          "#open-source",
-          "#faq",
-        ].includes(window.location.hash)) ? (
-      <Landing />
-    ) : (
-      <App />
-    ),
+if (!import.meta.env.SSR) {
+  const root = document.getElementById("root");
+  const page = ["/privacy", "/terms"].includes(window.location.pathname) ? (
+    <PolicyPage type={window.location.pathname.slice(1)} />
+  ) : window.location.pathname === "/" &&
+    (!window.location.hash ||
+      [
+        "#possibilities",
+        "#your-people",
+        "#how-it-works",
+        "#explore",
+        "#community",
+        "#open-source",
+        "#faq",
+      ].includes(window.location.hash)) ? (
+    <Landing />
+  ) : (
+    <App />
   );
+  const isPublic = page.type !== App;
+  if (isPublic && root.dataset.prerender === location.pathname)
+    hydrateRoot(root, page);
+  else createRoot(root).render(page);
+}

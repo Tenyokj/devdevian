@@ -56,6 +56,13 @@ try {
     }),
     page = await context.newPage();
   page.on("pageerror", (e) => errors.push(e.message));
+  page.on("console", (message) => {
+    if (
+      message.type() === "error" &&
+      /hydration|Minified React error #(?:418|423|425)/i.test(message.text())
+    )
+      errors.push(message.text());
+  });
   const base = `http://127.0.0.1:${port}`;
   const second = await browser.newContext();
   const registered = await second.request.post(base + "/api/register", {
@@ -94,6 +101,32 @@ try {
   await expect(page.locator(".auth-modal input[type=password]")).toBeVisible();
   await page.unroute("**/api/auth/link/pending");
   await page.unroute("**/api/auth/link/verify");
+  const rawLanding = await context.request.get(base + "/");
+  expect(rawLanding.ok()).toBeTruthy();
+  expect(await rawLanding.text()).toContain('data-prerender="/"');
+  const robotsResponse = await context.request.get(base + "/robots.txt");
+  expect(robotsResponse.ok()).toBeTruthy();
+  expect(await robotsResponse.text()).toContain("/sitemap.xml");
+  const sitemapResponse = await context.request.get(base + "/sitemap.xml");
+  expect(sitemapResponse.ok()).toBeTruthy();
+  expect(await sitemapResponse.text()).toContain("/privacy</loc>");
+  const appShell = await context.request.get(base + "/app");
+  expect(appShell.headers()["x-robots-tag"]).toBe("noindex, follow");
+  expect((await context.request.get(base + "/does-not-exist")).status()).toBe(
+    404,
+  );
+  const staticContext = await browser.newContext({ javaScriptEnabled: false });
+  const staticPage = await staticContext.newPage();
+  await staticPage.goto(base + "/");
+  await expect(staticPage.locator(".landing-intro h1")).toBeVisible();
+  await staticPage.goto(base + "/privacy");
+  await expect(
+    staticPage.getByRole("heading", { level: 1, name: "Privacy & Security" }),
+  ).toBeVisible();
+  await expect(staticPage.locator(".policy-content")).toContainText(
+    "What we collect and why",
+  );
+  await staticContext.close();
   // Verify both public entry points and responsive landing layouts.
   await page.goto(base);
   await expect(page.locator(".landing-hero .hero-logo")).toBeVisible();
@@ -242,6 +275,14 @@ try {
     ["terms", "Terms of Use"],
   ]) {
     await page.goto(base + "/" + path);
+    await expect(page.locator("link[rel=canonical]")).toHaveAttribute(
+      "href",
+      "https://devdevian.vercel.app/" + path,
+    );
+    await expect(page.locator('meta[property="og:title"]')).toHaveAttribute(
+      "content",
+      title + " · Devdevian",
+    );
     await expect(
       page.getByRole("heading", { level: 1, name: title }),
     ).toBeVisible();
