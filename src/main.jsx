@@ -79,14 +79,7 @@ import {
   ProfileEditor,
   ChooseUsername,
 } from "./forms";
-import {
-  api,
-  types,
-  dateOnly,
-  dateTime,
-  localZone,
-  tags,
-} from "./data";
+import { api, types, dateOnly, dateTime, localZone, tags } from "./data";
 import { initialTheme, applyTheme } from "./theme";
 import {
   NotificationCenter,
@@ -132,12 +125,21 @@ export function App() {
   useLayoutEffect(() => applyTheme(theme), [theme]);
   const route = useRoute();
   useEffect(() => {
-    const error = new URLSearchParams(location.search).get("auth_error");
+    const params = new URLSearchParams(location.search);
+    if (params.has("auth_link")) {
+      setAuth("link");
+      history.replaceState(null, "", location.pathname + location.hash);
+    }
+    const error = params.get("auth_error");
     if (error) {
       setToast(
         error === "link_existing"
           ? "This email already has an account. Sign in, then connect this provider in Settings."
-          : "Sign-in was cancelled or could not be completed. Please try again.",
+          : error === "link_wait"
+            ? "A confirmation code was sent recently. Check the earlier sign-in tab, or wait one minute and start again."
+            : error === "link_mail"
+              ? "Could not send the sign-in confirmation. Try again, or use your existing sign-in method."
+              : "Sign-in was cancelled or could not be completed. Please try again.",
       );
       history.replaceState(null, "", location.pathname + location.hash);
     }
@@ -268,15 +270,7 @@ export function App() {
   ]);
   useEffect(() => {
     setListPage(1);
-  }, [
-    route,
-    query,
-    sort,
-    typeFilter,
-    eventTopic,
-    eventDate,
-    eventOrder,
-  ]);
+  }, [route, query, sort, typeFilter, eventTopic, eventDate, eventOrder]);
   useEffect(() => {
     refresh().catch(() => {});
   }, [refresh]);
@@ -427,9 +421,10 @@ export function App() {
   const isFeed =
     ["feed", "tag", "saved"].includes(page) ||
     (page === "community" && community?.is_member);
-  const feed = posts.filter((p) =>
-    page === "saved" ||
-    (page === "community" ? p.community_id === id : !p.community_id),
+  const feed = posts.filter(
+    (p) =>
+      page === "saved" ||
+      (page === "community" ? p.community_id === id : !p.community_id),
   );
   const create = (kind = "discussion", topic = page === "tag" ? id : "web") =>
     authorized(() =>
@@ -1444,14 +1439,14 @@ function PostCard({
           <span className="post-type-label">{t.label}</span>
         </div>
         <div className="post-card-meta">
-        {(p.archived_at || p.locked_at) && (
-          <span className="kind-badge violet">
-            {p.locked_at ? "Replies paused" : "Archived"}
+          {(p.archived_at || p.locked_at) && (
+            <span className="kind-badge violet">
+              {p.locked_at ? "Replies paused" : "Archived"}
+            </span>
+          )}
+          <span className="post-date">
+            {dateOnly(p.created) + (p.updated_at ? " · edited" : "")}
           </span>
-        )}
-        <span className="post-date">
-          {dateOnly(p.created) + (p.updated_at ? " · edited" : "")}
-        </span>
         </div>
       </div>
       <button className="post-title" onClick={onOpen}>
@@ -2555,6 +2550,18 @@ function Participation({ user, go }) {
 if (!import.meta.env.SSR)
   createRoot(document.getElementById("root")).render(
     window.location.pathname === "/" &&
-    (!window.location.hash || ["#possibilities", "#your-people", "#how-it-works", "#explore", "#community", "#open-source", "#faq"].includes(window.location.hash))
-      ? <Landing /> : <App />,
+      (!window.location.hash ||
+        [
+          "#possibilities",
+          "#your-people",
+          "#how-it-works",
+          "#explore",
+          "#community",
+          "#open-source",
+          "#faq",
+        ].includes(window.location.hash)) ? (
+      <Landing />
+    ) : (
+      <App />
+    ),
   );

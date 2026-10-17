@@ -34,6 +34,24 @@ export function Auth({ mode, setMode, done, close }) {
       .then(setProviders)
       .catch(() => {});
   }, []);
+  useEffect(() => {
+    if (mode !== "link") return;
+    let active = true;
+    setBusy(true);
+    api("/auth/link/pending")
+      .then((result) => {
+        if (active) setChallenge({ ...result, linking: true });
+      })
+      .catch((error) => {
+        if (active) setError(error.message);
+      })
+      .finally(() => {
+        if (active) setBusy(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [mode]);
   return (
     <Modal title="Your community awaits" onClose={close} className="auth-modal">
       <div className="auth-art">
@@ -46,14 +64,20 @@ export function Auth({ mode, setMode, done, close }) {
         <span className="auth-star">✳</span>
       </div>
       <h2>
-        {mode === "signup" ? "Find your people." : "Welcome back, builder."}
+        {mode === "link"
+          ? "Confirm it’s you."
+          : mode === "signup"
+            ? "Find your people."
+            : "Welcome back, builder."}
       </h2>
       <p className="modal-description">
-        {mode === "signup"
-          ? "A little curiosity. A good conversation. Your next big thing."
-          : "Pick up a conversation. Move your next idea forward."}
+        {mode === "link"
+          ? "Your account already exists. Confirm once to connect this sign-in method and keep your profile and activity."
+          : mode === "signup"
+            ? "A little curiosity. A good conversation. Your next big thing."
+            : "Pick up a conversation. Move your next idea forward."}
       </p>
-      {!challenge && (
+      {!challenge && mode !== "link" && (
         <>
           <div className="auth-provider-grid">
             {[
@@ -86,8 +110,12 @@ export function Auth({ mode, setMode, done, close }) {
       )}
       {challenge && (
         <p className="form-note">
-          A six-digit code was sent to {challenge.email}. Enter it below to
-          finish creating your account.
+          A six-digit code was sent to {challenge.email}.{" "}
+          {challenge.linking
+            ? "Enter it to sign in to your existing account and connect " +
+              (challenge.provider === "github" ? "GitHub" : "Google") +
+              ". Next time, you can sign in directly."
+            : "Enter it below to finish creating your account."}
         </p>
       )}
       <form
@@ -98,7 +126,9 @@ export function Auth({ mode, setMode, done, close }) {
           try {
             const result = await api(
               challenge
-                ? "/auth/verify"
+                ? challenge.linking
+                  ? "/auth/link/verify"
+                  : "/auth/verify"
                 : mode === "signup"
                   ? "/register"
                   : "/login",
@@ -121,7 +151,7 @@ export function Auth({ mode, setMode, done, close }) {
           }
         }}
       >
-        {!challenge && (
+        {!challenge && mode !== "link" && (
           <>
             {mode === "signup" && (
               <Field label="Your name">
@@ -193,11 +223,16 @@ export function Auth({ mode, setMode, done, close }) {
           </Field>
         )}
         <ErrorMessage error={error} />
-        <button className="button primary full" disabled={busy}>
+        <button
+          className="button primary full"
+          disabled={busy || (mode === "link" && !challenge)}
+        >
           {busy
             ? "One moment…"
             : challenge
-              ? "Verify email & join"
+              ? challenge.linking
+                ? "Confirm & sign in"
+                : "Verify email & join"
               : mode === "signup"
                 ? "Create account"
                 : "Sign in"}
@@ -210,10 +245,13 @@ export function Auth({ mode, setMode, done, close }) {
             onClick={async () => {
               setBusy(true);
               try {
-                await api("/auth/resend", {
-                  method: "POST",
-                  body: { challenge: challenge.challenge },
-                });
+                await api(
+                  challenge.linking ? "/auth/link/resend" : "/auth/resend",
+                  {
+                    method: "POST",
+                    body: { challenge: challenge.challenge },
+                  },
+                );
                 setError("");
               } catch (e) {
                 setError(e.message);
@@ -230,6 +268,7 @@ export function Auth({ mode, setMode, done, close }) {
             onClick={() => {
               setChallenge(null);
               setCode("");
+              setMode("signin");
             }}
           >
             Start again

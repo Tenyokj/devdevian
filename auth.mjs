@@ -1,3 +1,4 @@
+import { registerOAuthLink } from "./oauth-link.mjs";
 import { mailReady, sendVerificationCode as sendCode } from "./mail.mjs";
 import { validUsername } from "./preferences.mjs";
 import {
@@ -32,6 +33,11 @@ export function registerAuth(app, db, { required, session, profile, rate }) {
       .some((c) => c.name === "username")
   )
     db.exec("ALTER TABLE registrations ADD COLUMN username TEXT");
+  const confirmExisting = registerOAuthLink(app, db, {
+    rate,
+    session,
+    profile,
+  });
   app.get("/api/auth/config", (req, res) =>
     res.json({
       google: configured("google"),
@@ -370,12 +376,15 @@ export function registerAuth(app, db, { required, session, profile, rate }) {
         id = flow.link_user;
       }
       if (!id) {
-        if (
-          db
-            .prepare("SELECT 1 FROM users WHERE email=?")
-            .get(email.toLowerCase())
-        )
-          return res.redirect("/?auth_error=link_existing#profile");
+        const existing = db
+          .prepare("SELECT * FROM users WHERE email=? AND deleted_at IS NULL")
+          .get(email.toLowerCase());
+        if (existing)
+          return await confirmExisting(res, {
+            provider: p,
+            subject,
+            user: existing,
+          });
         db.exec("BEGIN");
         try {
           const salt = randomBytes(16).toString("hex"),

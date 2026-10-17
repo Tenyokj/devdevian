@@ -11,6 +11,7 @@ test("verified registration and provider sign-in use real challenges and bound O
   );
   const env = { ...process.env },
     originalFetch = globalThis.fetch;
+  let providerEmail = "provider@example.test";
   let sent = [],
     calls = [];
   process.env.NODE_ENV = "test";
@@ -32,7 +33,7 @@ test("verified registration and provider sign-in use real challenges and bound O
       return Response.json({ id: 901, name: "OAuth developer" });
     if (url === "https://api.github.com/user/emails")
       return Response.json([
-        { email: "provider@example.test", primary: true, verified: true },
+        { email: providerEmail, primary: true, verified: true },
       ]);
     throw Error("Unexpected remote request " + url);
   };
@@ -164,6 +165,7 @@ test("verified registration and provider sign-in use real challenges and bound O
     );
     // A verified provider email does not silently take over an existing password account.
     db.prepare("DELETE FROM oauth_accounts").run();
+    providerEmail = "verify@example.test";
     start = await request("/auth/github/start");
     const state2 = new URL(start.headers.get("location")).searchParams.get(
       "state",
@@ -173,13 +175,95 @@ test("verified registration and provider sign-in use real challenges and bound O
       undefined,
       { Cookie: start.headers.getSetCookie()[0].split(";")[0] },
     );
-    assert.equal(
-      r.headers.get("location"),
-      "/?auth_error=link_existing#profile",
-    );
+    assert.equal(r.headers.get("location"), "/app?auth_link=1#feed");
     assert.ok(
       !r.headers.getSetCookie().some((c) => c.startsWith("test_session=")),
     );
+    const linkCookie = r.headers
+      .getSetCookie()
+      .find((c) => c.startsWith("devdevian_link="))
+      .split(";")[0];
+    const confirmation = sent.at(-1).text.match(/\b\d{6}\b/)[0];
+    assert.equal((await request("/auth/link/pending")).status, 400);
+    assert.equal(
+      (await request("/auth/link/verify", { code: confirmation })).status,
+      400,
+    );
+    const pendingLink = await request("/auth/link/pending", undefined, {
+      Cookie: linkCookie,
+    });
+    assert.equal(pendingLink.status, 200);
+    assert.deepEqual(await pendingLink.json(), {
+      email: "v***@example.test",
+      provider: "github",
+    });
+    const wrong = await request(
+      "/auth/link/verify",
+      { code: confirmation === "000000" ? "000001" : "000000" },
+      { Cookie: linkCookie },
+    );
+    assert.equal(wrong.status, 400);
+    assert.equal(
+      db.prepare("SELECT COUNT(*) n FROM oauth_accounts").get().n,
+      0,
+    );
+    assert.equal(
+      (await request("/auth/link/resend", {}, { Cookie: linkCookie })).status,
+      429,
+    );
+    const linkedLogin = await request(
+      "/auth/link/verify",
+      { code: confirmation },
+      { Cookie: linkCookie },
+    );
+    assert.equal(linkedLogin.status, 200);
+    assert.equal((await linkedLogin.json()).user.id, 1);
+    assert.ok(
+      linkedLogin.headers
+        .getSetCookie()
+        .some((c) => c.startsWith("test_session=1;")),
+    );
+    assert.equal(db.prepare("SELECT COUNT(*) n FROM users").get().n, 2);
+    assert.equal(
+      db
+        .prepare(
+          "SELECT user_id FROM oauth_accounts WHERE provider='github' AND subject='901'",
+        )
+        .get().user_id,
+      1,
+    );
+    assert.equal(
+      db.prepare("SELECT username_locked FROM users WHERE id=1").get()
+        .username_locked,
+      1,
+    );
+    assert.equal(
+      (
+        await request(
+          "/auth/link/verify",
+          { code: confirmation },
+          { Cookie: linkCookie },
+        )
+      ).status,
+      400,
+    );
+    const repeatStart = await request("/auth/github/start");
+    const repeatState = new URL(
+      repeatStart.headers.get("location"),
+    ).searchParams.get("state");
+    const sentBefore = sent.length;
+    const repeatLogin = await request(
+      "/auth/github/callback?state=" + repeatState + "&code=repeat",
+      undefined,
+      { Cookie: repeatStart.headers.getSetCookie()[0].split(";")[0] },
+    );
+    assert.equal(repeatLogin.headers.get("location"), "/#profile");
+    assert.ok(
+      repeatLogin.headers
+        .getSetCookie()
+        .some((c) => c.startsWith("test_session=1;")),
+    );
+    assert.equal(sent.length, sentBefore);
     // Connecting an identity to an existing account must never unlock its handle.
     const linking = await request("/auth/github/start?link=1", undefined, {
       "x-test-user": "1",
@@ -202,8 +286,10 @@ test("verified registration and provider sign-in use real challenges and bound O
       1,
     );
     const duplicate = await request("/register", {
-      name: "Another builder", username: "VERIFIED_BUILDER",
-      email: "another@example.test", password: "Another-password-123",
+      name: "Another builder",
+      username: "VERIFIED_BUILDER",
+      email: "another@example.test",
+      password: "Another-password-123",
     });
     assert.equal(duplicate.status, 409);
     assert.match((await duplicate.json()).error, /already taken/);

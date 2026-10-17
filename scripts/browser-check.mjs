@@ -66,6 +66,34 @@ try {
     },
   });
   expect(registered.ok()).toBeTruthy();
+  // OAuth collisions resume in a code form, without sending visitors to Settings.
+  await page.route("**/api/auth/link/pending", (route) =>
+    route.fulfill({ json: { email: "r***@browser.test", provider: "github" } }),
+  );
+  await page.route("**/api/auth/link/verify", (route) => {
+    expect(route.request().postDataJSON().code).toBe("123456");
+    return route.fulfill({
+      status: 400,
+      json: { error: "Incorrect verification code." },
+    });
+  });
+  await page.goto(base + "/app?auth_link=1#feed");
+  await expect(
+    page.getByRole("heading", { name: "Confirm it’s you." }),
+  ).toBeVisible();
+  await expect(page.locator(".auth-modal input[type=password]")).toHaveCount(0);
+  await expect(page.locator(".auth-modal")).toContainText(
+    "existing account and connect GitHub",
+  );
+  await page.getByLabel("Verification code", { exact: true }).fill("123456");
+  await page.getByRole("button", { name: "Confirm & sign in" }).click();
+  await expect(page.locator(".auth-modal")).toContainText(
+    "Incorrect verification code.",
+  );
+  await page.getByRole("button", { name: "Start again", exact: true }).click();
+  await expect(page.locator(".auth-modal input[type=password]")).toBeVisible();
+  await page.unroute("**/api/auth/link/pending");
+  await page.unroute("**/api/auth/link/verify");
   // Verify both public entry points and responsive landing layouts.
   await page.goto(base);
   await expect(page.locator(".landing-hero .hero-logo")).toBeVisible();
