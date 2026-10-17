@@ -291,6 +291,9 @@ export function registerEnhancements(app, db, required, seed) {
       ...(kind === "post"
         ? { author_avatar: details(db, "user", item.user_id).avatar }
         : {}),
+      ...(kind === "event"
+        ? { organizer_avatar: details(db, "user", item.user_id).avatar }
+        : {}),
       ...(d.team
         ? {
             team: d.team.map((m) => ({

@@ -1477,6 +1477,21 @@ test("Devdevian application scenarios with an isolated database", async (t) => {
         assert.equal(
           (
             await author(
+              "/details/user/" + authorId,
+              { avatar: image.data.id },
+              "PUT",
+            )
+          ).status,
+          200,
+        );
+        const hostedEvent = (await anon("/events")).data.find(
+          (item) => item.id === event.id,
+        );
+        assert.equal(hostedEvent.organizer_avatar, image.data.id);
+
+        assert.equal(
+          (
+            await author(
               "/details/post/" + privatePost.id,
               { logo: image.data.id },
               "PUT",

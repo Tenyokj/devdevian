@@ -1,3 +1,4 @@
+import PolicyPage from "./policies";
 import Landing from "./landing";
 import { Settings } from "./settings";
 import { GlobalSearch } from "./search";
@@ -1326,6 +1327,8 @@ export function App() {
               <span>A work in good company.</span>
             </span>
             <span>
+              <a href="/privacy">Privacy &amp; Security</a>
+              <a href="/terms">Terms of Use</a>
               Stay curious. Build together.
               <button
                 onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
@@ -2118,7 +2121,11 @@ function EventCard({
         <MD>{e.description}</MD>
         <EntityLinks links={e.links} />
         <button className="event-organizer" onClick={onMember}>
-          <Avatar name={e.organizer_name} size="small" />
+          <Avatar
+            name={e.organizer_name}
+            image={e.organizer_avatar}
+            size="small"
+          />
           <span>
             Hosted by <strong>{e.organizer_name}</strong>
           </span>
@@ -2549,7 +2556,9 @@ function Participation({ user, go }) {
 }
 if (!import.meta.env.SSR)
   createRoot(document.getElementById("root")).render(
-    window.location.pathname === "/" &&
+    ["/privacy", "/terms"].includes(window.location.pathname) ? (
+      <PolicyPage type={window.location.pathname.slice(1)} />
+    ) : window.location.pathname === "/" &&
       (!window.location.hash ||
         [
           "#possibilities",

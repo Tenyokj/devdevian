@@ -288,6 +288,15 @@ export function Auth({ mode, setMode, done, close }) {
           {mode === "signup" ? "Sign in" : "Join the community"}
         </button>
       </p>
+      <p className="auth-policy-links">
+        <a href="/privacy" target="_blank" rel="noopener noreferrer">
+          Privacy &amp; Security
+        </a>
+        <span>·</span>
+        <a href="/terms" target="_blank" rel="noopener noreferrer">
+          Terms of Use
+        </a>
+      </p>
       <div className="integration-note">
         <Github size={15} />
         <span>

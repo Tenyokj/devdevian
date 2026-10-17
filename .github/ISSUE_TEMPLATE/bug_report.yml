@@ -1,0 +1,31 @@
+name: Bug report
+description: Report a reproducible problem without private data.
+body:
+  - type: markdown
+    attributes:
+      value: "For vulnerabilities, use SECURITY.md. Never include credentials, codes, cookies, or private community content."
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Include the page and relevant account role, using synthetic data.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected and actual behavior
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Browser, OS, viewport/device, hosted or local, and commit if known.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Screenshots or logs
+      description: Optional. Remove personal information and secrets.

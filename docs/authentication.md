@@ -2,7 +2,7 @@
 
 Email/password registration uses a six-digit verification code. Google and GitHub use OAuth authorization-code flows. Providers remain unavailable until their server-side credentials are configured; delivery is never simulated in normal operation.
 
-Copy `.env.example` to `.env` for local development. Keep secrets out of Git, browser code, logs, and screenshots. Use Vercel's environment settings when the cloud backend is ready, with different values for preview and production.
+Copy `.env.example` to `.env` for local development. Keep secrets out of Git, browser code, logs, and screenshots. Use Vercel's environment settings for hosted deployments, with different values for preview and production.
 
 ## Origins and callbacks
 
@@ -11,7 +11,7 @@ Copy `.env.example` to `.env` for local development. Keep secrets out of Git, br
 | Environment | Origin example |
 | --- | --- |
 | Local | `http://127.0.0.1:4173` |
-| Production | `https://devdevian.vercel.app` (after confirming availability) |
+| Production | `https://devdevian.vercel.app` (hosted instance) |
 
 Callback paths are `/api/auth/google/callback` and `/api/auth/github/callback`. Keep a stable testing origin and separate OAuth clients for local/testing and production where supported. Do not register every short-lived preview address against production credentials.
 
@@ -21,11 +21,13 @@ Create an OAuth web application in Google Cloud, configure the consent screen an
 
 ## GitHub
 
-Create a GitHub OAuth App with the exact homepage and callback origin. Set `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET`. Use a separate app for local development. Existing email accounts must sign in before linking a provider; matching email alone does not silently link identities.
+Create a GitHub OAuth App with the exact homepage and callback origin. Set `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET`. Use a separate app for local development. When a new provider returns an existing account email, the inline flow sends a one-time confirmation code to that address, bound to a browser cookie. Confirmation links the provider and signs into the same account. Subsequent sign-ins use the stored provider identity. Explicit Settings linking requires the existing signed-in session; matching email alone never silently links identities.
 
 ## Verification email
 
-The current implementation sends transactional email through Resend. Set `RESEND_API_KEY` and a permitted `MAIL_FROM`. A verified sending domain is normally required for delivery to arbitrary users; a `vercel.app` address is not a domain you own for mail verification. Without an owned sending domain, select and implement a suitable alternative email provider before public registration. A test sender is not evidence of public delivery readiness.
+Email supports two providers. Set `MAIL_PROVIDER=brevo`, `BREVO_API_KEY`, and `MAIL_FROM` for Brevo, or `MAIL_PROVIDER=resend`, `RESEND_API_KEY`, and `MAIL_FROM` for Resend. Omitting `MAIL_PROVIDER` preserves the Resend default. `MAIL_FROM` must be an email address or a `Name <email>` sender that is verified with the selected provider.
+
+Brevo supports a free plan and individual sender verification; account review/transactional activation may still be required. With a free mailbox sender, Brevo can replace the sender domain with `brevosend.com`. A custom authenticated domain improves control over sender identity and deliverability. Resend requires a permitted sender/domain for delivery to arbitrary users. A `vercel.app` hostname is not a sending domain you own. Check provider terms and test a real recipient; API acceptance alone is not proof of delivery.
 
 The server stores a hash of each code, expiry, attempt count, and resend timing. Verification creates the account only after a valid challenge. Never expose verification codes in the client or disable verification in production.
 

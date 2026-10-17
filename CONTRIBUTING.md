@@ -6,11 +6,13 @@ Thanks for helping improve Devdevian. This is an early development project; focu
 
 For a bug, describe the page, exact steps, expected result, actual result, browser, and viewport. Remove personal data from screenshots. For a significant feature or architectural change, discuss the proposed behavior in an issue before implementing it.
 
+Follow the [code of conduct](CODE_OF_CONDUCT.md).
+
 Do not publish security vulnerabilities in public issues. Follow [SECURITY.md](SECURITY.md).
 
 ## Local setup
 
-Follow the [README](README.md). Use an isolated `DB_PATH` or `npm run demo` when experimenting with account deletion, moderation, or migrations. Never commit environment files, databases, uploads, session cookies, OAuth tokens, or production exports.
+Follow the [development guide](docs/development.md) and [architecture overview](docs/architecture.md). Use an isolated `DB_PATH` or `npm run demo` when experimenting with account deletion, moderation, or migrations. Never commit environment files, databases, uploads, session cookies, OAuth tokens, or production exports.
 
 ## Implementation guidelines
 

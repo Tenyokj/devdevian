@@ -55,6 +55,7 @@ test("developer interface smoke test in a simulated DOM", async () => {
     id: 31,
     user_id: 3,
     organizer_name: "UI Builder",
+    organizer_avatar: "organizer-photo",
     title: "A live review session",
     description: "A friendly session to review retry strategies together.",
     topic: "web",
@@ -200,7 +201,10 @@ test("developer interface smoke test in a simulated DOM", async () => {
     assert.match(document.body.textContent, /A little curiosity/);
     assert.equal(document.querySelectorAll(".post-card").length, 0);
     assert.equal(document.querySelector(".example-notice"), null);
-    assert.match(document.querySelector(".empty-state").textContent, /A good place for the first word/);
+    assert.match(
+      document.querySelector(".empty-state").textContent,
+      /A good place for the first word/,
+    );
     await act(async () =>
       document.querySelector(".intro-actions .primary").click(),
     );
@@ -365,6 +369,12 @@ test("developer interface smoke test in a simulated DOM", async () => {
       dom.window.location.hash = "events";
       dom.window.dispatchEvent(new dom.window.HashChangeEvent("hashchange"));
     });
+    assert.equal(
+      document
+        .querySelector(".event-organizer .avatar img")
+        .getAttribute("src"),
+      "/api/uploads/organizer-photo",
+    );
     await act(async () =>
       [...document.querySelectorAll(".event-management button")]
         .find((b) => b.textContent === "Edit")

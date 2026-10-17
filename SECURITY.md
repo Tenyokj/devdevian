@@ -8,7 +8,7 @@ Devdevian is an early development release and has not received an independent se
 
 Do not post exploit details, credentials, user records, session cookies, or private community content in public issues.
 
-When this repository is hosted on GitHub, use its **Security → Advisories → Report a vulnerability** feature if private vulnerability reporting has been enabled by the maintainer. If it is unavailable, ask the maintainer to establish a private reporting channel before sending sensitive details. A dedicated security contact has not yet been configured.
+Email **dv842449@gmail.com** with the subject “Devdevian security report.” You may also use GitHub’s private vulnerability reporting if it is enabled. Do not use public issues for exploit details or private records.
 
 Include the affected revision, relevant endpoint, minimal reproduction with synthetic accounts, expected access boundary, and observed impact. No response-time guarantee or bug bounty is currently offered.
 

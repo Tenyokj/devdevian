@@ -1750,3 +1750,24 @@ html:has(body.landing-page) {
 @media (prefers-reduced-motion:reduce) {
   html:has(body.landing-page) { scroll-behavior: auto; }
 }
+
+/* A continuous track keeps its position while playback speed changes. */
+.stack-ribbon {position:relative;display:grid;grid-template-columns:280px minmax(0,1fr);align-items:center;gap:32px;padding:70px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin:36px 0 100px;}
+.stack-intro h2 {font-size:30px;line-height:1.18;letter-spacing:-1.2px;margin:20px 0 14px;}
+.stack-intro p {color:var(--text-secondary);line-height:1.7;max-width:250px;}
+.stack-motion {display:inline-flex;align-items:center;gap:7px;color:var(--text-muted);border:0;background:transparent;padding:10px 0;font-size:11px!important;}
+.stack-window {overflow:hidden;min-width:0;mask-image:linear-gradient(90deg,transparent,#000 5%,#000 95%,transparent);padding:35px 0;}
+.stack-track,.stack-group {display:flex;width:max-content;align-items:center;}
+.stack-group {gap:52px;padding-right:52px;}
+.stack-item {display:flex;align-items:center;gap:15px;white-space:nowrap;opacity:.4;filter:grayscale(1);transition:opacity .3s,filter .3s,color .3s;}
+.stack-item img {filter:invert(1);opacity:.8;object-fit:contain;}
+.stack-item strong {display:block;font-family:'Space Grotesk',sans-serif;font-size:32px;font-weight:500;letter-spacing:-1.4px;}
+.stack-item small {display:block;color:var(--text-secondary);font-size:10px;letter-spacing:1.3px;text-transform:uppercase;margin-top:6px;}
+.stack-item>svg {opacity:0;transition:opacity .3s,transform .3s;transform:translate(-4px,4px);}
+.stack-item:hover,.stack-item:focus-visible {opacity:1;filter:none;color:#d8ccff;text-shadow:0 0 28px #9d85ff70;}
+.stack-item:hover>svg,.stack-item:focus-visible>svg {opacity:1;transform:translate(0,0);}
+.stack-caption {grid-column:1/-1;margin:0;color:var(--text-muted);font-size:10px;letter-spacing:.3px;}
+.stack-ribbon.is-static .stack-window {overflow-x:auto;mask-image:none;}
+.stack-ribbon.is-static .stack-group:nth-child(2) {display:none;}
+.stack-ribbon.is-static .stack-item {opacity:.75;}
+@media(max-width:800px){.stack-ribbon{grid-template-columns:1fr;gap:10px;margin-bottom:70px;padding:40px 0;}.stack-intro p{max-width:100%;}.stack-intro h2{font-size:28px;}.stack-window{margin:0 -12px;}.stack-item strong{font-size:28px;}.stack-item img{width:32px;height:32px;}.stack-group{gap:34px;padding-right:34px;}}

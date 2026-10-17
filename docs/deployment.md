@@ -4,13 +4,13 @@ The landing (`/`), application (`/app`), and API (`/api/*`) share one Vercel pro
 
 ## Current status
 
-The repository contains a Vercel function, a Turso/libSQL database adapter, and private S3-compatible uploads. API tests exercise both local SQLite and the libSQL SDK; a local S3 contract fixture checks upload/download authorization. These checks do not verify a real remote database, bucket, or hosted OAuth callback. No cloud resources or deployment have been created by these scripts.
+The repository contains a Vercel function, a Turso/libSQL database adapter, and private S3-compatible uploads. API tests exercise both local SQLite and the libSQL SDK; a local S3 contract fixture checks upload/download authorization. These checks do not verify a real remote database, bucket, or hosted OAuth callback. The maintainer-operated instance is live at https://devdevian.vercel.app. These instructions also apply to a new independent deployment; configure its own resources and credentials.
 
 ## 1. Create separate cloud resources
 
 Create an **empty libSQL database** in [Turso](https://docs.turso.tech/sdk/ts/reference) and generate its database token. Use the libSQL-compatible service, not an incompatible database engine. Keep the URL and token in server environment variables. Startup creates the schema and initial topic catalog, without accounts or sample publications. Never import `data/`, screenshot fixtures, or local sessions into production.
 
-Create a private S3-compatible bucket, for example [Cloudflare R2](https://developers.cloudflare.com/r2/). Generate credentials scoped to this bucket for object reads, writes, and deletion. Do not enable public bucket access. Downloads pass through the authenticated API, which checks ownership and community membership. Browser-to-bucket CORS is unnecessary. Files are limited to 4 MB to fit Vercel's function payload limits.
+Create a private S3-compatible bucket, for example [Supabase Storage](https://supabase.com/docs/guides/storage/s3/authentication). The hosted Devdevian instance uses Supabase. Generate server credentials for object reads, writes, and deletion. Supabase S3 keys can access all buckets in their project, so keep that project dedicated to this application. Do not enable public bucket access. Downloads pass through the authenticated API, which checks ownership and community membership. Browser-to-bucket CORS is unnecessary. Files are limited to 4 MB to fit Vercel's function payload limits.
 
 Use separate databases, buckets, and credentials for development/preview and production. An unpredictable preview deployment must never mutate production data. Review current free-tier quotas and billing settings before creating resources; free quotas do not guarantee unlimited free usage.
 
@@ -27,12 +27,12 @@ Set these values in Vercel's environment settings, scoped to the appropriate env
 | `TURSO_AUTH_TOKEN` | Token for that database |
 | `UPLOAD_DRIVER` | `s3` |
 | `S3_ENDPOINT` | Provider's HTTPS S3 endpoint |
-| `S3_REGION` | Provider region; `auto` for R2 |
+| `S3_REGION` | Exact provider region; use the region shown by Supabase |
 | `S3_BUCKET` | Private bucket name |
-| `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | Bucket-scoped server credentials |
+| `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | Server S3 credentials (dedicated project; keep private) |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Production Google OAuth web client |
 | `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` | Production GitHub OAuth App |
-| `RESEND_API_KEY`, `MAIL_FROM` | Verified transactional sender, when available |
+| `MAIL_PROVIDER`, `BREVO_API_KEY`, `MAIL_FROM` | `brevo`, API key, verified sender (or configure Resend) |
 | `MODERATOR_EMAILS` | Comma-separated trusted platform moderator emails |
 
 Never prefix secrets with `VITE_`. Never set `DEMO_MODE` or `AUTH_TEST_UNVERIFIED` in a hosted environment. Do not upload `.env`, SQLite files, or backups. Redeploy after changing environment variables.
@@ -46,7 +46,7 @@ See [authentication](authentication.md). Exact callbacks for the example origin:
 - Google: `https://devdevian.vercel.app/api/auth/google/callback`
 - GitHub: `https://devdevian.vercel.app/api/auth/github/callback`
 
-Use separate OAuth applications for local development and a stable testing deployment. The free `vercel.app` hostname cannot be verified as your mail-sending domain. Resend delivery to arbitrary users requires a permitted sender; leave email registration disabled until that exists. OAuth can be configured and tested independently. Do not claim email registration is ready based on a test sender.
+Use separate OAuth applications for local development and a stable testing deployment. The free `vercel.app` hostname cannot be verified as your mail-sending domain. Brevo supports verified individual senders, with its own domain-replacement and account-approval rules; Resend requires a permitted sender/domain. Configure the selected provider and verify delivery to a real recipient. OAuth can be configured and tested independently.
 
 ## 4. Verify before announcing v0.1.0
 

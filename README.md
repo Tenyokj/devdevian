@@ -1,12 +1,66 @@
-# Devdevian
+<div align="center">
+  <img src="public/devdevian-logo.png" alt="Devdevian logo" width="108" />
+  <h1>Devdevian</h1>
+  <p><strong>A work in good company.</strong></p>
+  <p>An open-source forum for programmers to ask, review, share, and build together.</p>
+  <p>
+    <a href="https://github.com/Tenyokj/devdevian/actions/workflows/checks.yml"><img src="https://github.com/Tenyokj/devdevian/actions/workflows/checks.yml/badge.svg" alt="Build and tests" /></a>
+    <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0--only-9e8bff" alt="GPL 3.0 only" /></a>
+    <a href="package.json"><img src="https://img.shields.io/badge/version-0.1.0-7b83ff" alt="Version 0.1.0" /></a>
+    <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/Node.js-24%2B-84bc95" alt="Node.js 24 or newer" /></a>
+    <img src="https://img.shields.io/badge/status-active_development-b2a0ff" alt="Active development" />
+  </p>
+  <p><a href="https://devdevian.vercel.app/">Website</a> · <a href="https://devdevian.vercel.app/app">Open the forum</a> · <a href="docs/README.md">Documentation</a> · <a href="CONTRIBUTING.md">Contribute</a> · <a href="https://github.com/Tenyokj/devdevian/issues">Report a bug</a></p>
+</div>
 
-A work in good company. Devdevian is a developer community platform for questions, discussions, code reviews, projects, events, and private communities.
+## A place for the work and the people behind it
 
-**Status:** early development release. Local development and acceptance testing work. Cloud database and private object-storage adapters are implemented and tested locally. Cloud resources, live identity/email configuration, and hosted verification are still required before publishing v0.1.0.
+Devdevian brings technical conversations, code feedback, projects, and developer communities into one place. Topics organize the public feed; private communities give approved members a separate space to work together.
 
-## Run locally
+This is a live early release, built in the open. Contributions from developers, designers, writers, and people who can explain a reproducible bug are welcome. Features are still evolving; do not use the forum as your only copy of important work.
 
-Use Node.js 24 LTS (or a compatible newer release) and npm. The local server uses `node:sqlite`; production uses Turso/libSQL.
+## Inside the forum
+
+| Feature | What you can do |
+| --- | --- |
+| Conversations | Ask a question, start a discussion, request a code review, or post a Show & tell. Add code, files, images, and labeled links. |
+| Useful answers | Reply in threads, vote, save posts, and mark an accepted answer on your question or code review. |
+| Private communities | Request membership, discuss privately with approved members, and appoint community validators. |
+| Projects | Present a project with a logo, screenshots, team, links, and a dedicated feedback conversation. |
+| Events | Schedule in an organizer timezone, join an event, and download a calendar entry. Meeting links are restricted to attendees and organizers. |
+| Your corner | Keep a permanent @username, customize your profile, and find your conversations, projects, events, and communities. |
+| Everyday essentials | Google/GitHub sign-in, verified email registration, search, pagination, notifications, and responsive light/dark interfaces. |
+
+## Take a look
+
+Illustrative product captures from a fictional screenshot dataset; these are not a directory of real users.
+
+<table>
+  <tr>
+    <td width="50%"><a href="public/screenshots/feed-screen.png"><img src="public/screenshots/feed-screen.png" alt="Public feed with developer questions and discussions" width="100%" /></a><br /><strong>Public feed</strong></td>
+    <td width="50%"><a href="public/screenshots/conversation-screen.png"><img src="public/screenshots/conversation-screen.png" alt="Conversation, code and accepted answer" width="100%" /></a><br /><strong>Conversations & answers</strong></td>
+  </tr>
+  <tr>
+    <td width="50%"><a href="public/screenshots/community-screen.png"><img src="public/screenshots/community-screen.png" alt="Private developer community" width="100%" /></a><br /><strong>Your community</strong></td>
+    <td width="50%"><a href="public/screenshots/orbit-screen.png"><img src="public/screenshots/orbit-screen.png" alt="Project screenshots, team and feedback" width="100%" /></a><br /><strong>Projects & feedback</strong></td>
+  </tr>
+</table>
+
+## Start using Devdevian
+
+Open [the forum](https://devdevian.vercel.app/app), sign in, and choose your permanent username. Browse the public feed, join a community, or start with a focused question. If you connect another sign-in provider with the same email, a one-time email confirmation keeps the existing account and its activity together.
+
+Read the [user guide](docs/user-guide.md) for sharing content, joining communities, accepted answers, events, privacy settings, and account deletion. The [moderation guide](docs/moderation.md) explains the difference between community validators and platform moderators.
+
+## Built with
+
+React, Vite, Node.js, and Express power the application. The hosted instance uses Vercel, Turso/libSQL, Supabase Storage, Google/GitHub OAuth, and Brevo transactional email. Local development uses SQLite and local files. These are technology credits, not sponsorship or partnership claims.
+
+See [architecture](docs/architecture.md), [development](docs/development.md), and [self-hosting/deployment](docs/deployment.md). Brand assets and attribution are listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+## Develop locally
+
+Requires **Node.js 24+** and npm.
 
 ```sh
 npm ci
@@ -14,66 +68,23 @@ cp .env.example .env
 npm run dev
 ```
 
-- Landing page: <http://127.0.0.1:4173/>
-- Application: <http://127.0.0.1:4173/app>
-
-Use the same origin in your browser, `APP_URL`, and OAuth provider callback settings. Registration requires a configured email service. Existing accounts can sign in while providers are disconnected.
-
-For a separate, disposable acceptance environment with seeded accounts:
+Visit `http://127.0.0.1:4173` for the landing and `/app` for the forum. A normal checkout starts with an empty local database. OAuth and email registration require your own development credentials; they are never simulated in ordinary operation. For disposable local accounts and isolated test data, follow the [development guide](docs/development.md).
 
 ```sh
-npm run demo
+npm test                # build + isolated API, identity and interface checks
+npm run test:browser    # Chromium checks, desktop/tablet/mobile captures
 ```
 
-This uses `data/acceptance.sqlite` on port 4174. Credentials are printed by the local script. Never run the demo environment as a public production deployment.
+Tests do not reset production or your normal development data. Never put production credentials into a local development configuration. Do not commit `.env*`, database files, uploads, or backups.
 
-To replace **both local databases and uploads** with a curated fictional screenshot dataset, stop the local servers first, then run:
+## Contribute
 
-```sh
-npm run seed:screenshots -- --reset-local-data
-```
+Start with [CONTRIBUTING.md](CONTRIBUTING.md) and the [code of conduct](CODE_OF_CONDUCT.md). Keep changes focused, explain the resulting behavior, and include relevant validation. Discuss major product or architectural changes in an issue first. No CLA is required; contributions are submitted under GPL-3.0-only.
 
-The script archives the entire previous `data/` directory under ignored `backups/` before creating fresh databases. It prepares eight fictional profiles, public/private conversations, project illustrations, and events. It refuses production/Vercel execution or a reset while ports 4173/4174 are running. Start `npm run demo` afterward. The screenshot account is `author@devdevian.test`, with the local test password printed by the script. `npm run check:screenshots` verifies the prepared pages on port 4174 without resetting them.
+For vulnerabilities, follow [SECURITY.md](SECURITY.md) and contact maintainers privately. Public issues are for non-sensitive bugs and feature discussions.
 
-To return both working databases to an empty state, stop the local servers and run `npm run data:empty -- --empty-local-data`. The old data directory is archived under ignored `backups/`. Screenshot assets are preserved.
+## Privacy, terms, and license
 
-## Product model
+[Privacy & Security](https://devdevian.vercel.app/privacy) · [Terms of Use](https://devdevian.vercel.app/terms) · [Changelog](CHANGELOG.md)
 
-- **Public feed:** publications organized by user-created topics and technologies. Questions and code reviews support accepted answers; discussions and showcases share the reply system.
-- **Private communities:** owner-approved membership, separate conversations, and community validators. Membership is checked by the server for content and attachments.
-- **Projects:** logos, screenshot carousels, team members, links, and a linked feedback conversation.
-- **Events:** organizer timezone, viewer-local display and date filtering, attendance, and meeting links restricted to attendees or organizers.
-- **Profiles:** permanent, case-insensitive unique usernames; editable display names and media; profile visibility and notification preferences.
-- **Moderation:** community owners/validators handle their own community; configured platform moderators handle the public feed. Decisions are recorded in an action log.
-- **Interface:** light/dark themes, global search, custom selectors, paginated lists/replies, and responsive layouts.
-
-Archiving closes new replies while preserving the conversation. Restoring reopens it unless a moderator restriction still applies. Hidden profiles remain visible to their owners; public posts are not hidden by profile privacy.
-
-## Development
-
-```sh
-npm test                 # isolated API, authentication and DOM checks
-npm run test:browser     # build + Chromium end-to-end checks
-npm run build            # production frontend bundle
-npm start                # local production-mode server, after building
-```
-
-Before the first browser test, install Chromium with `npx playwright install chromium`. Tests create isolated databases and never reset the development database. Browser artifacts are written to the ignored `.test-data/browser/` directory.
-
-Landing screenshots are configured in `src/landing-media.json`; see the [capture guide](public/landing/README.md). The four supplied screenshots are included in `public/screenshots`. The landing has a fixed dark palette and respects reduced-motion preferences without changing the forum's saved theme.
-
-Server modules live at the repository root, React UI in `src/`, and tests in `tests/`. `scripts/demo.mjs` is local acceptance tooling. Comments explain important access, transaction, timezone, and identity boundaries.
-
-## Data and configuration
-
-The local server stores SQLite data in `data/arc.sqlite` and uploaded files in `data/uploads/`. `DB_PATH` selects a different database file. These files, backups, environment files, test artifacts, and personal notes are excluded from Git.
-
-See [authentication configuration](docs/authentication.md) and [deployment instructions](docs/deployment.md). On Vercel, configure Turso and a private S3-compatible bucket; startup refuses ephemeral local storage. Run `npm run release:check` to check configuration without printing secrets. A successful frontend build does not verify a production backend.
-
-## Contribute and report issues
-
-Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a change. Report suspected vulnerabilities privately according to [SECURITY.md](SECURITY.md); do not include credentials or personal data in public issues.
-
-## License
-
-GNU General Public License, version 3 only (`GPL-3.0-only`). See [LICENSE](LICENSE). Third-party dependencies retain their respective licenses. Uploaded user content is not relicensed by this software license.
+The software is licensed under the **GNU General Public License, version 3 only**. See [LICENSE](LICENSE). This does not automatically license user posts, code snippets, images, or attachments under GPL; their authors retain their respective rights.

@@ -1,3 +1,4 @@
+import StackRibbon from "./stack";
 import React, { useEffect, useRef, useState } from "react";
 import {
   ArrowUpRight,
@@ -711,6 +712,8 @@ export default function Landing() {
           />
         </section>
 
+        <StackRibbon />
+
         <section className="landing-open-source" id="open-source" data-reveal>
           <div className="source-grid" aria-hidden="true" />
           <div className="open-source-heading">
@@ -821,10 +824,14 @@ export default function Landing() {
               <small>Open source · GPL v3 · In active development</small>
             </span>
             <div>
+              <a href={repository + "/blob/main/docs/README.md"}>
+                Documentation
+              </a>
               <a href={repository + "/blob/main/CONTRIBUTING.md"}>
                 Contributing
               </a>
-              <a href={repository + "/blob/main/SECURITY.md"}>Security</a>
+              <a href="/privacy">Privacy &amp; Security</a>
+              <a href="/terms">Terms of Use</a>
               <a href="#faq">FAQ</a>
             </div>
           </div>

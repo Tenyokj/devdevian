@@ -157,6 +157,41 @@ try {
     "open",
     "",
   );
+  const track = page.locator(".stack-track");
+  await page.locator(".stack-ribbon").scrollIntoViewIfNeeded();
+  await expect(page.locator(".stack-group").first().locator("a")).toHaveCount(
+    9,
+  );
+  expect(
+    await page
+      .locator(".stack-ribbon")
+      .evaluate((e) =>
+        e.previousElementSibling.classList.contains("landing-projects"),
+      ),
+  ).toBeTruthy();
+  await page.locator(".stack-window").hover();
+  await expect
+    .poll(() => track.evaluate((e) => e.getAnimations()[0]?.playbackRate))
+    .toBeLessThan(0.2);
+  await page.locator(".stack-ribbon").screenshot({
+    path: artifacts + "/technology-ribbon.png",
+    animations: "allow",
+  });
+  await page.getByRole("button", { name: "Pause motion", exact: true }).click();
+  await expect
+    .poll(() => track.evaluate((e) => e.getAnimations()[0]?.playbackRate))
+    .toBe(0);
+  await page
+    .getByRole("button", { name: "Resume motion", exact: true })
+    .click();
+  await page.locator(".landing-brand").first().focus();
+  await page.mouse.move(10, 10);
+  await expect
+    .poll(() => track.evaluate((e) => e.getAnimations()[0]?.playbackRate))
+    .toBeGreaterThan(0.9);
+  await page.locator(".stack-group img").evaluateAll(async (images) => {
+    await Promise.all(images.map((img) => img.decode()));
+  });
   for (const [name, width, height] of [
     ["desktop", 1440, 1000],
     ["tablet", 834, 1112],
@@ -194,8 +229,42 @@ try {
       .evaluate((e) => getComputedStyle(e).animationName),
   ).toBe("none");
   await expect(reduced.locator(".landing-intro")).toHaveCSS("opacity", "1");
+  await expect(reduced.locator(".stack-ribbon")).toHaveClass(/is-static/);
+  expect(
+    await reduced
+      .locator(".stack-track")
+      .evaluate((e) => e.getAnimations().length),
+  ).toBe(0);
   await reduced.close();
   await page.setViewportSize({ width: 1440, height: 1000 });
+  for (const [path, title] of [
+    ["privacy", "Privacy & Security"],
+    ["terms", "Terms of Use"],
+  ]) {
+    await page.goto(base + "/" + path);
+    await expect(
+      page.getByRole("heading", { level: 1, name: title }),
+    ).toBeVisible();
+    await expect(
+      page.locator('.policy-footer a[href="mailto:dv842449@gmail.com"]'),
+    ).toBeVisible();
+    await page.reload();
+    await expect(
+      page.getByRole("heading", { level: 1, name: title }),
+    ).toBeVisible();
+    await page.setViewportSize({ width: 390, height: 844 });
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBeTruthy();
+    await page.screenshot({
+      path: artifacts + "/" + path + "-mobile.png",
+      fullPage: true,
+      animations: "disabled",
+    });
+    await page.setViewportSize({ width: 1440, height: 1000 });
+  }
   await page.evaluate(() => localStorage.setItem("devdevian-theme", "light"));
   await page.goto(base + "/app");
   await expect(page.locator(".post-card")).toHaveCount(0);
@@ -491,6 +560,12 @@ try {
     "Browser builders live meetup",
   );
   await expect(page.locator(".event-card .entity-banner")).toBeVisible();
+  await expect(page.locator(".event-organizer .avatar img")).toBeVisible();
+  expect(
+    await page
+      .locator(".event-organizer .avatar img")
+      .evaluate((img) => img.complete && img.naturalWidth > 0),
+  ).toBeTruthy();
   await expect(page.locator(".event-filters input[type=date]")).toHaveCount(1);
   await page.getByLabel("Events on date", { exact: true }).fill("2030-01-21");
   await expect(page.locator(".event-card")).toHaveCount(0);
