@@ -1,3 +1,4 @@
+import { limitValue, QuotaError } from "./limits.mjs";
 import express from "express";
 import { randomUUID } from "node:crypto";
 import { objectStorage } from "./object-storage.mjs";
@@ -34,9 +35,15 @@ export function attachFiles(db, postId, user, ids = [], replyId = null) {
 }
 export function registerUploads(app, db, required) {
   const storage = objectStorage();
-  db.exec(
-    "CREATE TABLE IF NOT EXISTS uploads(id TEXT PRIMARY KEY,user_id INTEGER NOT NULL,post_id INTEGER,reply_id INTEGER,name TEXT NOT NULL,mime TEXT NOT NULL,size INTEGER NOT NULL,created TEXT DEFAULT CURRENT_TIMESTAMP); CREATE INDEX IF NOT EXISTS uploads_post ON uploads(post_id,reply_id);",
-  );
+  if (!db.schemaCurrent) {
+    db.exec(
+      "CREATE TABLE IF NOT EXISTS uploads(id TEXT PRIMARY KEY,user_id INTEGER NOT NULL,post_id INTEGER,reply_id INTEGER,name TEXT NOT NULL,mime TEXT NOT NULL,size INTEGER NOT NULL,created TEXT DEFAULT CURRENT_TIMESTAMP); CREATE INDEX IF NOT EXISTS uploads_post ON uploads(post_id,reply_id);",
+    );
+  }
+  if (!db.schemaCurrent)
+    db.exec(
+      "CREATE TABLE IF NOT EXISTS upload_reservations(id TEXT PRIMARY KEY,user_id INTEGER NOT NULL,size INTEGER NOT NULL,created INTEGER NOT NULL)",
+    );
   app.post(
     "/api/uploads",
     required,
@@ -82,24 +89,69 @@ export function registerUploads(app, db, required) {
           error:
             "Supported: PNG, JPEG, WebP, GIF, PDF, ZIP and text/code files. SVG and HTML are not accepted.",
         });
-      if (
-        db
-          .prepare(
-            "SELECT COUNT(*) n FROM uploads WHERE user_id=? AND created>datetime('now','-1 day')",
-          )
-          .get(req.user.id).n >= 100
-      )
-        return res
-          .status(429)
-          .json({ error: "Daily upload limit reached (100 files)." });
-      const id = randomUUID();
-      await storage.put(id, b, mime);
+      const id = randomUUID(),
+        now = Date.now();
+      // Reserve bytes before the network write. Parallel uploads and separate
+      // function instances cannot overrun the configured storage budget.
+      db.exec("BEGIN IMMEDIATE");
       try {
-        db.prepare(
-          "INSERT INTO uploads(id,user_id,name,mime,size) VALUES(?,?,?,?,?)",
-        ).run(id, req.user.id, name, mime, b.length);
+        const daily = db
+          .prepare(
+            `SELECT SUM(n) n,SUM(bytes) bytes FROM (
+          SELECT COUNT(*) n,COALESCE(SUM(size),0) bytes FROM uploads WHERE user_id=? AND created>datetime('now','-1 day')
+          UNION ALL SELECT COUNT(*),COALESCE(SUM(size),0) FROM upload_reservations WHERE user_id=? AND created>?)`,
+          )
+          .get(req.user.id, req.user.id, now - 86400000);
+        const used = db
+          .prepare(
+            "SELECT (SELECT COALESCE(SUM(size),0) FROM uploads)+(SELECT COALESCE(SUM(size),0) FROM upload_reservations) bytes",
+          )
+          .get().bytes;
+        if (
+          daily.n >= limitValue("UPLOADS_PER_DAY", 40) ||
+          daily.bytes + b.length >
+            limitValue("UPLOAD_BYTES_PER_DAY", 40 * 1024 * 1024) ||
+          used + b.length > limitValue("STORAGE_MAX_BYTES", 750 * 1024 * 1024)
+        )
+          throw new QuotaError(
+            "Upload limit reached. Please try later or contact the administrator.",
+          );
+        db.prepare("INSERT INTO upload_reservations VALUES(?,?,?,?)").run(
+          id,
+          req.user.id,
+          b.length,
+          now,
+        );
+        db.exec("COMMIT");
       } catch (error) {
-        await storage.remove(id).catch(() => {});
+        db.exec("ROLLBACK");
+        if (error instanceof QuotaError)
+          return res
+            .status(429)
+            .set("Retry-After", "3600")
+            .json({ error: error.message });
+        throw error;
+      }
+      try {
+        await storage.put(id, b, mime);
+        db.exec("BEGIN IMMEDIATE");
+        try {
+          db.prepare(
+            "INSERT INTO uploads(id,user_id,name,mime,size) VALUES(?,?,?,?,?)",
+          ).run(id, req.user.id, name, mime, b.length);
+          db.prepare("DELETE FROM upload_reservations WHERE id=?").run(id);
+          db.exec("COMMIT");
+        } catch (error) {
+          db.exec("ROLLBACK");
+          throw error;
+        }
+      } catch (error) {
+        // Keep the reservation if object deletion fails, so abandoned bytes
+        // remain counted until maintenance can safely remove them.
+        try {
+          await storage.remove(id);
+          db.prepare("DELETE FROM upload_reservations WHERE id=?").run(id);
+        } catch {}
         throw error;
       }
       res
@@ -107,7 +159,7 @@ export function registerUploads(app, db, required) {
         .json({ id, name, mime, size: b.length, url: "/api/uploads/" + id });
     },
   );
-  app.get("/api/uploads/:id", async (req, res) => {
+  app.get("/api/uploads/:id", async (req, res, next) => {
     const f = db.prepare("SELECT * FROM uploads WHERE id=?").get(req.params.id);
     if (!f) return res.status(404).json({ error: "File not found." });
     const permitted = f.post_id
@@ -124,6 +176,18 @@ export function registerUploads(app, db, required) {
             )
             .get(f.id, f.id, f.id, f.id));
     if (!permitted) return res.status(404).json({ error: "File not found." });
+    let bytes;
+    try {
+      bytes = await storage.get(f.id);
+    } catch (error) {
+      if (
+        error.code === "ENOENT" ||
+        error.name === "NoSuchKey" ||
+        error.$metadata?.httpStatusCode === 404
+      )
+        return res.status(404).end();
+      return next(error);
+    }
     res.setHeader("Cache-Control", "private, no-store");
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("Content-Type", f.mime);
@@ -131,10 +195,6 @@ export function registerUploads(app, db, required) {
       "Content-Disposition",
       `${f.mime.startsWith("image/") ? "inline" : "attachment"}; filename*=UTF-8''${encodeURIComponent(f.name)}`,
     );
-    try {
-      res.send(await storage.get(f.id));
-    } catch {
-      res.status(404).end();
-    }
+    res.send(bytes);
   });
 }

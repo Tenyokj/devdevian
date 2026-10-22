@@ -55,19 +55,20 @@ function revision(value) {
   return Number.isSafeInteger(value) && value >= 0;
 }
 export function registerActivity(app, db, required) {
-  for (const table of ["posts", "replies"]) {
-    const columns = db
-      .prepare(`PRAGMA table_info(${table})`)
-      .all()
-      .map((c) => c.name);
-    if (!columns.includes("updated_at"))
-      db.exec(`ALTER TABLE ${table} ADD COLUMN updated_at TEXT`);
-    if (!columns.includes("revision"))
-      db.exec(
-        `ALTER TABLE ${table} ADD COLUMN revision INTEGER NOT NULL DEFAULT 0`,
-      );
-  }
-  db.exec(`CREATE TABLE IF NOT EXISTS notifications(
+  if (!db.schemaCurrent) {
+    for (const table of ["posts", "replies"]) {
+      const columns = db
+        .prepare(`PRAGMA table_info(${table})`)
+        .all()
+        .map((c) => c.name);
+      if (!columns.includes("updated_at"))
+        db.exec(`ALTER TABLE ${table} ADD COLUMN updated_at TEXT`);
+      if (!columns.includes("revision"))
+        db.exec(
+          `ALTER TABLE ${table} ADD COLUMN revision INTEGER NOT NULL DEFAULT 0`,
+        );
+    }
+    db.exec(`CREATE TABLE IF NOT EXISTS notifications(
     id INTEGER PRIMARY KEY,recipient_id INTEGER NOT NULL,actor_id INTEGER NOT NULL,
     post_id INTEGER,event_id INTEGER,reply_id INTEGER,type TEXT NOT NULL,event_key TEXT NOT NULL,
     created TEXT DEFAULT CURRENT_TIMESTAMP,read_at TEXT,UNIQUE(recipient_id,event_key));
@@ -77,19 +78,20 @@ export function registerActivity(app, db, required) {
     title TEXT NOT NULL,body TEXT NOT NULL,created TEXT DEFAULT CURRENT_TIMESTAMP);
     CREATE INDEX IF NOT EXISTS updates_project ON project_updates(project_id,id);`);
 
-  if (
-    !db
-      .prepare("PRAGMA table_info(notifications)")
-      .all()
-      .some((c) => c.name === "event_id")
-  ) {
-    transaction(db, () => {
-      db.exec(`ALTER TABLE notifications RENAME TO notifications_legacy_v1;
+    if (
+      !db
+        .prepare("PRAGMA table_info(notifications)")
+        .all()
+        .some((c) => c.name === "event_id")
+    ) {
+      transaction(db, () => {
+        db.exec(`ALTER TABLE notifications RENAME TO notifications_legacy_v1;
       CREATE TABLE notifications(id INTEGER PRIMARY KEY,recipient_id INTEGER NOT NULL,actor_id INTEGER NOT NULL,post_id INTEGER,event_id INTEGER,reply_id INTEGER,type TEXT NOT NULL,event_key TEXT NOT NULL,created TEXT DEFAULT CURRENT_TIMESTAMP,read_at TEXT,UNIQUE(recipient_id,event_key));
       INSERT INTO notifications(id,recipient_id,actor_id,post_id,reply_id,type,event_key,created,read_at) SELECT id,recipient_id,actor_id,post_id,reply_id,type,event_key,created,read_at FROM notifications_legacy_v1;
       DROP TABLE notifications_legacy_v1;
       CREATE INDEX notifications_recipient ON notifications(recipient_id,id DESC);`);
-    });
+      });
+    }
   }
   app.get("/api/notifications", required, (req, res) => {
     const from = ` FROM notifications n JOIN users u ON u.id=n.actor_id LEFT JOIN posts p ON p.id=n.post_id LEFT JOIN events e ON e.id=n.event_id WHERE n.recipient_id=? AND (n.post_id IS NULL OR ${scopeSQL("p", req.user)})`;

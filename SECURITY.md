@@ -20,7 +20,7 @@ Include the affected revision, relevant endpoint, minimal reproduction with synt
 - Do not expose the local demo server or seed demo credentials in production.
 - Use durable private database/object storage; local function filesystems are not production persistence.
 - Verify account, membership, moderator, attachment, and notification access after deployment.
-- Keep encrypted backups and test restoration. Exclude backups and personal data from repository history.
+- Activate the encrypted backup workflow with repository secrets, verify its restore check and retain the encryption key separately. Follow [recovery procedures](docs/reliability.md); committed workflow files alone do not provide backups. Exclude archives and personal data from repository history.
 - Review rate limits, distributed abuse protection, dependency updates, and upload retention before public registration.
 
 The repository's automated tests verify specific application behaviors; they do not establish that every deployment is secure.

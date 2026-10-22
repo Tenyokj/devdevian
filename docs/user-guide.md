@@ -8,6 +8,10 @@ Choose your permanent username carefully. It is case-insensitively unique and ca
 
 If a new provider returns an email already used by an existing account, Devdevian sends a one-time confirmation to that email. Confirm in the same browser to connect the provider and enter the existing account. Future sign-ins use the connection directly. Different provider emails may create separate accounts; changing profile names does not merge them.
 
+## Forgotten password
+
+Choose **Sign in → Forgot your password?**, enter your email, then enter the six-digit code and a new password. Codes expire after ten minutes. Request a new code through **Request another code** if needed. A successful reset signs out every saved device; sign in again. The permanent username and your publications stay unchanged.
+
 ## Public feed and private communities
 
 Topics and technologies organize public publications. They are not membership groups. You can choose existing labels or create a nonduplicate label. Their selectors show usage counts and support search.

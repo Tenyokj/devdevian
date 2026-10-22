@@ -18,6 +18,7 @@ The API loads the server session, derives platform and community permissions, va
 | Files and object storage | `uploads.mjs`, `object-storage.mjs` |
 | Replies, nesting, accepted-answer paths | `replies.mjs` |
 | Notifications, event changes, moderation | `activity.mjs`, `event-management.mjs`, `moderation.mjs` |
+| Recovery, quotas, backups, diagnostics | `password-reset.mjs`, `passwords.mjs`, `limits.mjs`, `backup.mjs`, `observability.mjs`, `schema.mjs` |
 | Database compatibility and runtime requirements | `database.mjs`, `search-sql.mjs`, `runtime-config.mjs` |
 
 `enhancements.mjs` decorates API responses with entity details such as project media, author/organizer avatars, and team information. New media fields must be returned by the API and passed to the corresponding UI component. Adding a stored field alone does not render it.
@@ -26,7 +27,7 @@ The API loads the server session, derives platform and community permissions, va
 
 Local development uses `node:sqlite` and local files. Turso uses the libSQL SDK behind the same prepared-statement facade. `search-sql.mjs` translates the two local JavaScript search functions into portable parameterized SQL, including literal wildcard handling and case variants. The adapter is synchronous; measure remote latency and throughput before assuming high-traffic scalability.
 
-Schema initialization and additive migrations are currently performed by module bootstrap. Multi-statement writes use transactions. Database URL and credentials never use `VITE_` variables. Do not run development or fixture scripts against production data.
+Schema initialization and additive migrations run explicitly through `scripts/migrate.mjs` for hosted releases. A version marker prevents repetitive migrations on cold starts; local development still initializes its own database automatically. Multi-statement writes use transactions. Database URL and credentials never use `VITE_` variables. Do not run development or fixture scripts against production data.
 
 Entity-specific media and presentation data is stored in `entity_details`; uploads hold file metadata and ownership. Private S3-compatible storage holds bytes. The browser downloads through `/api/uploads/:id`; a provider storage URL is not an application access control. The server validates attachment ownership, rejects executable HTML/SVG uploads, and checks the parent publication or published media reference when serving a file.
 

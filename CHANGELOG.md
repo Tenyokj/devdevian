@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.1 — Reliability and recovery (unreleased)
+
+- Mailbox-confirmed password recovery with hashed expiring codes, bounded attempts and revocation of saved sessions.
+- Explicit hosted schema migrations, reusable API initialization, database-region alignment and readable dependency failures with request references.
+- Active-screen loading, request deduplication, debounced list search and batched card metadata/attachment reads; password hashing runs outside the request event loop.
+- Persistent auth/mail budgets and atomic upload reservations with file-count, byte and total-storage caps.
+- Encrypted database/file backups with isolated restore verification, scheduled backup/health workflows, expiration cleanup and dependency update configuration. Production activation requires maintainer secrets and checks.
+- Regression coverage for recovery, encrypted restoration, quota enforcement, startup failures, responsive recovery UI and isolated concurrent read workloads.
+
 ## 0.1.0 — Early release (2026-10-17)
 
 - Public developer conversations, nested replies, accepted answers, topics, technologies, attachments, votes, and bookmarks.

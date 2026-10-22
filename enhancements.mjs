@@ -1,3 +1,4 @@
+import { InputError } from "./validation.mjs";
 import {
   preferences,
   preferenceDefaults,
@@ -8,6 +9,8 @@ import { pageRows, scopeSQL, memberOf } from "./spaces.mjs";
 import { normalizeName, literalPattern } from "./search-sql.mjs";
 export { normalizeName } from "./search-sql.mjs";
 export function manages(db, user, id) {
+  if (Array.isArray(user?.validator_communities))
+    return user.validator_communities.includes(String(id));
   return (
     !!user &&
     !!id &&
@@ -36,9 +39,11 @@ export function details(db, kind, id) {
   );
 }
 export function registerEnhancements(app, db, required, seed) {
-  db.exec(
-    "CREATE TABLE IF NOT EXISTS user_settings(user_id INTEGER PRIMARY KEY,data TEXT NOT NULL)",
-  );
+  if (!db.schemaCurrent) {
+    db.exec(
+      "CREATE TABLE IF NOT EXISTS user_settings(user_id INTEGER PRIMARY KEY,data TEXT NOT NULL)",
+    );
+  }
   db.function("dev_search", { deterministic: true }, (haystack, query) =>
     normalizeName(query)
       .split(/\s+/)
@@ -55,73 +60,75 @@ export function registerEnhancements(app, db, required, seed) {
       ? 1
       : 0,
   );
-  db.exec(`CREATE TABLE IF NOT EXISTS taxonomy(id TEXT PRIMARY KEY,kind TEXT NOT NULL,name TEXT NOT NULL,normalized TEXT NOT NULL,created_by INTEGER,UNIQUE(kind,normalized));
+  if (!db.schemaCurrent) {
+    db.exec(`CREATE TABLE IF NOT EXISTS taxonomy(id TEXT PRIMARY KEY,kind TEXT NOT NULL,name TEXT NOT NULL,normalized TEXT NOT NULL,created_by INTEGER,UNIQUE(kind,normalized));
  CREATE TABLE IF NOT EXISTS entity_details(kind TEXT,entity_id TEXT,data TEXT NOT NULL,PRIMARY KEY(kind,entity_id));
  CREATE TABLE IF NOT EXISTS validators(community_id TEXT,user_id INTEGER,PRIMARY KEY(community_id,user_id));`);
-  if (
-    !db
-      .prepare("PRAGMA table_info(taxonomy)")
-      .all()
-      .some((c) => c.name === "match_pattern")
-  )
-    db.exec("ALTER TABLE taxonomy ADD COLUMN match_pattern TEXT");
-  const cols = db.prepare("PRAGMA table_info(users)").all();
-  for (const [n, t] of [
-    ["username", "TEXT"],
-    ["username_locked", "INTEGER NOT NULL DEFAULT 1"],
-    ["privacy", "TEXT DEFAULT 'public'"],
-    ["deleted_at", "TEXT"],
-  ])
-    if (!cols.some((c) => c.name === n))
-      db.exec(`ALTER TABLE users ADD COLUMN ${n} ${t}`);
-  if (
-    !db
-      .prepare("PRAGMA table_info(posts)")
-      .all()
-      .some((c) => c.name === "removed_at")
-  )
-    db.exec("ALTER TABLE posts ADD COLUMN removed_at TEXT");
-  db.exec(
-    // Enforce uniqueness in storage as well as in signup validation; concurrent
-    // registrations must never claim the same handle with different casing.
-    "CREATE UNIQUE INDEX IF NOT EXISTS users_username ON users(username COLLATE NOCASE)",
-  );
-  db.prepare(
-    "UPDATE users SET username='builder_'||id WHERE username IS NULL",
-  ).run();
-  for (const t of seed)
-    db.prepare(
-      "INSERT OR IGNORE INTO taxonomy(id,kind,name,normalized) VALUES(?,?,?,?)",
-    ).run(t.id, "topic", t.name, normalizeName(t.name));
-  for (const name of [
-    "React",
-    "TypeScript",
-    "JavaScript",
-    "Node.js",
-    "Python",
-    "Rust",
-    "Solidity",
-    "Foundry",
-    "Docker",
-    "PostgreSQL",
-    "Next.js",
-    "Figma",
-  ])
-    db.prepare(
-      "INSERT OR IGNORE INTO taxonomy(id,kind,name,normalized) VALUES(?,?,?,?)",
-    ).run(
-      "tech-" + normalizeName(name),
-      "technology",
-      name,
-      normalizeName(name),
+    if (
+      !db
+        .prepare("PRAGMA table_info(taxonomy)")
+        .all()
+        .some((c) => c.name === "match_pattern")
+    )
+      db.exec("ALTER TABLE taxonomy ADD COLUMN match_pattern TEXT");
+    const cols = db.prepare("PRAGMA table_info(users)").all();
+    for (const [n, t] of [
+      ["username", "TEXT"],
+      ["username_locked", "INTEGER NOT NULL DEFAULT 1"],
+      ["privacy", "TEXT DEFAULT 'public'"],
+      ["deleted_at", "TEXT"],
+    ])
+      if (!cols.some((c) => c.name === n))
+        db.exec(`ALTER TABLE users ADD COLUMN ${n} ${t}`);
+    if (
+      !db
+        .prepare("PRAGMA table_info(posts)")
+        .all()
+        .some((c) => c.name === "removed_at")
+    )
+      db.exec("ALTER TABLE posts ADD COLUMN removed_at TEXT");
+    db.exec(
+      // Enforce uniqueness in storage as well as in signup validation; concurrent
+      // registrations must never claim the same handle with different casing.
+      "CREATE UNIQUE INDEX IF NOT EXISTS users_username ON users(username COLLATE NOCASE)",
     );
-  for (const t of db
-    .prepare("SELECT id,name FROM taxonomy WHERE match_pattern IS NULL")
-    .all())
-    db.prepare("UPDATE taxonomy SET match_pattern=? WHERE id=?").run(
-      literalPattern(t.name),
-      t.id,
-    );
+    db.prepare(
+      "UPDATE users SET username='builder_'||id WHERE username IS NULL",
+    ).run();
+    for (const t of seed)
+      db.prepare(
+        "INSERT OR IGNORE INTO taxonomy(id,kind,name,normalized) VALUES(?,?,?,?)",
+      ).run(t.id, "topic", t.name, normalizeName(t.name));
+    for (const name of [
+      "React",
+      "TypeScript",
+      "JavaScript",
+      "Node.js",
+      "Python",
+      "Rust",
+      "Solidity",
+      "Foundry",
+      "Docker",
+      "PostgreSQL",
+      "Next.js",
+      "Figma",
+    ])
+      db.prepare(
+        "INSERT OR IGNORE INTO taxonomy(id,kind,name,normalized) VALUES(?,?,?,?)",
+      ).run(
+        "tech-" + normalizeName(name),
+        "technology",
+        name,
+        normalizeName(name),
+      );
+    for (const t of db
+      .prepare("SELECT id,name FROM taxonomy WHERE match_pattern IS NULL")
+      .all())
+      db.prepare("UPDATE taxonomy SET match_pattern=? WHERE id=?").run(
+        literalPattern(t.name),
+        t.id,
+      );
+  }
   function taxonomy(req, kind, paged = false) {
     const params = [kind];
     let where = "t.kind=?";
@@ -189,26 +196,28 @@ export function registerEnhancements(app, db, required, seed) {
           .get(id);
   function validate(data, user, kind, id) {
     if (!data || typeof data !== "object" || Array.isArray(data))
-      throw Error("Invalid details.");
+      throw new InputError("Invalid details.");
     const clean = { ...details(db, kind, id || "") };
     for (const key of ["tagline", "audience", "problem"])
       if (key in data) {
         if (typeof data[key] !== "string" || data[key].length > 1000)
-          throw Error("Keep project fields under 1,000 characters.");
+          throw new InputError("Keep project fields under 1,000 characters.");
         clean[key] = data[key].trim();
       }
     for (const key of ["logo", "banner", "avatar", "screenshots"])
       if (key in data) {
         if (kind === "post")
-          throw Error("Use protected post attachments for images.");
+          throw new InputError("Use protected post attachments for images.");
         const ids =
           key === "screenshots" ? data[key] : data[key] ? [data[key]] : [];
         if (
           !Array.isArray(ids) ||
           ids.length > (key === "screenshots" ? 10 : 1)
         )
-          throw Error("Choose up to ten screenshots.");
+          throw new InputError("Choose up to ten screenshots.");
         for (const file of ids) {
+          if (typeof file !== "string" || file.length > 100)
+            throw new InputError("Choose one of your uploaded images.");
           const f = db.prepare("SELECT * FROM uploads WHERE id=?").get(file);
           if (
             !f ||
@@ -216,23 +225,28 @@ export function registerEnhancements(app, db, required, seed) {
             f.post_id ||
             !f.mime.startsWith("image/")
           )
-            throw Error("Choose one of your uploaded images.");
+            throw new InputError("Choose one of your uploaded images.");
         }
         clean[key] = key === "screenshots" ? ids : ids[0] || null;
       }
     if ("links" in data) {
       if (!Array.isArray(data.links) || data.links.length > 100)
-        throw Error("Use up to 100 links.");
+        throw new InputError("Use up to 100 links.");
       clean.links = data.links.map((l) => {
+        let validURL = false;
+        try {
+          validURL = /^https?:$/.test(new URL(l?.url).protocol);
+        } catch {}
         if (
+          !l ||
           typeof l.label !== "string" ||
           !l.label.trim() ||
           l.label.length > 80 ||
           typeof l.url !== "string" ||
           l.url.length > 1000 ||
-          !/^https?:$/.test(new URL(l.url).protocol)
+          !validURL
         )
-          throw Error("Each link needs a label and an http(s) URL.");
+          throw new InputError("Each link needs a label and an http(s) URL.");
         return { label: l.label.trim(), url: l.url };
       });
     }
@@ -240,22 +254,31 @@ export function registerEnhancements(app, db, required, seed) {
       if (
         !Array.isArray(data.topics) ||
         data.topics.length > 10 ||
-        !data.topics.every((t) =>
-          db
-            .prepare("SELECT 1 FROM taxonomy WHERE id=? AND kind='topic'")
-            .get(t),
+        !data.topics.every(
+          (t) =>
+            typeof t === "string" &&
+            t.length <= 100 &&
+            db
+              .prepare("SELECT 1 FROM taxonomy WHERE id=? AND kind='topic'")
+              .get(t),
         )
       )
-        throw Error("Choose up to ten existing topics.");
+        throw new InputError("Choose up to ten existing topics.");
       clean.topics = data.topics;
     }
     if ("team" in data) {
       if (
         !Array.isArray(data.team) ||
         data.team.length > 30 ||
+        data.team.some(
+          (m) =>
+            !m ||
+            !Number.isSafeInteger(Number(m.user_id)) ||
+            Number(m.user_id) < 1,
+        ) ||
         new Set(data.team.map((m) => m.user_id)).size !== data.team.length
       )
-        throw Error("Choose up to 30 distinct team members.");
+        throw new InputError("Choose up to 30 distinct team members.");
       clean.team = data.team.map((m) => {
         if (
           !db
@@ -265,15 +288,19 @@ export function registerEnhancements(app, db, required, seed) {
           !m.role.trim() ||
           m.role.length > 80
         )
-          throw Error("Choose a member and a role (up to 80 characters).");
+          throw new InputError(
+            "Choose a member and a role (up to 80 characters).",
+          );
         return { user_id: Number(m.user_id), role: m.role.trim() };
       });
     }
     return clean;
   }
-  function enrich(kind, item) {
+  function enrich(kind, item, cache = null) {
+    const readDetails = (k, id) =>
+      cache?.get(k + ":" + id) ?? details(db, k, id);
     if (!item?.id) return item;
-    const d = details(db, kind, item.id);
+    const d = readDetails(kind, item.id);
     return {
       ...item,
       ...d,
@@ -282,25 +309,28 @@ export function registerEnhancements(app, db, required, seed) {
             topic_labels: (d.topics || [])
               .map(
                 (id) =>
-                  db.prepare("SELECT name FROM taxonomy WHERE id=?").get(id)
-                    ?.name,
+                  (
+                    cache?.get("topic:" + id) ||
+                    db.prepare("SELECT name FROM taxonomy WHERE id=?").get(id)
+                  )?.name,
               )
               .filter(Boolean),
           }
         : {}),
       ...(kind === "post"
-        ? { author_avatar: details(db, "user", item.user_id).avatar }
+        ? { author_avatar: readDetails("user", item.user_id).avatar }
         : {}),
       ...(kind === "event"
-        ? { organizer_avatar: details(db, "user", item.user_id).avatar }
+        ? { organizer_avatar: readDetails("user", item.user_id).avatar }
         : {}),
       ...(d.team
         ? {
             team: d.team.map((m) => ({
               ...m,
-              ...db
-                .prepare("SELECT name,username FROM users WHERE id=?")
-                .get(m.user_id),
+              ...(cache?.get("person:" + m.user_id) ||
+                db
+                  .prepare("SELECT name,username FROM users WHERE id=?")
+                  .get(m.user_id)),
             })),
           }
         : {}),
@@ -322,6 +352,7 @@ export function registerEnhancements(app, db, required, seed) {
       );
       res.json(data);
     } catch (e) {
+      if (!(e instanceof InputError)) throw e;
       res.status(400).json({ error: e.message });
     }
   });
@@ -535,6 +566,7 @@ export function registerEnhancements(app, db, required, seed) {
             : path.match(/^\/events\/(\d+)$/)?.[1] || "",
         );
       } catch (e) {
+        if (!(e instanceof InputError)) throw e;
         return res.status(400).json({ error: e.message });
       }
     }
@@ -560,8 +592,54 @@ export function registerEnhancements(app, db, required, seed) {
               : /^\/users\/\d+$/.test(path)
                 ? "user"
                 : null;
+      const items = Array.isArray(value)
+        ? value
+        : value?.items || (value?.id ? [value] : []);
+      const detailCache = new Map();
+      if (kind && items.length) {
+        const keys = [];
+        for (const item of items) {
+          keys.push([kind, String(item.id)]);
+          if (["post", "event"].includes(kind) && item.user_id)
+            keys.push(["user", String(item.user_id)]);
+        }
+        for (const [k, id] of keys) detailCache.set(k + ":" + id, {});
+        for (const row of db
+          .prepare(
+            "SELECT kind,entity_id,data FROM entity_details WHERE " +
+              keys.map(() => "(kind=? AND entity_id=?)").join(" OR "),
+          )
+          .all(...keys.flat()))
+          detailCache.set(row.kind + ":" + row.entity_id, JSON.parse(row.data));
+      }
+      const topicIds = [
+        ...new Set([...detailCache.values()].flatMap((d) => d.topics || [])),
+      ];
+      const peopleIds = [
+        ...new Set(
+          [...detailCache.values()].flatMap((d) =>
+            (d.team || []).map((m) => m.user_id),
+          ),
+        ),
+      ];
+      for (const id of topicIds) detailCache.set("topic:" + id, {});
+      for (const id of peopleIds) detailCache.set("person:" + id, {});
+      if (topicIds.length)
+        for (const row of db
+          .prepare(
+            `SELECT id,name FROM taxonomy WHERE id IN (${topicIds.map(() => "?")})`,
+          )
+          .all(...topicIds))
+          detailCache.set("topic:" + row.id, row);
+      if (peopleIds.length)
+        for (const row of db
+          .prepare(
+            `SELECT id,name,username FROM users WHERE id IN (${peopleIds.map(() => "?")})`,
+          )
+          .all(...peopleIds))
+          detailCache.set("person:" + row.id, row);
       const decorate = (item) => {
-        const v = enrich(kind, item);
+        const v = enrich(kind, item, detailCache);
         if (kind === "community")
           v.is_validator = manages(db, req.user, item.id) && !v.is_owner;
         if (kind === "post")
@@ -698,6 +776,7 @@ export function registerEnhancements(app, db, required, seed) {
 }
 
 export function importPublicTechnologies(db) {
+  if (db.schemaCurrent) return;
   for (const row of db
     .prepare(
       "SELECT stack FROM posts WHERE community_id IS NULL UNION SELECT stack FROM projects UNION SELECT stack FROM users WHERE privacy='public' AND deleted_at IS NULL",

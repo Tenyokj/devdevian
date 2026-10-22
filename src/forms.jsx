@@ -28,7 +28,8 @@ export function Auth({ mode, setMode, done, close }) {
     [error, setError] = useState("");
   const [providers, setProviders] = useState({}),
     [challenge, setChallenge] = useState(null),
-    [code, setCode] = useState("");
+    [code, setCode] = useState(""),
+    [notice, setNotice] = useState("");
   useEffect(() => {
     api("/auth/config")
       .then(setProviders)
@@ -64,20 +65,24 @@ export function Auth({ mode, setMode, done, close }) {
         <span className="auth-star">✳</span>
       </div>
       <h2>
-        {mode === "link"
-          ? "Confirm it’s you."
-          : mode === "signup"
-            ? "Find your people."
-            : "Welcome back, builder."}
+        {mode === "reset"
+          ? "A fresh start."
+          : mode === "link"
+            ? "Confirm it’s you."
+            : mode === "signup"
+              ? "Find your people."
+              : "Welcome back, builder."}
       </h2>
       <p className="modal-description">
-        {mode === "link"
-          ? "Your account already exists. Confirm once to connect this sign-in method and keep your profile and activity."
-          : mode === "signup"
-            ? "A little curiosity. A good conversation. Your next big thing."
-            : "Pick up a conversation. Move your next idea forward."}
+        {mode === "reset"
+          ? "Request a code to reset your password. Your profile and posts stay with you."
+          : mode === "link"
+            ? "Your account already exists. Confirm once to connect this sign-in method and keep your profile and activity."
+            : mode === "signup"
+              ? "A little curiosity. A good conversation. Your next big thing."
+              : "Pick up a conversation. Move your next idea forward."}
       </p>
-      {!challenge && mode !== "link" && (
+      {!challenge && mode !== "link" && mode !== "reset" && (
         <>
           <div className="auth-provider-grid">
             {[
@@ -110,12 +115,18 @@ export function Auth({ mode, setMode, done, close }) {
       )}
       {challenge && (
         <p className="form-note">
-          A six-digit code was sent to {challenge.email}.{" "}
-          {challenge.linking
-            ? "Enter it to sign in to your existing account and connect " +
-              (challenge.provider === "github" ? "GitHub" : "Google") +
-              ". Next time, you can sign in directly."
-            : "Enter it below to finish creating your account."}
+          {challenge.resetting ? (
+            challenge.message
+          ) : (
+            <>A six-digit code was sent to {challenge.email}. </>
+          )}{" "}
+          {challenge.resetting
+            ? ""
+            : challenge.linking
+              ? "Enter it to sign in to your existing account and connect " +
+                (challenge.provider === "github" ? "GitHub" : "Google") +
+                ". Next time, you can sign in directly."
+              : "Enter it below to finish creating your account."}
         </p>
       )}
       <form
@@ -125,20 +136,43 @@ export function Auth({ mode, setMode, done, close }) {
           setError("");
           try {
             const result = await api(
-              challenge
-                ? challenge.linking
-                  ? "/auth/link/verify"
-                  : "/auth/verify"
-                : mode === "signup"
-                  ? "/register"
-                  : "/login",
+              mode === "reset"
+                ? challenge
+                  ? "/auth/password/reset"
+                  : "/auth/password/request"
+                : challenge
+                  ? challenge.linking
+                    ? "/auth/link/verify"
+                    : "/auth/verify"
+                  : mode === "signup"
+                    ? "/register"
+                    : "/login",
               {
                 method: "POST",
                 body: challenge
-                  ? { challenge: challenge.challenge, code }
+                  ? {
+                      challenge: challenge.challenge,
+                      code,
+                      ...(challenge.resetting
+                        ? { password: formObject(e.currentTarget).password }
+                        : {}),
+                    }
                   : formObject(e.currentTarget),
               },
             );
+            if (result.reset_required) {
+              setChallenge({ ...result, resetting: true });
+              return;
+            }
+            if (mode === "reset") {
+              setChallenge(null);
+              setCode("");
+              setMode("login");
+              setNotice(
+                "Password updated. Sign in with your new password. All previous sessions were signed out.",
+              );
+              return;
+            }
             if (result.verification_required) {
               setChallenge(result);
               return;
@@ -189,22 +223,24 @@ export function Auth({ mode, setMode, done, close }) {
                 placeholder="you@example.com"
               />
             </Field>
-            <Field
-              label="Password"
-              hint={mode === "signup" ? "At least 8 characters." : ""}
-            >
-              <input
-                name="password"
-                type="password"
-                minLength={8}
-                maxLength={256}
-                required
-                autoComplete={
-                  mode === "signup" ? "new-password" : "current-password"
-                }
-                placeholder="Your password"
-              />
-            </Field>
+            {mode !== "reset" && (
+              <Field
+                label="Password"
+                hint={mode === "signup" ? "At least 8 characters." : ""}
+              >
+                <input
+                  name="password"
+                  type="password"
+                  minLength={8}
+                  maxLength={256}
+                  required
+                  autoComplete={
+                    mode === "signup" ? "new-password" : "current-password"
+                  }
+                  placeholder="Your password"
+                />
+              </Field>
+            )}
           </>
         )}
         {challenge && (
@@ -222,6 +258,23 @@ export function Auth({ mode, setMode, done, close }) {
             />
           </Field>
         )}
+        {challenge?.resetting && (
+          <Field label="New password" hint="At least 8 characters.">
+            <input
+              name="password"
+              type="password"
+              autoComplete="new-password"
+              minLength={8}
+              maxLength={256}
+              required
+            />
+          </Field>
+        )}
+        {notice && (
+          <p role="status" className="form-note">
+            {notice}
+          </p>
+        )}
         <ErrorMessage error={error} />
         <button
           className="button primary full"
@@ -229,16 +282,34 @@ export function Auth({ mode, setMode, done, close }) {
         >
           {busy
             ? "One moment…"
-            : challenge
-              ? challenge.linking
-                ? "Confirm & sign in"
-                : "Verify email & join"
-              : mode === "signup"
-                ? "Create account"
-                : "Sign in"}
+            : mode === "reset"
+              ? challenge
+                ? "Set new password"
+                : "Send recovery code"
+              : challenge
+                ? challenge.linking
+                  ? "Confirm & sign in"
+                  : "Verify email & join"
+                : mode === "signup"
+                  ? "Create account"
+                  : "Sign in"}
           <ArrowRight size={16} />
         </button>
       </form>
+      {!challenge && !["signup", "reset", "link"].includes(mode) && (
+        <p className="auth-switch">
+          <button
+            type="button"
+            onClick={() => {
+              setMode("reset");
+              setError("");
+              setNotice("");
+            }}
+          >
+            Forgot your password?
+          </button>
+        </p>
+      )}
       {challenge && (
         <p className="auth-switch">
           <button
@@ -246,7 +317,11 @@ export function Auth({ mode, setMode, done, close }) {
               setBusy(true);
               try {
                 await api(
-                  challenge.linking ? "/auth/link/resend" : "/auth/resend",
+                  challenge.resetting
+                    ? "/auth/password/request"
+                    : challenge.linking
+                      ? "/auth/link/resend"
+                      : "/auth/resend",
                   {
                     method: "POST",
                     body: { challenge: challenge.challenge },
@@ -259,7 +334,7 @@ export function Auth({ mode, setMode, done, close }) {
                 setBusy(false);
               }
             }}
-            disabled={busy}
+            disabled={busy || challenge.resetting}
           >
             Send a new code
           </button>{" "}
@@ -268,10 +343,10 @@ export function Auth({ mode, setMode, done, close }) {
             onClick={() => {
               setChallenge(null);
               setCode("");
-              setMode("signin");
+              setMode(challenge.resetting ? "reset" : "signin");
             }}
           >
-            Start again
+            {challenge.resetting ? "Request another code" : "Start again"}
           </button>
         </p>
       )}
@@ -281,6 +356,7 @@ export function Auth({ mode, setMode, done, close }) {
           onClick={() => {
             setMode(mode === "signup" ? "login" : "signup");
             setError("");
+            setNotice("");
             setChallenge(null);
             setCode("");
           }}

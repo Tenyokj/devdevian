@@ -71,41 +71,48 @@ export function installAccess(app, db) {
   });
 }
 export function registerSpaces(app, db, required, topics) {
-  const columns = db
-    .prepare("PRAGMA table_info(posts)")
-    .all()
-    .map((c) => c.name);
-  for (const [name, type] of [
-    ["community_id", "TEXT"],
-    ["code", "TEXT DEFAULT ''"],
-    ["review_focus", "TEXT DEFAULT ''"],
-    ["demo_url", "TEXT DEFAULT ''"],
-    ["repo_url", "TEXT DEFAULT ''"],
-  ])
-    if (!columns.includes(name))
-      db.exec(`ALTER TABLE posts ADD COLUMN ${name} ${type}`);
-  db.exec(`CREATE TABLE IF NOT EXISTS private_communities(id TEXT PRIMARY KEY,owner_id INTEGER NOT NULL,name TEXT NOT NULL,description TEXT NOT NULL,created TEXT DEFAULT CURRENT_TIMESTAMP);
+  if (!db.schemaCurrent) {
+    const columns = db
+      .prepare("PRAGMA table_info(posts)")
+      .all()
+      .map((c) => c.name);
+    for (const [name, type] of [
+      ["community_id", "TEXT"],
+      ["code", "TEXT DEFAULT ''"],
+      ["review_focus", "TEXT DEFAULT ''"],
+      ["demo_url", "TEXT DEFAULT ''"],
+      ["repo_url", "TEXT DEFAULT ''"],
+    ])
+      if (!columns.includes(name))
+        db.exec(`ALTER TABLE posts ADD COLUMN ${name} ${type}`);
+    db.exec(`CREATE TABLE IF NOT EXISTS private_communities(id TEXT PRIMARY KEY,owner_id INTEGER NOT NULL,name TEXT NOT NULL,description TEXT NOT NULL,created TEXT DEFAULT CURRENT_TIMESTAMP);
  CREATE TABLE IF NOT EXISTS join_requests(id INTEGER PRIMARY KEY,community_id TEXT NOT NULL,user_id INTEGER NOT NULL,status TEXT DEFAULT 'pending',created TEXT DEFAULT CURRENT_TIMESTAMP,UNIQUE(community_id,user_id));
  CREATE INDEX IF NOT EXISTS posts_space ON posts(community_id);`);
+  }
   const select = `SELECT c.*,u.name owner_name,(SELECT COUNT(*) FROM memberships m WHERE m.kind='group' AND m.item=c.id) members FROM private_communities c JOIN users u ON u.id=c.owner_id`;
   function metadata(c, user) {
-    const is_member = memberOf(db, user, c.id);
+    const is_member =
+      c.is_member === undefined ? memberOf(db, user, c.id) : !!c.is_member;
     return {
       ...c,
       is_member,
       is_owner: user?.id === c.owner_id,
-      requested: !!(
-        user &&
-        db
-          .prepare(
-            "SELECT 1 FROM join_requests WHERE community_id=? AND user_id=? AND status='pending'",
-          )
-          .get(c.id, user.id)
-      ),
+      requested:
+        c.requested === undefined
+          ? !!(
+              user &&
+              db
+                .prepare(
+                  "SELECT 1 FROM join_requests WHERE community_id=? AND user_id=? AND status='pending'",
+                )
+                .get(c.id, user.id)
+            )
+          : !!c.requested,
       posts: is_member
-        ? db
+        ? (c.posts ??
+          db
             .prepare("SELECT COUNT(*) n FROM posts WHERE community_id=?")
-            .get(c.id).n
+            .get(c.id).n)
         : null,
       color: "violet",
       symbol: "{ }",
@@ -132,7 +139,13 @@ export function registerSpaces(app, db, required, topics) {
     const result = pageRows(
       db,
       req,
-      select +
+      select.replace(
+        "SELECT c.*,",
+        `SELECT c.*,
+        EXISTS(SELECT 1 FROM memberships mine WHERE mine.user_id=${Number(req.user?.id) || 0} AND mine.kind='group' AND mine.item=c.id) is_member,
+        EXISTS(SELECT 1 FROM join_requests j WHERE j.community_id=c.id AND j.user_id=${Number(req.user?.id) || 0} AND j.status='pending') requested,
+        CASE WHEN EXISTS(SELECT 1 FROM memberships mine WHERE mine.user_id=${Number(req.user?.id) || 0} AND mine.kind='group' AND mine.item=c.id) THEN (SELECT COUNT(*) FROM posts p WHERE p.community_id=c.id) ELSE NULL END posts,`,
+      ) +
         (where.length ? " WHERE " + where.join(" AND ") : "") +
         " ORDER BY c.created DESC,c.id",
       params,

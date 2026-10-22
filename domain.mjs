@@ -1,3 +1,4 @@
+import { InputError } from "./validation.mjs";
 import { pageRows, scopeSQL, memberOf } from "./spaces.mjs";
 import { attachments, validFiles, attachFiles } from "./uploads.mjs";
 import { replyPage, replyPath } from "./replies.mjs";
@@ -85,7 +86,7 @@ function url(value) {
 }
 export function dateInZone(local, zone) {
   if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(local))
-    throw new Error("Enter a valid start date and time.");
+    throw new InputError("Enter a valid start date and time.");
   const parts = local.match(/\d+/g).map(Number);
   const expected = Date.UTC(
     parts[0],
@@ -95,7 +96,7 @@ export function dateInZone(local, zone) {
     parts[4],
   );
   if (new Date(expected).toISOString().slice(0, 16) !== local)
-    throw new Error("Enter a valid calendar date.");
+    throw new InputError("Enter a valid calendar date.");
   const fmt = new Intl.DateTimeFormat("en-CA", {
     timeZone: zone,
     year: "numeric",
@@ -119,37 +120,39 @@ export function dateInZone(local, zone) {
     if (current === expected) return new Date(candidate).toISOString();
     candidate += expected - current;
   }
-  throw new Error(
+  throw new InputError(
     "This local time does not exist because of a daylight-saving change. Choose another time.",
   );
 }
 export function registerDomain(app, db, required, profile) {
-  const migrate = (table, name, definition) => {
-    if (
-      !db
-        .prepare(`PRAGMA table_info(${table})`)
-        .all()
-        .some((c) => c.name === name)
-    )
-      db.exec(`ALTER TABLE ${table} ADD COLUMN ${name} ${definition}`);
-  };
-  for (const [name, def] of [
-    ["kind", "TEXT DEFAULT 'discussion'"],
-    ["topic", "TEXT DEFAULT 'web'"],
-    ["stack", "TEXT DEFAULT ''"],
-    ["status", "TEXT DEFAULT 'open'"],
-    ["accepted_reply_id", "INTEGER"],
-    ["resolved_at", "TEXT"],
-  ])
-    migrate("posts", name, def);
-  for (const name of ["stack", "github", "website"])
-    migrate("users", name, "TEXT DEFAULT ''");
-  db.exec(`CREATE TABLE IF NOT EXISTS replies(id INTEGER PRIMARY KEY,user_id INTEGER NOT NULL,post_id INTEGER NOT NULL,parent_id INTEGER,body TEXT NOT NULL,created TEXT DEFAULT CURRENT_TIMESTAMP);
+  if (!db.schemaCurrent) {
+    const migrate = (table, name, definition) => {
+      if (
+        !db
+          .prepare(`PRAGMA table_info(${table})`)
+          .all()
+          .some((c) => c.name === name)
+      )
+        db.exec(`ALTER TABLE ${table} ADD COLUMN ${name} ${definition}`);
+    };
+    for (const [name, def] of [
+      ["kind", "TEXT DEFAULT 'discussion'"],
+      ["topic", "TEXT DEFAULT 'web'"],
+      ["stack", "TEXT DEFAULT ''"],
+      ["status", "TEXT DEFAULT 'open'"],
+      ["accepted_reply_id", "INTEGER"],
+      ["resolved_at", "TEXT"],
+    ])
+      migrate("posts", name, def);
+    for (const name of ["stack", "github", "website"])
+      migrate("users", name, "TEXT DEFAULT ''");
+    db.exec(`CREATE TABLE IF NOT EXISTS replies(id INTEGER PRIMARY KEY,user_id INTEGER NOT NULL,post_id INTEGER NOT NULL,parent_id INTEGER,body TEXT NOT NULL,created TEXT DEFAULT CURRENT_TIMESTAMP);
   CREATE TABLE IF NOT EXISTS votes(user_id INTEGER NOT NULL,post_id INTEGER NOT NULL,PRIMARY KEY(user_id,post_id));
   CREATE TABLE IF NOT EXISTS projects(id INTEGER PRIMARY KEY,user_id INTEGER NOT NULL,post_id INTEGER NOT NULL,name TEXT NOT NULL,description TEXT NOT NULL,url TEXT DEFAULT '',repo TEXT DEFAULT '',topic TEXT NOT NULL,stack TEXT DEFAULT '',stage TEXT NOT NULL,help TEXT NOT NULL,created TEXT DEFAULT CURRENT_TIMESTAMP);
   CREATE TABLE IF NOT EXISTS events(id INTEGER PRIMARY KEY,user_id INTEGER NOT NULL,title TEXT NOT NULL,description TEXT NOT NULL,topic TEXT NOT NULL,start_at TEXT NOT NULL,end_at TEXT NOT NULL,timezone TEXT NOT NULL,url TEXT NOT NULL,created TEXT DEFAULT CURRENT_TIMESTAMP);
   CREATE TABLE IF NOT EXISTS reports(id INTEGER PRIMARY KEY,user_id INTEGER NOT NULL,post_id INTEGER NOT NULL,reason TEXT NOT NULL,created TEXT DEFAULT CURRENT_TIMESTAMP,UNIQUE(user_id,post_id));
   CREATE INDEX IF NOT EXISTS replies_post ON replies(post_id); CREATE INDEX IF NOT EXISTS posts_topic ON posts(topic);`);
+  }
   const postSelect = `SELECT p.*,u.name,u.role,(SELECT COUNT(*) FROM replies r WHERE r.post_id=p.id) reply_count,(SELECT COUNT(*) FROM votes v WHERE v.post_id=p.id) vote_count FROM posts p JOIN users u ON u.id=p.user_id`;
   const post = (id) => db.prepare(postSelect + " WHERE p.id=?").get(id);
   function decorate(p, user) {
@@ -168,6 +171,46 @@ export function registerDomain(app, db, required, profile) {
           .get(user.id, p.id)
       ),
     };
+  }
+  function decorateList(items, user) {
+    if (!items.length) return items;
+    const slots = items.map(() => "?").join(",");
+    const files = db
+      .prepare(
+        `SELECT id,post_id,name,mime,size FROM uploads WHERE post_id IN (${slots}) AND reply_id IS NULL ORDER BY created,id`,
+      )
+      .all(...items.map((p) => p.id));
+    const voted = new Set(
+      user
+        ? db
+            .prepare(
+              `SELECT post_id FROM votes WHERE user_id=? AND post_id IN (${slots})`,
+            )
+            .all(user.id, ...items.map((p) => p.id))
+            .map((v) => v.post_id)
+        : [],
+    );
+    const spaces = [
+      ...new Set(items.map((p) => p.community_id).filter(Boolean)),
+    ];
+    const names = new Map(
+      spaces.length
+        ? db
+            .prepare(
+              `SELECT id,name FROM private_communities WHERE id IN (${spaces.map(() => "?")})`,
+            )
+            .all(...spaces)
+            .map((c) => [c.id, c.name])
+        : [],
+    );
+    return items.map((p) => ({
+      ...p,
+      community_name: names.get(p.community_id) || null,
+      voted: voted.has(p.id),
+      attachments: files
+        .filter((f) => f.post_id === p.id)
+        .map(({ post_id, ...f }) => ({ ...f, url: "/api/uploads/" + f.id })),
+    }));
   }
   const recentLimit = (user, table, minutes, count) =>
     db
@@ -234,7 +277,7 @@ export function registerDomain(app, db, required, profile) {
       .get().n;
     res.json({
       ...result,
-      items: result.items.map((p) => decorate(p, req.user)),
+      items: decorateList(result.items, req.user),
     });
   });
   app.get("/api/participated", required, (req, res) => {
@@ -249,7 +292,7 @@ export function registerDomain(app, db, required, profile) {
     );
     res.json({
       ...result,
-      items: result.items.map((p) => decorate(p, req.user)),
+      items: decorateList(result.items, req.user),
     });
   });
   app.get("/api/posts/:id", (req, res) => {
@@ -644,16 +687,20 @@ export function registerDomain(app, db, required, profile) {
     if (req.query.date) {
       const day = String(req.query.date);
       try {
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) throw new Error();
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) throw new InputError();
         const next = new Date(day + "T00:00:00Z");
-        if (next.toISOString().slice(0, 10) !== day) throw new Error();
+        if (next.toISOString().slice(0, 10) !== day) throw new InputError();
         next.setUTCDate(next.getUTCDate() + 1);
         const zone = String(req.query.timezone || "UTC");
         where.push("e.start_at>=? AND e.start_at<?");
-        params.push(dateInZone(day + "T00:00", zone),
-          dateInZone(next.toISOString().slice(0, 10) + "T00:00", zone));
+        params.push(
+          dateInZone(day + "T00:00", zone),
+          dateInZone(next.toISOString().slice(0, 10) + "T00:00", zone),
+        );
       } catch {
-        return res.status(400).json({ error: "Choose a valid calendar date and timezone." });
+        return res
+          .status(400)
+          .json({ error: "Choose a valid calendar date and timezone." });
       }
     }
     for (const [key, operator] of [
@@ -689,7 +736,7 @@ export function registerDomain(app, db, required, profile) {
     const result = pageRows(
       db,
       req,
-      "SELECT e.*,u.name organizer_name,(SELECT COUNT(*) FROM memberships m WHERE m.kind='event' AND m.item=CAST(e.id AS TEXT)) attendee_count FROM events e JOIN users u ON u.id=e.user_id" +
+      `SELECT e.*,u.name organizer_name,EXISTS(SELECT 1 FROM memberships mine WHERE mine.user_id=${Number(req.user?.id) || 0} AND mine.kind='event' AND mine.item=CAST(e.id AS TEXT)) viewer_attending,(SELECT COUNT(*) FROM memberships m WHERE m.kind='event' AND m.item=CAST(e.id AS TEXT)) attendee_count FROM events e JOIN users u ON u.id=e.user_id` +
         (where.length ? " WHERE " + where.join(" AND ") : "") +
         " ORDER BY e.start_at " +
         (req.query.order === "latest" ? "DESC" : "ASC"),
@@ -698,17 +745,11 @@ export function registerDomain(app, db, required, profile) {
     res.json({
       ...result,
       items: result.items.map((e) => {
-        const { url, ...event } = e;
+        const { url, viewer_attending, ...event } = e;
         return {
           ...event,
           ...(req.user &&
-          (req.user.id === e.user_id ||
-            (!e.cancelled_at &&
-              db
-                .prepare(
-                  "SELECT 1 FROM memberships WHERE user_id=? AND kind='event' AND item=?",
-                )
-                .get(req.user.id, String(e.id))))
+          (req.user.id === e.user_id || (!e.cancelled_at && viewer_attending))
             ? { url }
             : {}),
         };

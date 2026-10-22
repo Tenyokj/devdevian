@@ -20,7 +20,12 @@ export function Avatar({ name = "D", size = "", onClick, image }) {
     className: `avatar ${image ? "has-image" : color} ${size}`,
     title: name,
     children: image ? (
-      <img src={"/api/uploads/" + image} alt="" />
+      <img
+        src={"/api/uploads/" + image}
+        alt=""
+        loading="lazy"
+        decoding="async"
+      />
     ) : (
       name
         .split(" ")

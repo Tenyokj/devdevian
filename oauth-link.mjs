@@ -15,9 +15,11 @@ const cookieOptions = () => ({
   maxAge: 600000,
 });
 export function registerOAuthLink(app, db, { rate, session, profile }) {
-  db.exec(
-    "CREATE TABLE IF NOT EXISTS oauth_link_challenges(token_hash TEXT PRIMARY KEY,provider TEXT NOT NULL,subject TEXT NOT NULL,user_id INTEGER NOT NULL,email TEXT NOT NULL,code_hash TEXT NOT NULL,expires INTEGER NOT NULL,attempts INTEGER NOT NULL DEFAULT 0,last_sent INTEGER NOT NULL)",
-  );
+  if (!db.schemaCurrent) {
+    db.exec(
+      "CREATE TABLE IF NOT EXISTS oauth_link_challenges(token_hash TEXT PRIMARY KEY,provider TEXT NOT NULL,subject TEXT NOT NULL,user_id INTEGER NOT NULL,email TEXT NOT NULL,code_hash TEXT NOT NULL,expires INTEGER NOT NULL,attempts INTEGER NOT NULL DEFAULT 0,last_sent INTEGER NOT NULL)",
+    );
+  }
   const pending = (req) => {
     const token = req.headers.cookie
       ?.split(";")
@@ -32,12 +34,10 @@ export function registerOAuthLink(app, db, { rate, session, profile }) {
       .get(hash(token), Date.now());
   };
   const unavailable = (res) =>
-    res
-      .status(400)
-      .json({
-        error:
-          "This sign-in confirmation expired. Start again with Google or GitHub.",
-      });
+    res.status(400).json({
+      error:
+        "This sign-in confirmation expired. Start again with Google or GitHub.",
+    });
   app.get("/api/auth/link/pending", (req, res) => {
     const r = pending(req);
     if (!r) return unavailable(res);
@@ -64,7 +64,7 @@ export function registerOAuthLink(app, db, { rate, session, profile }) {
         .status(429)
         .json({ error: "Wait one minute before requesting another code." });
     try {
-      await sendVerificationCode(r.email, code);
+      await sendVerificationCode(r.email, code, { db });
       res.json({ ok: true });
     } catch {
       res
@@ -77,11 +77,14 @@ export function registerOAuthLink(app, db, { rate, session, profile }) {
       return res
         .status(400)
         .json({ error: "Enter the six-digit code from your email." });
-    const r = pending(req);
+    const candidate = pending(req);
+    if (!candidate) return unavailable(res);
+    const r = db
+      .prepare(
+        "UPDATE oauth_link_challenges SET attempts=attempts+1 WHERE token_hash=? AND expires>? AND attempts<5 RETURNING *",
+      )
+      .get(candidate.token_hash, Date.now());
     if (!r) return unavailable(res);
-    db.prepare(
-      "UPDATE oauth_link_challenges SET attempts=attempts+1 WHERE token_hash=?",
-    ).run(r.token_hash);
     if (
       !timingSafeEqual(
         Buffer.from(r.code_hash, "hex"),
@@ -100,9 +103,9 @@ export function registerOAuthLink(app, db, { rate, session, profile }) {
       // Consume the challenge and claim the provider identity in one transaction.
       const used = db
         .prepare(
-          "DELETE FROM oauth_link_challenges WHERE token_hash=? AND expires>? AND attempts<=5",
+          "DELETE FROM oauth_link_challenges WHERE token_hash=? AND code_hash=? AND expires>? AND attempts<=5",
         )
-        .run(r.token_hash, Date.now());
+        .run(r.token_hash, r.code_hash, Date.now());
       if (!used.changes) throw Error("expired");
       const linked = db
         .prepare(
@@ -119,11 +122,9 @@ export function registerOAuthLink(app, db, { rate, session, profile }) {
       db.exec("COMMIT");
     } catch {
       db.exec("ROLLBACK");
-      return res
-        .status(409)
-        .json({
-          error: "Could not connect this provider. Start sign-in again.",
-        });
+      return res.status(409).json({
+        error: "Could not connect this provider. Start sign-in again.",
+      });
     }
     res.clearCookie(cookieName, { path: "/api/auth" });
     session(res, r.user_id);
@@ -157,7 +158,7 @@ export function registerOAuthLink(app, db, { rate, session, profile }) {
       now,
     );
     try {
-      await sendVerificationCode(user.email, code);
+      await sendVerificationCode(user.email, code, { db });
     } catch {
       db.prepare("DELETE FROM oauth_link_challenges WHERE token_hash=?").run(
         tokenHash,

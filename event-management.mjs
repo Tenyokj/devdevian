@@ -1,3 +1,4 @@
+import { InputError } from "./validation.mjs";
 import { communities, dateInZone } from "./domain.mjs";
 import { notify, transaction } from "./activity.mjs";
 const validText = (v, min, max) =>
@@ -20,20 +21,20 @@ function parse(data, db) {
     duration < 15 ||
     duration > 720
   )
-    throw new Error(
+    throw new InputError(
       "Check the title, description, community, date, timezone and duration.",
     );
   let link;
   try {
     link = new URL(url);
   } catch {
-    throw new Error("Add a valid meeting link.");
+    throw new InputError("Add a valid meeting link.");
   }
   if (!["http:", "https:"].includes(link.protocol) || url.length > 1000)
-    throw new Error("Use an http:// or https:// meeting link.");
+    throw new InputError("Use an http:// or https:// meeting link.");
   const start = dateInZone(local_start, timezone);
   if (new Date(start).getTime() <= Date.now())
-    throw new Error("Choose a start time in the future.");
+    throw new InputError("Choose a start time in the future.");
   return [
     title.trim(),
     description.trim(),
@@ -76,18 +77,20 @@ function stamp(date) {
     .replace(/\.\d{3}/, "");
 }
 export function registerEventManagement(app, db, required) {
-  for (const [column, type] of [
-    ["updated_at", "TEXT"],
-    ["cancelled_at", "TEXT"],
-    ["revision", "INTEGER NOT NULL DEFAULT 0"],
-  ])
-    if (
-      !db
-        .prepare("PRAGMA table_info(events)")
-        .all()
-        .some((c) => c.name === column)
-    )
-      db.exec(`ALTER TABLE events ADD COLUMN ${column} ${type}`);
+  if (!db.schemaCurrent) {
+    for (const [column, type] of [
+      ["updated_at", "TEXT"],
+      ["cancelled_at", "TEXT"],
+      ["revision", "INTEGER NOT NULL DEFAULT 0"],
+    ])
+      if (
+        !db
+          .prepare("PRAGMA table_info(events)")
+          .all()
+          .some((c) => c.name === column)
+      )
+        db.exec(`ALTER TABLE events ADD COLUMN ${column} ${type}`);
+  }
   function audience(event, type, version, actor) {
     for (const { user_id } of db
       .prepare("SELECT user_id FROM memberships WHERE kind='event' AND item=?")
@@ -117,6 +120,7 @@ export function registerEventManagement(app, db, required) {
     try {
       values = parse(req.body, db);
     } catch (e) {
+      if (!(e instanceof InputError) && !(e instanceof RangeError)) throw e;
       return res.status(400).json({
         error:
           e instanceof RangeError ? "Choose a valid IANA timezone." : e.message,

@@ -1,6 +1,6 @@
 {
   "name": "devdevian",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "type": "module",
   "scripts": {
@@ -14,7 +14,12 @@
     "seed:screenshots": "node scripts/seed-screenshots.mjs",
     "check:screenshots": "node scripts/check-screenshot-data.mjs",
     "data:empty": "node scripts/reset-local-data.mjs",
-    "release:check": "node scripts/release-check.mjs"
+    "release:check": "node scripts/release-check.mjs",
+    "db:migrate": "node scripts/migrate.mjs",
+    "backup": "node scripts/backup.mjs",
+    "maintenance": "node scripts/maintenance.mjs",
+    "health:check": "node scripts/health-check.mjs",
+    "test:load": "node scripts/load-check.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1152.0",

@@ -10,27 +10,29 @@ export function moderator(req, res, next) {
   next();
 }
 export function registerModeration(app, db, required) {
-  const migrate = (table, column, type) => {
-    if (
-      !db
-        .prepare(`PRAGMA table_info(${table})`)
-        .all()
-        .some((c) => c.name === column)
-    )
-      db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`);
-  };
-  for (const name of ["archived_at", "locked_at", "lock_reason"])
-    migrate("posts", name, "TEXT");
-  for (const [name, type] of [
-    ["status", "TEXT DEFAULT 'open'"],
-    ["reviewed_by", "INTEGER"],
-    ["reviewed_at", "TEXT"],
-    ["review_note", "TEXT"],
-  ])
-    migrate("reports", name, type);
-  db.exec(
-    `CREATE TABLE IF NOT EXISTS moderation_log(id INTEGER PRIMARY KEY,actor_id INTEGER NOT NULL,post_id INTEGER NOT NULL,action TEXT NOT NULL,reason TEXT,created TEXT DEFAULT CURRENT_TIMESTAMP);`,
-  );
+  if (!db.schemaCurrent) {
+    const migrate = (table, column, type) => {
+      if (
+        !db
+          .prepare(`PRAGMA table_info(${table})`)
+          .all()
+          .some((c) => c.name === column)
+      )
+        db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`);
+    };
+    for (const name of ["archived_at", "locked_at", "lock_reason"])
+      migrate("posts", name, "TEXT");
+    for (const [name, type] of [
+      ["status", "TEXT DEFAULT 'open'"],
+      ["reviewed_by", "INTEGER"],
+      ["reviewed_at", "TEXT"],
+      ["review_note", "TEXT"],
+    ])
+      migrate("reports", name, type);
+    db.exec(
+      `CREATE TABLE IF NOT EXISTS moderation_log(id INTEGER PRIMARY KEY,actor_id INTEGER NOT NULL,post_id INTEGER NOT NULL,action TEXT NOT NULL,reason TEXT,created TEXT DEFAULT CURRENT_TIMESTAMP);`,
+    );
+  }
   app.post("/api/posts/:id/lifecycle", required, (req, res) => {
     const post = db
       .prepare("SELECT * FROM posts WHERE id=?")
@@ -109,12 +111,10 @@ export function registerModeration(app, db, required) {
   };
   app.get("/api/moderation/reports", required, moderator, (req, res) => {
     if (req.query.scope === "public" && req.user.platform_role !== "moderator")
-      return res
-        .status(403)
-        .json({
-          error:
-            "Only the Devdevian moderation team can review public feed reports.",
-        });
+      return res.status(403).json({
+        error:
+          "Only the Devdevian moderation team can review public feed reports.",
+      });
     const status =
       req.query.filter === "reviewed"
         ? "r.status!='open'"

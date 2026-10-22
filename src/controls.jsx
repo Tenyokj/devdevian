@@ -9,7 +9,7 @@ import {
   ArrowLeft,
   ArrowRight,
 } from "lucide-react";
-import { api } from "./data";
+import { readAPIResponse, api } from "./data";
 export function Select({
   children,
   options: given,
@@ -491,9 +491,9 @@ export function MediaPicker({ name, label, multiple = false, initial }) {
                     "X-Filename": encodeURIComponent(f.name),
                   },
                   body: f,
+                  signal: AbortSignal.timeout(30000),
                 });
-                const v = await r.json();
-                if (!r.ok) throw Error(v.error);
+                const v = await readAPIResponse(r);
                 uploaded.push(v.id);
               }
               setIds(multiple ? [...ids, ...uploaded] : uploaded);

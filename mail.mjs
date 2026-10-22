@@ -1,3 +1,4 @@
+import { consumeBudget, privateKey, limitValue } from "./limits.mjs";
 // Mail credentials stay on the server. Provider acceptance does not guarantee
 // inbox delivery: verify a real recipient before enabling public registration.
 function provider(env) {
@@ -19,10 +20,28 @@ export function mailReady(env = process.env) {
 export async function sendVerificationCode(
   email,
   code,
-  { env = process.env, fetcher = fetch } = {},
+  { env = process.env, fetcher = fetch, db, purpose = "verification" } = {},
 ) {
   if (!mailReady(env)) throw Error("Email delivery is not configured.");
-  const subject = "Your Devdevian verification code";
+  if (db)
+    consumeBudget(db, [
+      {
+        key: "mail-global",
+        max: limitValue("MAIL_DAILY_LIMIT", 200, env),
+        window: 86400000,
+        calendar: true,
+      },
+      {
+        key: "mail-to:" + privateKey(email.toLowerCase()),
+        max: limitValue("MAIL_RECIPIENT_DAILY_LIMIT", 10, env),
+        window: 86400000,
+        calendar: true,
+      },
+    ]);
+  const subject =
+    purpose === "password-reset"
+      ? "Reset your Devdevian password"
+      : "Your Devdevian verification code";
   const text = `Your verification code is ${code}. It expires in 10 minutes. If you did not request this, ignore this email.`;
   const brevo = provider(env) === "brevo";
   const response = await fetcher(

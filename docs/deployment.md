@@ -8,7 +8,7 @@ The repository contains a Vercel function, a Turso/libSQL database adapter, and 
 
 ## 1. Create separate cloud resources
 
-Create an **empty libSQL database** in [Turso](https://docs.turso.tech/sdk/ts/reference) and generate its database token. Use the libSQL-compatible service, not an incompatible database engine. Keep the URL and token in server environment variables. Startup creates the schema and initial topic catalog, without accounts or sample publications. Never import `data/`, screenshot fixtures, or local sessions into production.
+Create an **empty libSQL database** in [Turso](https://docs.turso.tech/sdk/ts/reference) and generate its database token. Use the libSQL-compatible service, not an incompatible database engine. Keep the URL and token in server environment variables. Run the explicit migration before deployment to create the schema and initial topic catalog, without accounts or sample publications. Hosted request startup only checks the schema version; see [reliability and recovery](reliability.md). Never import `data/`, screenshot fixtures, or local sessions into production.
 
 Create a private S3-compatible bucket, for example [Supabase Storage](https://supabase.com/docs/guides/storage/s3/authentication). The hosted Devdevian instance uses Supabase. Generate server credentials for object reads, writes, and deletion. Supabase S3 keys can access all buckets in their project, so keep that project dedicated to this application. Do not enable public bucket access. Downloads pass through the authenticated API, which checks ownership and community membership. Browser-to-bucket CORS is unnecessary. Files are limited to 4 MB to fit Vercel's function payload limits.
 
@@ -48,9 +48,9 @@ See [authentication](authentication.md). Exact callbacks for the example origin:
 
 Use separate OAuth applications for local development and a stable testing deployment. The free `vercel.app` hostname cannot be verified as your mail-sending domain. Brevo supports verified individual senders, with its own domain-replacement and account-approval rules; Resend requires a permitted sender/domain. Configure the selected provider and verify delivery to a real recipient. OAuth can be configured and tested independently.
 
-## 4. Verify before announcing v0.1.0
+## 4. Migrate and verify before announcing a release
 
-On a stable preview with separate resources, verify:
+After verifying a backup, run `node --env-file=.env.production.local scripts/migrate.mjs` with the selected environment before deploying. Never use production credentials for a preview. On a stable preview with separate resources, verify:
 
 1. Landing screenshots, navigation into `/app`, mobile layout, and reduced-motion behavior.
 2. Real Google/GitHub sign-in, permanent unique usernames, sign-out, and session persistence.

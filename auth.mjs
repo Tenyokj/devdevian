@@ -1,11 +1,19 @@
+import { encodePassword } from "./passwords.mjs";
+import { reportFailure } from "./observability.mjs";
+import {
+  initializeLimits,
+  consumeBudget,
+  privateKey,
+  QuotaError,
+} from "./limits.mjs";
+import { registerPasswordReset } from "./password-reset.mjs";
 import { registerOAuthLink } from "./oauth-link.mjs";
-import { mailReady, sendVerificationCode as sendCode } from "./mail.mjs";
+import { mailReady, sendVerificationCode } from "./mail.mjs";
 import { validUsername } from "./preferences.mjs";
 import {
   randomBytes,
   randomInt,
   createHash,
-  scryptSync,
   timingSafeEqual,
 } from "node:crypto";
 const digest = (s) => createHash("sha256").update(s).digest("hex");
@@ -16,23 +24,28 @@ const configured = (p) =>
     process.env[p.toUpperCase() + "_CLIENT_SECRET"]
   );
 export function registerAuth(app, db, { required, session, profile, rate }) {
-  const cols = db.prepare("PRAGMA table_info(users)").all();
-  if (!cols.some((c) => c.name === "email_verified"))
-    db.exec("ALTER TABLE users ADD COLUMN email_verified INTEGER DEFAULT 0");
-  if (!cols.some((c) => c.name === "username_locked"))
-    db.exec(
-      "ALTER TABLE users ADD COLUMN username_locked INTEGER NOT NULL DEFAULT 1",
-    );
-  db.exec(`CREATE TABLE IF NOT EXISTS registrations(id TEXT PRIMARY KEY,email TEXT,password TEXT,name TEXT,code_hash TEXT,expires INTEGER,attempts INTEGER DEFAULT 0,last_sent INTEGER);
+  initializeLimits(db);
+  registerPasswordReset(app, db, rate);
+  const sendCode = (email, code) => sendVerificationCode(email, code, { db });
+  if (!db.schemaCurrent) {
+    const cols = db.prepare("PRAGMA table_info(users)").all();
+    if (!cols.some((c) => c.name === "email_verified"))
+      db.exec("ALTER TABLE users ADD COLUMN email_verified INTEGER DEFAULT 0");
+    if (!cols.some((c) => c.name === "username_locked"))
+      db.exec(
+        "ALTER TABLE users ADD COLUMN username_locked INTEGER NOT NULL DEFAULT 1",
+      );
+    db.exec(`CREATE TABLE IF NOT EXISTS registrations(id TEXT PRIMARY KEY,email TEXT,password TEXT,name TEXT,code_hash TEXT,expires INTEGER,attempts INTEGER DEFAULT 0,last_sent INTEGER);
  CREATE TABLE IF NOT EXISTS oauth_states(state TEXT PRIMARY KEY,provider TEXT,verifier TEXT,expires INTEGER,link_user INTEGER);
  CREATE TABLE IF NOT EXISTS oauth_accounts(provider TEXT,subject TEXT,user_id INTEGER,PRIMARY KEY(provider,subject));`);
-  if (
-    !db
-      .prepare("PRAGMA table_info(registrations)")
-      .all()
-      .some((c) => c.name === "username")
-  )
-    db.exec("ALTER TABLE registrations ADD COLUMN username TEXT");
+    if (
+      !db
+        .prepare("PRAGMA table_info(registrations)")
+        .all()
+        .some((c) => c.name === "username")
+    )
+      db.exec("ALTER TABLE registrations ADD COLUMN username TEXT");
+  }
   const confirmExisting = registerOAuthLink(app, db, {
     rate,
     session,
@@ -96,17 +109,31 @@ export function registerAuth(app, db, { required, session, profile, rate }) {
       return res
         .status(429)
         .json({ error: "Wait a minute before requesting another code." });
+    try {
+      consumeBudget(db, [
+        {
+          key: "registration-email:" + privateKey(address),
+          max: 1,
+          window: 60000,
+        },
+      ]);
+    } catch (error) {
+      if (!(error instanceof QuotaError)) throw error;
+      return res
+        .status(429)
+        .set("Retry-After", "60")
+        .json({ error: "Wait a minute before requesting another code." });
+    }
     db.prepare("DELETE FROM registrations WHERE expires<?").run(Date.now());
     const id = randomBytes(32).toString("hex"),
-      salt = randomBytes(16).toString("hex"),
-      hash = scryptSync(password, salt, 64).toString("hex"),
+      encoded = await encodePassword(password),
       code = String(randomInt(0, 1000000)).padStart(6, "0");
     db.prepare(
       "INSERT INTO registrations(id,email,password,name,code_hash,expires,last_sent) VALUES(?,?,?,?,?,?,?)",
     ).run(
       id,
       address,
-      salt + ":" + hash,
+      encoded,
       name.trim(),
       digest(id + code),
       Date.now() + 600000,
@@ -121,8 +148,16 @@ export function registerAuth(app, db, { required, session, profile, rate }) {
       res
         .status(202)
         .json({ verification_required: true, challenge: id, email: address });
-    } catch {
+    } catch (error) {
       db.prepare("DELETE FROM registrations WHERE id=?").run(id);
+      if (error instanceof QuotaError)
+        return res.status(429).set("Retry-After", "3600").json({
+          error: "Email sending limit reached. Please try again later.",
+        });
+      reportFailure(error, {
+        event: "registration_delivery_failed",
+        request_id: req.requestId,
+      });
       res.status(502).json({
         error:
           "Could not deliver the code. Check the email service configuration and try again.",
@@ -140,16 +175,15 @@ export function registerAuth(app, db, { required, session, profile, rate }) {
         .status(400)
         .json({ error: "Enter the six-digit code from your email." });
     const r = db
-      .prepare("SELECT * FROM registrations WHERE id=?")
-      .get(challenge);
-    if (!r || r.expires < Date.now() || r.attempts >= 5)
+      .prepare(
+        "UPDATE registrations SET attempts=attempts+1 WHERE id=? AND expires>? AND attempts<5 RETURNING *",
+      )
+      .get(challenge, Date.now());
+    if (!r)
       return res.status(400).json({
         error:
           "Code expired or too many attempts. Register again to get a new code.",
       });
-    db.prepare("UPDATE registrations SET attempts=attempts+1 WHERE id=?").run(
-      challenge,
-    );
     if (
       !timingSafeEqual(
         Buffer.from(r.code_hash, "hex"),
@@ -175,8 +209,17 @@ export function registerAuth(app, db, { required, session, profile, rate }) {
           "This username was taken while you were verifying. Start registration again with another username.",
       });
     let id;
-    db.exec("BEGIN");
+    db.exec("BEGIN IMMEDIATE");
     try {
+      const claimed = db
+        .prepare(
+          "DELETE FROM registrations WHERE id=? AND code_hash=? AND expires>? AND attempts<=5 RETURNING id",
+        )
+        .get(challenge, r.code_hash, Date.now());
+      if (!claimed)
+        throw Object.assign(Error("Verification expired"), {
+          verificationExpired: true,
+        });
       const result = db
         .prepare(
           "INSERT INTO users(email,password,name,email_verified) VALUES(?,?,?,1)",
@@ -188,6 +231,15 @@ export function registerAuth(app, db, { required, session, profile, rate }) {
       db.exec("COMMIT");
     } catch (e) {
       db.exec("ROLLBACK");
+      if (e.verificationExpired)
+        return res
+          .status(400)
+          .json({ error: "Code expired. Start registration again." });
+      if (e.code?.includes("CONSTRAINT"))
+        return res.status(409).json({
+          error:
+            "Email or username already registered. Sign in or choose another username.",
+        });
       throw e;
     }
     session(res, id);
@@ -214,19 +266,26 @@ export function registerAuth(app, db, { required, session, profile, rate }) {
         .status(429)
         .json({ error: "Start registration again to get a new code." });
     const code = String(randomInt(0, 1000000)).padStart(6, "0");
-    db.prepare(
-      "UPDATE registrations SET code_hash=?,last_sent=?,expires=? WHERE id=?",
-    ).run(digest(r.id + code), Date.now(), Date.now() + 600000, r.id);
+    const now = Date.now();
+    const claimed = db
+      .prepare(
+        "UPDATE registrations SET code_hash=?,last_sent=?,expires=? WHERE id=? AND last_sent<=? AND attempts<5",
+      )
+      .run(digest(r.id + code), now, now + 600000, r.id, now - 60000);
+    if (!claimed.changes)
+      return res
+        .status(429)
+        .json({ error: "Wait 60 seconds before requesting another code." });
     try {
       await sendCode(r.email, code);
       res.json({ ok: true });
-    } catch {
-      res
-        .status(502)
-        .json({ error: "Could not send the code. Try again later." });
+    } catch (error) {
+      if (error instanceof QuotaError) return res.status(429).set("Retry-After","3600").json({error:"Email sending limit reached. Please try again later."});
+      reportFailure(error,{event:"verification_delivery_failed",request_id:req.requestId});
+      res.status(502).json({ error: "Could not send the code. Try again later." });
     }
   });
-  app.get("/api/auth/:provider/start", (req, res) => {
+  app.get("/api/auth/:provider/start", rate, (req, res) => {
     const p = req.params.provider;
     if (!["google", "github"].includes(p) || !configured(p))
       return res
@@ -387,13 +446,12 @@ export function registerAuth(app, db, { required, session, profile, rate }) {
           });
         db.exec("BEGIN");
         try {
-          const salt = randomBytes(16).toString("hex"),
-            password =
-              salt +
-              ":" +
-              scryptSync(randomBytes(32).toString("hex"), salt, 64).toString(
-                "hex",
-              );
+          // OAuth-only accounts start with an unguessable password verifier;
+          // there is no known password until a mailbox-confirmed reset.
+          const password =
+            randomBytes(16).toString("hex") +
+            ":" +
+            randomBytes(64).toString("hex");
           const r = db
             .prepare(
               "INSERT INTO users(email,password,name,email_verified) VALUES(?,?,?,1)",

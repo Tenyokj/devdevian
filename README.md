@@ -6,7 +6,7 @@
   <p>
     <a href="https://github.com/Tenyokj/devdevian/actions/workflows/checks.yml"><img src="https://github.com/Tenyokj/devdevian/actions/workflows/checks.yml/badge.svg" alt="Build and tests" /></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0--only-9e8bff" alt="GPL 3.0 only" /></a>
-    <a href="package.json"><img src="https://img.shields.io/badge/version-0.1.0-7b83ff" alt="Version 0.1.0" /></a>
+    <a href="package.json"><img src="https://img.shields.io/badge/version-0.1.1-7b83ff" alt="Version 0.1.1" /></a>
     <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/Node.js-24%2B-84bc95" alt="Node.js 24 or newer" /></a>
     <img src="https://img.shields.io/badge/status-active_development-b2a0ff" alt="Active development" />
   </p>
@@ -73,9 +73,12 @@ Visit `http://127.0.0.1:4173` for the landing and `/app` for the forum. A normal
 ```sh
 npm test                # build + isolated API, identity and interface checks
 npm run test:browser    # Chromium checks, desktop/tablet/mobile captures
+npm run test:load       # disposable local workload, never production
 ```
 
 Tests do not reset production or your normal development data. Never put production credentials into a local development configuration. Do not commit `.env*`, database files, uploads, or backups.
+
+For production migrations, encrypted backups, restore verification, health checks and configurable quotas, see [reliability and recovery](docs/reliability.md). Scheduled backups require repository secrets and a successful restore check before they can be considered active.
 
 ## Contribute
 

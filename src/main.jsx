@@ -190,12 +190,30 @@ export function App() {
       ? "true"
       : "false";
   }, [user?.preferences?.reduce_motion]);
+  const [debouncedQuery, setDebouncedQuery] = useState(query);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedQuery(query), 300);
+    return () => clearTimeout(timer);
+  }, [query]);
   const requestVersion = useRef(0);
+  const accountIdentity = useRef(null);
+  const clearAccountData = useCallback(() => {
+    setPosts([]);
+    setCommunities([]);
+    setProjects([]);
+    setEvents([]);
+    setJoinedCommunities([]);
+    setMyEvents([]);
+    setCommunityDetail(null);
+    setDetail(null);
+    setMember(null);
+    setTopics([]);
+  }, []);
   const refresh = useCallback(async () => {
     const version = ++requestVersion.current;
     setLoadError("");
     const params = new URLSearchParams({ page: String(listPage), limit: "12" });
-    if (query) params.set("q", query);
+    if (debouncedQuery) params.set("q", debouncedQuery);
     if (typeFilter !== "all") params.set("kind", typeFilter);
     if (sort === "Active") params.set("sort", "active");
     if (sort === "Needs help") params.set("sort", "help");
@@ -206,7 +224,7 @@ export function App() {
     const list = new URLSearchParams({
       page: String(listPage),
       limit: "12",
-      q: query,
+      q: debouncedQuery,
     });
     const ev = new URLSearchParams(list);
     if (eventTopic) ev.set("topic", eventTopic);
@@ -223,33 +241,57 @@ export function App() {
       const projectList = new URLSearchParams(list);
       if (page === "profile") projectList.set("author", "me");
       if (page === "member") projectList.set("author", id);
-      const [me, p, c, pr, eventsData, topicData, joined, space, myEventData] =
-        await Promise.all([
-          api("/me"),
-          api("/posts?" + params).catch((e) => {
-            if (e.status === 403 && page === "community") return [];
-            throw e;
-          }),
-          api("/communities?" + list),
-          api("/projects?" + projectList),
-          api("/events?" + ev),
-          api("/topics"),
-          api("/communities?joined=1&limit=30"),
-          page === "community"
-            ? api("/communities/" + id)
-            : Promise.resolve(null),
-          api("/events?attending=1&status=upcoming&limit=2"),
-        ]);
+      // Fetch only the active screen. Sidebar data must not delay its first paint.
+      const updates = [];
+      let staging = true,
+        nextUser;
+      const active = (path, setter) =>
+        api(path).then((value) => {
+          if (version !== requestVersion.current) return;
+          if (staging) updates.push(() => setter(value));
+          else setter(value);
+        });
+      const tasks = [
+        api("/me").then((value) => {
+          nextUser = value.user;
+          updates.push(() => setUser(value.user));
+        }),
+      ];
+      if (["feed", "tag", "saved", "community", "profile"].includes(page))
+        tasks.push(
+          api("/posts?" + params)
+            .catch((e) => {
+              if (e.status === 403 && page === "community") return [];
+              throw e;
+            })
+            .then((value) => {
+              updates.push(() => setPosts(value));
+            }),
+        );
+      if (["communities", "profile", "member"].includes(page))
+        tasks.push(active("/communities?" + list, setCommunities));
+      if (["projects", "profile", "member"].includes(page))
+        tasks.push(active("/projects?" + projectList, setProjects));
+      if (["events", "profile", "member"].includes(page))
+        tasks.push(active("/events?" + ev, setEvents));
+      if (page === "community")
+        tasks.push(active("/communities/" + id, setCommunityDetail));
+      else setCommunityDetail(null);
+      await Promise.all(tasks);
       if (version !== requestVersion.current) return;
-      setUser(me.user);
-      setPosts(p);
-      setCommunities(c);
-      setProjects(pr);
-      setEvents(eventsData);
-      setMyEvents(myEventData || []);
-      setTopics(topicData);
-      setJoinedCommunities(joined);
-      setCommunityDetail(space);
+      if (accountIdentity.current !== (nextUser?.id ?? null)) {
+        clearAccountData();
+        accountIdentity.current = nextUser?.id ?? null;
+      }
+      for (const update of updates) update();
+      staging = false;
+      setLoading(false);
+      // Failures in reminders or catalogs leave the current screen usable.
+      void Promise.allSettled([
+        active("/topics", setTopics),
+        active("/communities?joined=1&limit=30", setJoinedCommunities),
+        active("/events?attending=1&status=upcoming&limit=2", setMyEvents),
+      ]);
     } catch (e) {
       if (version === requestVersion.current) {
         setLoadError(e.message);
@@ -259,9 +301,10 @@ export function App() {
       if (version === requestVersion.current) setLoading(false);
     }
   }, [
+    clearAccountData,
     page,
     id,
-    query,
+    debouncedQuery,
     sort,
     typeFilter,
     listPage,
@@ -310,7 +353,7 @@ export function App() {
     return () => {
       active = false;
     };
-  }, [route]);
+  }, [route, user?.id]);
   useEffect(() => {
     if (page === "member")
       api("/users/" + id + "?page=" + listPage)
@@ -376,9 +419,7 @@ export function App() {
               ? "Welcome to the community."
               : "Saved for a little later.",
       );
-      const [c, ev] = await Promise.all([api("/communities"), api("/events")]);
-      setCommunities(c);
-      setEvents(ev);
+      await refresh();
     } catch (e) {
       setToast(e.message);
     }
@@ -1274,6 +1315,8 @@ export function App() {
                     logout={async () => {
                       try {
                         await api("/logout", { method: "POST" });
+                        clearAccountData();
+                        accountIdentity.current = null;
                         setUser(null);
                         await refresh();
                         go("feed");
@@ -1359,6 +1402,9 @@ export function App() {
           setMode={setAuth}
           close={closeAuth}
           done={async (u) => {
+            ++requestVersion.current;
+            clearAccountData();
+            accountIdentity.current = u?.id ?? null;
             setUser(u);
             setAuth(null);
             if (auth === "signup" && u.email_verified) setEditor(true);

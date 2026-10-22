@@ -16,3 +16,6 @@ coverage/
 *.db
 *.pem
 *.key
+
+# Encrypted database/file backup archives
+*.ddb

@@ -36,3 +36,9 @@ The server stores a hash of each code, expiry, attempt count, and resend timing.
 Email registration chooses a permanent username before verification. New OAuth users choose it once at first sign-in. Usernames are case-insensitively unique in the database. Display names remain editable. Platform moderator privileges come from `MODERATOR_EMAILS`; community owners appoint their own validators.
 
 Provider setup alone does not make local SQLite and uploads deployable to Vercel. Configure the [cloud storage adapters](deployment.md) and verify the hosted flows before production launch.
+
+## Password recovery
+
+Sign in → Forgot your password sends a six-digit, ten-minute recovery code for an existing verified mailbox. Enter the code and a new password; a valid reset changes the verifier and revokes every session and saved-device login. It does not automatically sign in or change the permanent username. Google/GitHub identities stay linked; a verified provider-created account can also establish an email password through this explicit mailbox-confirmed flow.
+
+Request responses do not disclose whether an address exists. Delivery is performed synchronously, so response timing can differ; registration already reports duplicate email addresses. Codes are hashed, single-use, expire and permit at most five attempts; cooldowns and persistent IP/email/mail budgets restrict abuse. See [reliability](reliability.md) for limits and deployment requirements.

@@ -340,6 +340,56 @@ try {
     .first()
     .click();
   await shot("auth");
+  await page.setViewportSize({ width: 360, height: 780 });
+  await page
+    .getByRole("button", { name: "Forgot your password?", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Send recovery code", exact: true }),
+  ).toBeVisible();
+  await expect(page.locator(".auth-modal input[type=password]")).toHaveCount(0);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBeTruthy();
+  await shot("mobile-password-recovery");
+  await page.route("**/api/auth/password/request", (route) =>
+    route.fulfill({
+      json: {
+        reset_required: true,
+        challenge: "a".repeat(64),
+        message:
+          "If this address has a verified account, a code will arrive shortly.",
+      },
+    }),
+  );
+  await page.route("**/api/auth/password/reset", (route) => {
+    expect(route.request().postDataJSON()).toEqual({
+      challenge: "a".repeat(64),
+      code: "123456",
+      password: "New-browser-password123",
+    });
+    return route.fulfill({ json: { ok: true } });
+  });
+  await page.locator("input[name=email]").fill("recovery@browser.test");
+  await page
+    .getByRole("button", { name: "Send recovery code", exact: true })
+    .click();
+  await expect(page.locator(".verification-code")).toBeVisible();
+  await page.locator(".verification-code").fill("123456");
+  await page.locator("input[name=password]").fill("New-browser-password123");
+  await shot("mobile-password-new-code");
+  await page
+    .getByRole("button", { name: "Set new password", exact: true })
+    .click();
+  await expect(page.locator(".auth-modal")).toContainText(
+    "Password updated. Sign in",
+  );
+  await expect(page.locator(".verification-code")).toHaveCount(0);
+  await page.unroute("**/api/auth/password/request");
+  await page.unroute("**/api/auth/password/reset");
+  await page.setViewportSize({ width: 1440, height: 1000 });
   await page
     .getByRole("button", { name: "Join the community", exact: true })
     .click();
@@ -711,6 +761,27 @@ try {
   await shot("mobile-navigation");
   await page.locator(".sidebar-scrim").click({ position: { x: 350, y: 400 } });
   await shot("mobile-profile");
+  for (const width of [360, 768]) {
+    await page.setViewportSize({ width, height: 900 });
+    for (const route of [
+      "feed",
+      "communities",
+      "projects",
+      "events",
+      "profile",
+    ]) {
+      await page.goto(base + "/app#" + route);
+      await page.waitForLoadState("networkidle");
+      await expect(page.locator(".loading-state")).toHaveCount(0);
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= innerWidth,
+        ),
+        `Horizontal overflow on ${route} at ${width}px`,
+      ).toBeTruthy();
+      await shot(`responsive-${width}-${route}`);
+    }
+  }
   expect(errors).toEqual([]);
   console.log(
     "Browser checks passed: themes, real forms, uploads, catalogs, links, mentions, search, validators, screenshots, teams, account switching, mobile navigation.",

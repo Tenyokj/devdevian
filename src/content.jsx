@@ -11,7 +11,7 @@ import {
   Check,
   ChevronDown,
 } from "lucide-react";
-import { api, dateOnly } from "./data";
+import { api, readAPIResponse, dateOnly } from "./data";
 import { Avatar, MD, ErrorMessage } from "./ui";
 export function Pagination({ meta, onPage, label = "items" }) {
   if (!meta || meta.pages <= 1) return null;
@@ -91,9 +91,9 @@ export function AttachmentPicker({ files, onChange, onBusy }) {
                     "X-Filename": encodeURIComponent(f.name),
                   },
                   body: f,
+                  signal: AbortSignal.timeout(30000),
                 });
-                const d = await r.json();
-                if (!r.ok) throw new Error(d.error || "Upload failed.");
+                const d = await readAPIResponse(r);
                 uploaded.push(d);
                 onChange([...files, ...uploaded]);
               }
