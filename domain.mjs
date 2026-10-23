@@ -1,3 +1,4 @@
+import { notifyTopic } from "./subscriptions.mjs";
 import { InputError } from "./validation.mjs";
 import { pageRows, scopeSQL, memberOf } from "./spaces.mjs";
 import { attachments, validFiles, attachFiles } from "./uploads.mjs";
@@ -258,7 +259,7 @@ export function registerDomain(app, db, required, profile) {
     }
     if (req.query.sort === "help")
       where.push(
-        "p.kind IN ('question','review') AND p.status='open' AND p.archived_at IS NULL AND p.locked_at IS NULL AND NOT EXISTS(SELECT 1 FROM replies r WHERE r.post_id=p.id)",
+        "p.kind IN ('question','review') AND p.status='open' AND p.accepted_reply_id IS NULL AND p.archived_at IS NULL AND p.locked_at IS NULL",
       );
     const order =
       req.query.sort === "active"
@@ -427,6 +428,7 @@ export function registerDomain(app, db, required, profile) {
         );
       const id = Number(result.lastInsertRowid);
       attachFiles(db, id, req.user, attachment_ids);
+      notifyTopic(db, { id, topic, community_id }, req.user.id);
       return id;
     });
     res.status(201).json(decorate(post(id), req.user));
@@ -655,6 +657,11 @@ export function registerDomain(app, db, required, profile) {
           stage,
           help.trim(),
         );
+      notifyTopic(
+        db,
+        { id: Number(p.lastInsertRowid), topic, community_id: null },
+        req.user.id,
+      );
       db.exec("COMMIT");
       res
         .status(201)

@@ -186,6 +186,24 @@ export function TaxonomyPicker({
     [known, setKnown] = useState(initial);
   const root = useRef(null);
   useEffect(() => {
+    if (multiple || !selected || known.some((t) => t.id === selected)) return;
+    let alive = true;
+    api(`/taxonomy/${kind}?id=${encodeURIComponent(selected)}`)
+      .then((items) => {
+        if (alive)
+          setKnown((k) => [
+            ...k,
+            ...items.filter((t) => !k.some((v) => v.id === t.id)),
+          ]);
+      })
+      .catch((e) => {
+        if (alive) setError(e.message);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [kind, multiple, selected]);
+  useEffect(() => {
     if (!open) return;
     let alive = true;
     const timer = setTimeout(
@@ -513,8 +531,8 @@ export function MediaPicker({ name, label, multiple = false, initial }) {
     </div>
   );
 }
-export function formObject(form) {
-  if (form.querySelector('[data-uploading="true"]'))
+export function formObject(form, { allowUploading = false } = {}) {
+  if (!allowUploading && form.querySelector('[data-uploading="true"]'))
     throw Error("Wait for image uploads to finish.");
   const data = Object.fromEntries(new FormData(form));
   const details = {};

@@ -1773,6 +1773,273 @@ test("Devdevian application scenarios with an isolated database", async (t) => {
       },
     );
     await t.test(
+      "subscriptions notify followers without leaking private community activity",
+      async () => {
+        const follower = makeClient(),
+          publisher = makeClient();
+        const registered = await follower("/register", {
+          name: "Follower",
+          username: "topic_follower",
+          email: "follower@example.test",
+          password: "Following-password123",
+        });
+        await publisher("/register", {
+          name: "Publisher",
+          username: "topic_publisher",
+          email: "publisher@example.test",
+          password: "Publishing-password123",
+        });
+        const followingId = registered.data.user.id;
+        assert.equal((await anon("/subscriptions/topic/web")).status, 401);
+        assert.equal(
+          (
+            await follower(
+              "/subscriptions/topic/missing",
+              { following: true },
+              "PUT",
+            )
+          ).status,
+          404,
+        );
+        assert.equal(
+          (
+            await follower(
+              "/subscriptions/topic/web",
+              { following: "true" },
+              "PUT",
+            )
+          ).status,
+          400,
+        );
+        assert.equal(
+          (
+            await follower(
+              "/subscriptions/topic/web",
+              { following: true },
+              "PUT",
+            )
+          ).status,
+          200,
+        );
+        await follower("/subscriptions/topic/web", { following: true }, "PUT");
+        const publicPost = (
+          await publisher("/posts", {
+            title: "Topic subscription question",
+            body: "Can we make subscription delivery safe and predictable?",
+            kind: "question",
+            topic: "web",
+          })
+        ).data;
+        assert.ok(publicPost.id);
+        assert.equal(
+          (await follower("/notifications")).data.items.filter(
+            (n) => n.post_id === publicPost.id && n.type === "topic_post",
+          ).length,
+          1,
+        );
+        await follower(
+          "/subscriptions/post/" + publicPost.id,
+          { following: true },
+          "PUT",
+        );
+        const replyResult = await publisher(
+          "/posts/" + publicPost.id + "/replies",
+          { body: "A reply to the topic question from its author." },
+        );
+        assert.equal(replyResult.status, 201);
+        assert.equal(
+          (await follower("/notifications")).data.items.filter(
+            (n) => n.reply_id === replyResult.data.id,
+          ).length,
+          1,
+        );
+        // Having replies alone must not remove an unresolved question from Needs help.
+        assert.ok(
+          (await anon("/posts?sort=help")).data.some(
+            (p) => p.id === publicPost.id,
+          ),
+        );
+        await publisher(
+          "/posts/" + publicPost.id + "/solution",
+          { reply_id: replyResult.data.id },
+          "PATCH",
+        );
+        assert.ok(
+          !(await anon("/posts?sort=help")).data.some(
+            (p) => p.id === publicPost.id,
+          ),
+        );
+        await publisher(
+          "/posts/" + publicPost.id + "/solution",
+          { reply_id: null },
+          "PATCH",
+        );
+        assert.ok(
+          (await anon("/posts?sort=help")).data.some(
+            (p) => p.id === publicPost.id,
+          ),
+        );
+        await publisher(
+          "/subscriptions/post/" + publicPost.id,
+          { following: true },
+          "PUT",
+        );
+        const ownReply = await follower(
+          "/posts/" + publicPost.id + "/replies",
+          { body: "Following does not send a notification to myself." },
+        );
+        assert.ok(
+          !(await follower("/notifications")).data.items.some(
+            (n) => n.reply_id === ownReply.data.id,
+          ),
+        );
+        assert.equal(
+          (await publisher("/notifications")).data.items.filter(
+            (n) => n.reply_id === ownReply.data.id,
+          ).length,
+          1,
+        );
+        const space = (
+          await publisher("/communities", {
+            name: "Subscription privacy test",
+            description:
+              "Private team discussions must stay inside this community.",
+          })
+        ).data;
+        assert.ok(space.id);
+        const privatePost = (
+          await publisher("/posts", {
+            title: "Private topic subscription discussion",
+            body: "This private conversation must never enter topic alerts.",
+            kind: "discussion",
+            topic: "web",
+            community_id: space.id,
+          })
+        ).data;
+        assert.ok(privatePost.id);
+        assert.ok(
+          !(await follower("/notifications")).data.items.some(
+            (n) => n.post_id === privatePost.id,
+          ),
+        );
+        assert.equal(
+          (
+            await follower(
+              "/subscriptions/post/" + privatePost.id,
+              { following: true },
+              "PUT",
+            )
+          ).status,
+          404,
+        );
+        // Simulate a formerly approved member who followed before losing access.
+        const fixture = new DatabaseSync(path);
+        fixture
+          .prepare(
+            "INSERT INTO subscriptions(user_id,kind,item) VALUES(?,'post',?)",
+          )
+          .run(followingId, String(privatePost.id));
+        fixture.close();
+        await publisher("/posts/" + privatePost.id + "/replies", {
+          body: "This reply is visible only to current approved members.",
+        });
+        assert.ok(
+          !(await follower("/notifications")).data.items.some(
+            (n) => n.post_id === privatePost.id,
+          ),
+        );
+        assert.equal(
+          (
+            await follower(
+              "/subscriptions/post/" + privatePost.id,
+              { following: false },
+              "PUT",
+            )
+          ).status,
+          200,
+        );
+        await follower(
+          "/account/preferences",
+          { preferences: { notify_subscriptions: false } },
+          "PATCH",
+        );
+        const before = (await follower("/notifications")).data.latest_id;
+        await publisher("/posts/" + publicPost.id + "/replies", {
+          body: "This followed discussion reply should be suppressed in settings.",
+        });
+        assert.equal((await follower("/notifications")).data.latest_id, before);
+        await follower(
+          "/account/preferences",
+          { preferences: { notify_subscriptions: true } },
+          "PATCH",
+        );
+        await follower(
+          "/subscriptions/post/" + publicPost.id,
+          { following: false },
+          "PUT",
+        );
+        assert.equal(
+          (await follower("/subscriptions/post/" + publicPost.id)).data
+            .following,
+          false,
+        );
+        await follower("/subscriptions/topic/web", { following: false }, "PUT");
+        assert.equal(
+          (await follower("/subscriptions/topic/web")).data.following,
+          false,
+        );
+        const capped = new DatabaseSync(path);
+        const seedFollow = capped.prepare(
+          "INSERT INTO subscriptions(user_id,kind,item) VALUES(?,'topic',?)",
+        );
+        for (let i = 0; i < 500; i++)
+          seedFollow.run(followingId, "previous-topic-" + i);
+        capped.close();
+        assert.equal(
+          (
+            await follower(
+              "/subscriptions/topic/web",
+              { following: true },
+              "PUT",
+            )
+          ).status,
+          429,
+        );
+        assert.equal(
+          (
+            await follower(
+              "/subscriptions/topic/previous-topic-0",
+              { following: false },
+              "PUT",
+            )
+          ).status,
+          200,
+        );
+        assert.equal(
+          (
+            await follower(
+              "/subscriptions/topic/web",
+              { following: true },
+              "PUT",
+            )
+          ).status,
+          200,
+        );
+        await follower("/subscriptions/topic/web", { following: false }, "PUT");
+        const nextPost = await publisher("/posts", {
+          title: "No more topic alerts",
+          body: "Unfollowing stops new topic activity without deleting history.",
+          kind: "discussion",
+          topic: "web",
+        });
+        assert.ok(
+          !(await follower("/notifications")).data.items.some(
+            (n) => n.post_id === nextPost.data.id,
+          ),
+        );
+      },
+    );
+    await t.test(
       "notification preferences persist and suppress only selected future notifications",
       async () => {
         const sender = makeClient();

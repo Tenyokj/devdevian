@@ -26,7 +26,33 @@ export function notify(
     `INSERT OR IGNORE INTO notifications(recipient_id,actor_id,post_id,event_id,reply_id,type,event_key) VALUES(?,?,?,?,?,?,?)`,
   ).run(recipient, actor, post, event, reply, type, key);
 }
+// Fan out in one statement so a popular topic does not issue one remote query per follower.
+export function notifySubscribers(
+  db,
+  { kind, item, actor, post, reply = null, type, key },
+) {
+  db.prepare(
+    `INSERT OR IGNORE INTO notifications(recipient_id,actor_id,post_id,reply_id,type,event_key)
+    SELECT s.user_id,?,?,?,?,? FROM subscriptions s
+    JOIN users u ON u.id=s.user_id JOIN posts p ON p.id=?
+    LEFT JOIN user_settings settings ON settings.user_id=s.user_id
+    WHERE s.kind=? AND s.item=? AND s.user_id<>? AND u.deleted_at IS NULL AND p.removed_at IS NULL
+    AND (p.community_id IS NULL OR EXISTS(SELECT 1 FROM memberships m WHERE m.user_id=s.user_id AND m.kind='group' AND m.item=p.community_id))
+    AND COALESCE(json_extract(settings.data,'$.notifications_enabled'),1)=1
+    AND COALESCE(json_extract(settings.data,'$.notify_subscriptions'),1)=1
+    AND (?<>'reply' OR COALESCE(json_extract(settings.data,'$.notify_replies'),1)=1)`,
+  ).run(actor, post, reply, type, key, post, kind, String(item), actor, type);
+}
 export function notifyReply(db, post, replyId, actor, parentId) {
+  notifySubscribers(db, {
+    kind: "post",
+    item: post.id,
+    actor,
+    post: post.id,
+    reply: replyId,
+    type: "reply",
+    key: `reply:${replyId}`,
+  });
   const recipients = new Set([post.user_id]);
   if (parentId)
     recipients.add(

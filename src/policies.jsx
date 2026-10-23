@@ -44,8 +44,9 @@ const privacy = [
       <p>
         We also store publications, replies, uploaded files, project and event
         details, attendance, community membership and join requests, votes,
-        bookmarks, notification preferences, reports, and moderation decisions.
-        These records support the features you use and help investigate abuse.
+        bookmarks, topic and conversation subscriptions, notification
+        preferences, reports, and moderation decisions. These records support
+        the features you use and help investigate abuse.
       </p>
       <p>
         Google and GitHub provide an account identifier and verified email,
@@ -115,10 +116,15 @@ const privacy = [
         request to the browser that started it.
       </p>
       <p>
-        Local storage remembers your theme and sidebar preference. The current
-        application does not add advertising trackers or application analytics
-        scripts. Hosting and service providers may still process operational
-        logs, including network metadata, to deliver and protect their services.
+        Local storage remembers your theme and sidebar preference. Conversation
+        drafts are saved locally, separated by account and entry point, and can
+        be restored for up to 30 days after their last edit. Draft text and
+        links stay on this browser; attachments must be added again. Publish or
+        discard a draft, or clear this site’s browser data, to remove it. The
+        current application does not add advertising trackers or application
+        analytics scripts. Hosting and service providers may still process
+        operational logs, including network metadata, to deliver and protect
+        their services.
       </p>
     </>,
   ],

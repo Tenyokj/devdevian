@@ -102,6 +102,11 @@ export function Settings({ user, close, refresh, onSwitch }) {
               "Replies and responses in your threads.",
             ],
             [
+              "notify_subscriptions",
+              "Followed topics and conversations",
+              "New public posts in topics you follow and replies in followed conversations.",
+            ],
+            [
               "notify_solutions",
               "Solutions and accepted answers",
               "When an answer is accepted or updated.",

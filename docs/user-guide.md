@@ -33,6 +33,8 @@ Choose a public audience or one of your joined communities. Add a title, content
 
 Files are limited to 4 MB each. Supported types include PNG, JPEG, WebP, GIF, PDF, ZIP, and supported text/code extensions. SVG and HTML uploads are not accepted. Image attachments can appear on publication cards; other files appear as attachments. Never upload someone else’s private information or a repository containing secrets.
 
+Draft text, selected topic/technologies, audience, code, and links auto-save in this browser, separately for each account and public/community entry point. Closing and reopening the composer restores the draft; reattach files before publishing. Drafts can be restored for 30 days after the last edit. **Discard draft** or a successful publication removes it. Drafts do not sync across devices; avoid sensitive text on shared devices. Clearing this site’s browser storage also removes drafts.
+
 ## Replies, accepted answers, and archiving
 
 Reply to the publication or to an individual reply. Root replies and nested branches have their own pagination. Use the direct reply link from notifications to find the relevant branch.
@@ -40,6 +42,8 @@ Reply to the publication or to an individual reply. Root replies and nested bran
 The author of a Question or Code review can accept a reply and later undo that choice. Accepted answers help readers find a useful solution; they do not prevent further discussion or guarantee correctness. Authors can edit their own content; you cannot edit another account’s reply.
 
 Archiving stops new replies without removing the conversation. The author can restore it. Moderator restrictions remain in force until an authorized moderator changes them. Voting and bookmarks are per-account toggles.
+
+**Needs help** includes open Questions and Code reviews without an accepted solution, even when they already have replies. Archived, moderated/locked and solved conversations are excluded. Accepting a solution removes the post from this filter; undoing it brings the post back.
 
 ## Projects and events
 
@@ -52,6 +56,8 @@ Join an event to see its meeting link and reminders, when reminders are enabled.
 ## Search, notifications, and profile controls
 
 Global search opens in a modal and groups matching content by type and audience. Community content is searchable only when your account has access. Use page-level filters and pagination to narrow directories and discussions.
+
+Follow a topic from its filtered feed to receive notifications about new public conversations (including project introductions). Follow an individual conversation to receive new-reply notifications without bookmarking it. Topic subscriptions never include private-community activity. Conversation notifications require continued community membership. Unfollow to stop future alerts; existing notification history stays. Your own activity does not notify you.
 
 Notifications link to the relevant content. Settings control future notification categories; disabling optional notifications does not disable security codes. Profile visibility affects profile discovery, not the visibility of existing public posts. Signing out asks for confirmation; saved account switching requires a valid session on that device.
 

@@ -1910,3 +1910,14 @@ html { scrollbar-gutter: auto; }
 .auth-policy-links a:hover{text-decoration:underline;}
 main>footer a{color:var(--muted);font-size:11px;text-decoration:none;}
 main>footer a:hover{color:var(--accent);}
+
+/* Subscription controls share the existing palette in both themes. */
+.topic-follow-bar,.draft-status { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin:16px 0 24px; font-size:13px; color:var(--muted); }
+.draft-status { padding:12px 0; border-bottom:1px solid var(--line); }
+.draft-status span { flex:1; min-width:180px; }
+.draft-status button { color:var(--muted); text-decoration:underline; text-underline-offset:3px; }
+.follow-button { white-space:normal; }
+.follow-button.is-following { color:var(--accent); }
+@media(max-width:600px) { .topic-follow-bar { align-items:flex-start; flex-direction:column; } }
+
+.needs-help-note { font-size:13px; line-height:1.6; color:var(--muted); margin:0 0 18px; }

@@ -1,3 +1,4 @@
+import { draftKey, readDraft, saveDraft } from "./drafts";
 import {
   Select,
   TaxonomyPicker,
@@ -10,7 +11,7 @@ import {
   MentionTextarea,
 } from "./controls";
 import { AttachmentPicker } from "./content";
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import {
   ArrowRight,
   Code2,
@@ -385,6 +386,7 @@ export function Auth({ mode, setMode, done, close }) {
   );
 }
 export function Composer({
+  user,
   communities,
   topics = [],
   communityId = null,
@@ -393,14 +395,79 @@ export function Composer({
   close,
   done,
 }) {
-  const [kind, setKind] = useState(defaultKind),
-    [body, setBody] = useState(""),
+  const key = user?.id ? draftKey(user.id, communityId) : null;
+  const [restored] = useState(() => {
+    try {
+      return key ? readDraft(window.localStorage, key) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [kind, setKind] = useState(
+      types[restored?.kind] ? restored.kind : defaultKind,
+    ),
+    [body, setBody] = useState(restored?.body || ""),
     [preview, setPreview] = useState(false),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
+  const [draftStatus, setDraftStatus] = useState(
+    restored
+      ? "Draft restored on this device."
+      : "Text auto-saves on this device for 30 days.",
+  );
+  const formRef = useRef(null),
+    currentDraft = useRef(null),
+    skipSave = useRef(false),
+    lastSaved = useRef("");
   const [files, setFiles] = useState([]),
     [uploading, setUploading] = useState(false),
-    [audience, setAudience] = useState(communityId || "");
+    [audience, setAudience] = useState(
+      communityId || restored?.community_id || "",
+    );
+  currentDraft.current = { body, kind, community_id: audience };
+  const persistDraft = useCallback(() => {
+    if (!key || skipSave.current || !formRef.current) return;
+    try {
+      const data = {
+        ...formObject(formRef.current, { allowUploading: true }),
+        ...currentDraft.current,
+      };
+      const serialized = JSON.stringify(data);
+      if (serialized === lastSaved.current) return;
+      const saved = saveDraft(window.localStorage, key, data);
+      lastSaved.current = serialized;
+      setDraftStatus(
+        saved
+          ? "Draft saved on this device."
+          : "Text auto-saves on this device for 30 days.",
+      );
+    } catch {
+      setDraftStatus(
+        "Draft could not be saved. Keep this form open or copy your text.",
+      );
+    }
+  }, [key]);
+  useEffect(() => {
+    const timer = setInterval(persistDraft, 800);
+    window.addEventListener("pagehide", persistDraft);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener("pagehide", persistDraft);
+    };
+  }, [persistDraft]);
+  const closeDraft = () => {
+    persistDraft();
+    close();
+  };
+  function discard() {
+    try {
+      window.localStorage.removeItem(key);
+    } catch {
+      /* Storage may be blocked. */
+    }
+    skipSave.current = true;
+    close();
+  }
   const [audiences, setAudiences] = useState(communities);
   useEffect(() => {
     let alive = true;
@@ -418,11 +485,19 @@ export function Composer({
     };
   }, [communities]);
   return (
-    <Modal title="Start a conversation" onClose={close} wide>
+    <Modal title="Start a conversation" onClose={closeDraft} wide>
       <h2>Put something good out there.</h2>
       <p className="modal-description">
         A question, a fresh perspective, or the thing you stayed up building.
       </p>
+      <div className="draft-status" role="status">
+        <span>
+          {draftStatus} Attachments must be added again when reopening.
+        </span>
+        <button type="button" onClick={discard}>
+          Discard draft
+        </button>
+      </div>
       <div className="type-picker">
         {Object.entries(types).map(([key, t]) => (
           <button
@@ -436,6 +511,7 @@ export function Composer({
         ))}
       </div>
       <form
+        ref={formRef}
         onSubmit={async (e) => {
           e.preventDefault();
           setError("");
@@ -459,6 +535,12 @@ export function Composer({
                 attachment_ids: files.map((f) => f.id),
               },
             });
+            skipSave.current = true;
+            try {
+              window.localStorage.removeItem(key);
+            } catch {
+              /* Publishing still succeeds without storage. */
+            }
             await done(post);
           } catch (e) {
             setError(e.message);
@@ -472,13 +554,21 @@ export function Composer({
             label="Topic tag"
             hint="Organizes conversations by subject. This does not choose a community."
           >
-            <TopicSelect communities={topics} defaultValue={defaultTopic} />
+            <TopicSelect
+              communities={topics}
+              defaultValue={restored?.topic || defaultTopic}
+            />
           </Field>
           <Field
             label="Tools & technologies"
             hint="Choose existing technologies or create your own."
           >
-            <TaxonomyPicker kind="technology" name="stack" multiple />
+            <TaxonomyPicker
+              kind="technology"
+              name="stack"
+              defaultValue={restored?.stack || ""}
+              multiple
+            />
           </Field>
         </div>
         <Field
@@ -524,6 +614,7 @@ export function Composer({
         <Field label="Title">
           <input
             name="title"
+            defaultValue={restored?.title || ""}
             minLength={5}
             maxLength={160}
             required
@@ -544,6 +635,7 @@ export function Composer({
             >
               <MentionTextarea
                 name="code"
+                defaultValue={restored?.code || ""}
                 rows={6}
                 maxLength={20000}
                 placeholder="Paste the relevant code here…"
@@ -552,6 +644,7 @@ export function Composer({
             <Field label="What should reviewers focus on?">
               <MentionTextarea
                 name="review_focus"
+                defaultValue={restored?.review_focus || ""}
                 required
                 minLength={10}
                 maxLength={1500}
@@ -561,7 +654,7 @@ export function Composer({
             </Field>
           </>
         )}
-        <LinksEditor />
+        <LinksEditor initial={restored?.details?.links || []} />
         <div className="editor-label">
           <span>{types[kind].description}</span>
           <button type="button" onClick={() => setPreview(!preview)}>

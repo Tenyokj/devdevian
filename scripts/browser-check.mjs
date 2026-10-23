@@ -451,6 +451,15 @@ try {
     .getByRole("button", { name: "Start a conversation", exact: true })
     .first()
     .click();
+  await page.locator("input[name=title]").fill("A disposable draft");
+  await page
+    .getByRole("button", { name: "Discard draft", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Start a conversation", exact: true })
+    .first()
+    .click();
+  await expect(page.locator("input[name=title]")).toHaveValue("");
   await page.getByRole("button", { name: "Choose topic", exact: true }).click();
   await page
     .getByRole("textbox", { name: "Search topics", exact: true })
@@ -486,6 +495,34 @@ try {
   await page
     .getByRole("textbox", { name: "Link 1 URL", exact: true })
     .fill("https://example.test/docs");
+  // Closing immediately must flush the last edit; reopening restores custom controls too.
+  await page.getByRole("button", { name: "Close dialog", exact: true }).click();
+  await page.reload();
+  await page
+    .getByRole("button", { name: "Start a conversation", exact: true })
+    .first()
+    .click();
+  await expect(page.locator("input[name=title]")).toHaveValue(
+    "Browser engineering conversation",
+  );
+  await expect(
+    page.getByRole("textbox", { name: "Post content", exact: true }),
+  ).toHaveValue(
+    "A detailed conversation about browser testing and developer communities.",
+  );
+  await expect(
+    page.getByRole("button", { name: "Choose topic", exact: true }),
+  ).toContainText("Browser Engineering");
+  await expect(
+    page.getByRole("button", {
+      name: "Choose tools and technologies",
+      exact: true,
+    }),
+  ).toContainText("BrowserTool");
+  await expect(
+    page.getByRole("textbox", { name: "Link 1 URL", exact: true }),
+  ).toHaveValue("https://example.test/docs");
+  await expect(page.locator(".draft-status")).toContainText("Draft restored");
   await shot("composer");
   await page
     .getByRole("button", { name: "Publish conversation", exact: true })
@@ -494,6 +531,47 @@ try {
     "Browser engineering conversation",
   );
   const postHash = new URL(page.url()).hash;
+  expect(
+    await page.evaluate(
+      () =>
+        Object.keys(localStorage).filter((k) =>
+          k.startsWith("devdevian-draft:"),
+        ).length,
+    ),
+  ).toBe(0);
+  await page
+    .getByRole("button", { name: "Follow conversation", exact: true })
+    .click();
+  await expect(page.locator(".detail-actions .follow-button")).toHaveText(
+    "Following",
+  );
+  await page.reload();
+  await expect(page.locator(".detail-actions .follow-button")).toHaveText(
+    "Following",
+  );
+  await page.locator(".detail-actions .follow-button").click();
+  await expect(page.locator(".detail-actions .follow-button")).toHaveText(
+    "Follow conversation",
+  );
+
+  const catalog = await (
+    await context.request.get(base + "/api/topics")
+  ).json();
+  const followedTopic = catalog.find((t) => t.name === "Browser Engineering");
+  await page.goto(base + "/app#tag/" + followedTopic.id);
+  await page.getByRole("button", { name: "Follow topic", exact: true }).click();
+  await expect(page.locator(".topic-follow-bar .follow-button")).toHaveText(
+    "Following",
+  );
+  await page.reload();
+  await expect(page.locator(".topic-follow-bar .follow-button")).toHaveText(
+    "Following",
+  );
+  await page.locator(".topic-follow-bar .follow-button").click();
+  await expect(page.locator(".topic-follow-bar .follow-button")).toHaveText(
+    "Follow topic",
+  );
+  await page.goto(base + "/app" + postHash);
   await expect(page.locator(".reply-dock")).toBeInViewport();
   await page
     .getByRole("button", { name: "Add your perspective", exact: true })

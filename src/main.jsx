@@ -1,3 +1,4 @@
+import { FollowButton } from "./follow";
 import PolicyPage from "./policies";
 import Landing from "./landing";
 import { Settings } from "./settings";
@@ -830,6 +831,22 @@ export function App() {
                       description="Your reading list, second looks, and conversations to come back to."
                     />
                   )}
+                  {page === "tag" && (
+                    <div className="topic-follow-bar">
+                      <span>
+                        Follow this topic to hear about new public
+                        conversations.
+                      </span>
+                      <FollowButton
+                        key={id + ":" + user?.id}
+                        kind="topic"
+                        item={id}
+                        user={user}
+                        requireUser={authorized}
+                        toast={setToast}
+                      />
+                    </div>
+                  )}
                   <div className="content-layout">
                     <section className="feed-column">
                       <div className="feed-toolbar">
@@ -842,7 +859,10 @@ export function App() {
                             <button
                               key={name}
                               className={sort === name ? "selected" : ""}
-                              onClick={() => setSort(name)}
+                              onClick={() => {
+                                setSort(name);
+                                setListPage(1);
+                              }}
                             >
                               <Icon size={15} />
                               {name}
@@ -884,7 +904,10 @@ export function App() {
                           <Select
                             aria-label="Filter by post type"
                             value={typeFilter}
-                            onChange={(e) => setTypeFilter(e.target.value)}
+                            onChange={(e) => {
+                              setTypeFilter(e.target.value);
+                              setListPage(1);
+                            }}
                           >
                             <option value="all">All types</option>
                             {Object.entries(types).map(([key, t]) => (
@@ -895,6 +918,12 @@ export function App() {
                           </Select>
                         </label>
                       </div>
+                      {sort === "Needs help" && (
+                        <p className="needs-help-note">
+                          Open questions and code reviews without an accepted
+                          solution — including those with replies.
+                        </p>
+                      )}
                       {feed.length ? (
                         <div className="post-list">
                           {feed.map((p) => (
@@ -1415,6 +1444,8 @@ export function App() {
       )}
       {composer && (
         <Composer
+          key={String(user?.id) + ":" + (composer.community_id || "public")}
+          user={user}
           communities={joinedCommunities}
           topics={topics}
           communityId={composer.community_id}
@@ -1852,6 +1883,14 @@ function PostDetail({
             <Bookmark size={16} fill={saved ? "currentColor" : "none"} />
             {saved ? "Saved" : "Save"}
           </button>
+          <FollowButton
+            key={p.id + ":" + user?.id}
+            kind="post"
+            item={p.id}
+            user={user}
+            requireUser={requireUser}
+            toast={toast}
+          />
           <button
             onClick={async () => {
               try {

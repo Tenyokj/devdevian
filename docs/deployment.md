@@ -63,3 +63,7 @@ After verifying a backup, run `node --env-file=.env.production.local scripts/mig
 Remote transaction behavior, native SDK packaging on Vercel, cold starts, and actual provider callbacks require hosted validation. The synchronous libSQL adapter prioritizes compatibility for the initial release; it should be measured before increasing traffic. A green frontend build alone is insufficient evidence of a working production forum.
 
 References: [Express functions](https://vercel.com/docs/frameworks/backend/express), [function limits](https://vercel.com/docs/functions/limitations), [local SQLite constraint](https://vercel.com/kb/guide/is-sqlite-supported-in-vercel), [R2 pricing](https://developers.cloudflare.com/r2/pricing/).
+
+### Rolling upgrade from v0.1.1 to v0.1.2
+
+Back up and verify the database and files first. Using the operator-selected production environment, run `node scripts/migrate.mjs --prepare-subscriptions` **before** deploying v0.1.2. This creates only the subscriptions table/index and preserves schema marker 2, so v0.1.1 can continue serving traffic. v0.1.2 accepts this explicitly prepared schema without running DDL during requests. After the new deployment passes its health check, run `node scripts/migrate.mjs` to finalize marker 3. No user records, posts, files, or sessions are reset. A rollback to v0.1.1 after finalization requires a reviewed schema-marker compatibility step; do not restore an old database over new user activity.

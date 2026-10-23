@@ -1,3 +1,4 @@
+import { registerSubscriptions } from "./subscriptions.mjs";
 import { encodePassword, checkPassword } from "./passwords.mjs";
 import {
   initializeLimits,
@@ -31,7 +32,7 @@ export async function createApp({ migrationOnly = false } = {}) {
   if (!migrationOnly) assertRuntime();
   const db = await openDatabase();
   try {
-    inspectSchema(db);
+    inspectSchema(db, { allowPreparedSubscriptions: !migrationOnly });
     if (!db.schemaCurrent && process.env.VERCEL === "1" && !migrationOnly)
       throw Error(
         "Database schema requires migration before starting this release.",
@@ -217,7 +218,7 @@ export async function createApp({ migrationOnly = false } = {}) {
     registerAuth(app, db, { required, session, profile, rate });
     app.get("/api/health", (req, res) => {
       db.prepare("SELECT 1 ok").get();
-      res.json({ ok: true, version: "0.1.1" });
+      res.json({ ok: true, version: "0.1.2" });
     });
     app.get("/api/me", (req, res) => res.json({ user: profile(req.user) }));
     app.post("/api/register", rate, async (req, res) => {
@@ -456,6 +457,7 @@ export async function createApp({ migrationOnly = false } = {}) {
     registerDomain(app, db, required, profile);
     importPublicTechnologies(db);
     registerActivity(app, db, required);
+    registerSubscriptions(app, db, required);
     registerModeration(app, db, required);
     registerEventManagement(app, db, required);
     registerReplies(app, db);

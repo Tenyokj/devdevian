@@ -132,6 +132,10 @@ export function registerEnhancements(app, db, required, seed) {
   function taxonomy(req, kind, paged = false) {
     const params = [kind];
     let where = "t.kind=?";
+    if (req.query.id) {
+      where += " AND t.id=?";
+      params.push(String(req.query.id).slice(0, 100));
+    }
     if (req.query.q) {
       where += " AND t.normalized LIKE ?";
       params.push("%" + normalizeName(req.query.q).slice(0, 80) + "%");
@@ -757,6 +761,7 @@ export function registerEnhancements(app, db, required, seed) {
       );
       db.prepare("DELETE FROM sessions WHERE user_id=?").run(req.user.id);
       db.prepare("DELETE FROM memberships WHERE user_id=?").run(req.user.id);
+      db.prepare("DELETE FROM subscriptions WHERE user_id=?").run(req.user.id);
       db.prepare("DELETE FROM validators WHERE user_id=?").run(req.user.id);
       db.prepare("DELETE FROM join_requests WHERE user_id=?").run(req.user.id);
       db.prepare("DELETE FROM device_accounts WHERE user_id=?").run(

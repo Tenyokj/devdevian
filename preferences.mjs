@@ -1,6 +1,7 @@
 export const preferenceDefaults = Object.freeze({
   notifications_enabled: true,
   notify_replies: true,
+  notify_subscriptions: true,
   notify_solutions: true,
   notify_projects: true,
   notify_events: true,

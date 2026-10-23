@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.2 — Drafts and subscriptions (unreleased)
+
+- Account-separated browser drafts for conversations with autosaved text, code, selected labels, audience and links; close/reload restoration, discard and publication cleanup. Attachments must be added again.
+- Explicit topic and conversation follows, independent from bookmarks, with in-app notifications, preference controls, idempotent subscription writes and bounded subscriptions.
+- Topic alerts cover public conversations only; private reply alerts and notification history remain gated by current membership. Notification fan-out uses one database statement.
+- Needs help keeps unresolved questions and code reviews visible even after replies, and removes accepted, archived and locked conversations.
+- Regression coverage for follows, unfollows, settings, account separation, private-access loss and browser draft restoration.
+
 ## 0.1.1 — Reliability and recovery (2026-10-23)
 
 - Mailbox-confirmed password recovery with hashed expiring codes, bounded attempts and revocation of saved sessions.
