@@ -1027,6 +1027,31 @@ try {
     }
   }
   expect(errors).toEqual([]);
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await expect(
+    page.getByRole("link", { name: "Release v0.1.3", exact: true }),
+  ).toHaveAttribute(
+    "href",
+    "https://github.com/Tenyokj/devdevian/releases/tag/v0.1.3",
+  );
+  await expect(
+    page.getByRole("link", { name: "Report a bug", exact: true }),
+  ).toHaveAttribute(
+    "href",
+    "https://github.com/Tenyokj/devdevian/issues/new/choose",
+  );
+  await page
+    .locator("main>footer")
+    .screenshot({ path: artifacts + "/release-footer-desktop.png" });
+  await page.setViewportSize({ width: 360, height: 800 });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBeTruthy();
+  await page
+    .locator("main>footer")
+    .screenshot({ path: artifacts + "/release-footer-mobile.png" });
   console.log(
     "Browser checks passed: themes, real forms, uploads, catalogs, links, mentions, search, validators, screenshots, teams, account switching, mobile navigation.",
   );

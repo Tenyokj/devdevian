@@ -1,14 +1,15 @@
 # Changelog
 
-## 0.1.3 — Following and mentions (unreleased)
+## 0.1.3 — Following and mentions (2026-10-24)
 
 - A Following feed combining public topic follows and individually followed conversations, with access checks, recent-activity ordering, search, type/topic filters and pagination.
 - Searchable, paginated subscription management with separate topic/conversation filters and removal of unavailable subscriptions without disclosing private titles.
 - In-app mentions in conversation and reply bodies, including newly added mentions in edits. Markdown code, links, images and HTML do not send pings; self-mentions, muted recipients and inaccessible community content are excluded. Notifications are bounded to ten distinct handles in each body and deduplicated with existing reply/topic alerts.
+- Minute-precision timestamps with explicit viewer timezones across publications, replies, notifications, moderation and project updates; a compact app footer links the running version, source repository, issue reporting and policies.
 - Linked replies are focused, highlighted and revealed across nested pagination, with reduced-motion support, per-reply permalinks and a clear fallback for missing replies.
 - API and responsive browser regression coverage for subscription isolation, revoked access, mention preferences, duplicate suppression and deeply nested notification targets. No schema upgrade is required from v0.1.2.
 
-## 0.1.2 — Drafts and subscriptions (unreleased)
+## 0.1.2 — Drafts and subscriptions (included in v0.1.3)
 
 - Account-separated browser drafts for conversations with autosaved text, code, selected labels, audience and links; close/reload restoration, discard and publication cleanup. Attachments must be added again.
 - Explicit topic and conversation follows, independent from bookmarks, with in-app notifications, preference controls, idempotent subscription writes and bounded subscriptions.

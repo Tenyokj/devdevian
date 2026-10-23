@@ -23,7 +23,7 @@ import {
   ArrowUpRight,
 } from "lucide-react";
 import { Modal, Empty, ErrorMessage, Field, MD, PageTitle } from "./ui";
-import { api, dateOnly } from "./data";
+import { api, dateStamp } from "./data";
 export function PostControls({ post, user, refresh, toast }) {
   const [action, setAction] = useState(null),
     [busy, setBusy] = useState(false),
@@ -39,7 +39,8 @@ export function PostControls({ post, user, refresh, toast }) {
         {post.archived_at && (
           <span>
             <Archive size={14} />
-            Archived by its author. New replies are closed; existing replies remain readable.
+            Archived by its author. New replies are closed; existing replies
+            remain readable.
           </span>
         )}
         {post.locked_at && (
@@ -133,11 +134,13 @@ export function PostControls({ post, user, refresh, toast }) {
                 });
                 await refresh();
                 setAction(null);
-                toast(action === "archive"
-                  ? "Conversation archived. New replies are closed."
-                  : action === "restore"
-                    ? "Conversation restored. New replies are open unless paused by a moderator."
-                    : "Conversation settings updated.");
+                toast(
+                  action === "archive"
+                    ? "Conversation archived. New replies are closed."
+                    : action === "restore"
+                      ? "Conversation restored. New replies are open unless paused by a moderator."
+                      : "Conversation settings updated.",
+                );
               } catch (e) {
                 setError(e.message);
               } finally {
@@ -342,7 +345,7 @@ export function Moderation({ user, go, scope = "all" }) {
                   <p>{r.reason}</p>
                   <small>
                     Reported by {r.reporter_name} · Author: {r.author_name} ·{" "}
-                    {dateOnly(r.created)}
+                    {dateStamp(r.created)}
                   </small>
                   {r.review_note && (
                     <div className="form-note">Decision: {r.review_note}</div>
@@ -399,7 +402,7 @@ export function Moderation({ user, go, scope = "all" }) {
                       {entry.reason ? " — " + entry.reason : ""}
                     </small>
                   </span>
-                  <span>{dateOnly(entry.created)}</span>
+                  <span>{dateStamp(entry.created)}</span>
                 </div>
               ))
             ) : (

@@ -22,7 +22,7 @@ import {
   PenLine,
 } from "lucide-react";
 import { Modal, Avatar, Empty, Field, MD, ErrorMessage } from "./ui";
-import { api, dateOnly } from "./data";
+import { api, dateStamp } from "./data";
 
 const messages = {
   event_updated: "updated an event you’re attending",
@@ -184,7 +184,7 @@ export function NotificationCenter({ user, onNavigate }) {
                     <strong>{item.actor_name}</strong>{" "}
                     {messages[item.type] || "shared an update"}
                     <b>{item.post_title}</b>
-                    <small>{dateOnly(item.created)}</small>
+                    <small>{dateStamp(item.created)}</small>
                   </span>
                   {!item.read_at && <i className="unread-dot" />}
                   <ArrowUpRight size={15} />
@@ -451,7 +451,7 @@ export function ProjectTimeline({
               <span className="update-marker" />
               <div className="project-update-heading">
                 <h3>{update.title}</h3>
-                <span>{dateOnly(update.created)}</span>
+                <span>{dateStamp(update.created)}</span>
               </div>
               <MD>{update.body}</MD>
             </article>

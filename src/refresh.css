@@ -1939,3 +1939,23 @@ main>footer a:hover{color:var(--accent);}
 .linked-reply-notice { padding:16px; border:1px solid var(--line); border-radius:12px; color:var(--muted); }
 .reply-actions>a { display:inline-flex; align-items:center; gap:5px; color:inherit; font-size:inherit; text-decoration:none; }
 @media(max-width:600px) { .subscription-row { padding:17px; align-items:flex-start; flex-direction:column; gap:14px; } .subscription-toolbar { align-items:stretch; flex-direction:column; } .subscription-row>.button { align-self:flex-end; } }
+
+/* Keep long, precise timestamps readable in narrow cards and reply branches. */
+.post-card-header,.post-card-meta,.detail-top,.reply-heading,.project-update-heading { flex-wrap:wrap; row-gap:8px; }
+.post-card-meta { margin-left:auto; justify-content:flex-end; }
+.post-date,.reply-heading>span { overflow-wrap:anywhere; line-height:1.6; }
+.edited-timestamp { display:block; color:var(--muted); font-size:inherit; }
+main>footer.app-footer { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:20px 28px; padding:25px 0; }
+.app-footer-identity { display:flex; align-items:center; gap:12px; min-width:0; flex-wrap:wrap; }
+.app-footer-identity>img { width:32px; height:32px; object-fit:contain; filter:drop-shadow(0 0 8px rgb(var(--accent-rgb) / .24)); }
+.app-footer-identity>span { display:grid; gap:4px; }
+.app-footer-identity strong { font-size:12px; color:var(--text-secondary); }
+.app-footer-identity small { font-size:11px; color:var(--muted); }
+main>footer .footer-version { border:1px solid var(--line); border-radius:20px; padding:5px 9px; color:var(--accent); font-size:10px; white-space:nowrap; }
+.app-footer-links { display:flex; flex-wrap:wrap; align-items:center; gap:12px 18px; }
+.app-footer-links>a { display:inline-flex; gap:5px; align-items:center; }
+.app-footer-links>button { display:grid; place-items:center; min-width:32px; min-height:32px; border:1px solid var(--line); border-radius:50%; color:var(--muted); }
+.app-footer-links>button:hover { color:var(--accent); border-color:var(--accent); }
+@media(max-width:600px) { main>footer.app-footer { align-items:flex-start; padding:22px 0; gap:18px; } .app-footer-links { width:100%; gap:12px 16px; } .app-footer-links>button { margin-left:auto; } .app-footer-identity { gap:10px; } .post-card-meta { max-width:100%; } }
+.post-date,.detail-top>span:last-child,.notification-item small,.reply-heading>span:not(.resolved-badge),.project-update-heading>span { font-size:11px; line-height:1.6; }
+@media(max-width:600px) { .post-date,.detail-top>span:last-child,.notification-item small,.reply-heading>span:not(.resolved-badge),.project-update-heading>span { font-size:10px; } }

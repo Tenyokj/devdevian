@@ -95,23 +95,43 @@ export async function api(path, options = {}) {
   }
 }
 export const localZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-export function dateTime(date, zone = localZone) {
-  return new Intl.DateTimeFormat("en", {
-    timeZone: zone,
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-    timeZoneName: "short",
-  }).format(new Date(date));
+// SQLite CURRENT_TIMESTAMP and naive ISO values are UTC; event timestamps may
+// include their own offset. Parse both consistently before converting for display.
+export function parseTimestamp(value) {
+  if (value instanceof Date) return new Date(value.getTime());
+  if (typeof value !== "string" || !value.trim()) return null;
+  let stamp = value.trim().replace(" ", "T");
+  if (/^\d{4}-\d{2}-\d{2}$/.test(stamp)) stamp += "T00:00:00Z";
+  else if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?$/.test(stamp))
+    stamp += "Z";
+  const date = new Date(stamp);
+  return Number.isNaN(date.getTime()) ? null : date;
 }
-export function dateOnly(date) {
-  return date
-    ? new Intl.DateTimeFormat("en", { month: "short", day: "numeric" }).format(
-        new Date(date.includes("T") ? date : date.replace(" ", "T") + "Z"),
-      )
-    : "Example";
+const timestampFormats = new Map();
+export function dateStamp(value, zone = localZone) {
+  const date = parseTimestamp(value);
+  if (!date) return "—";
+  try {
+    if (!timestampFormats.has(zone))
+      timestampFormats.set(
+        zone,
+        new Intl.DateTimeFormat("en", {
+          timeZone: zone,
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+          hourCycle: "h23",
+          timeZoneName: "short",
+        }),
+      );
+    return timestampFormats.get(zone).format(date);
+  } catch {
+    return "—";
+  }
 }
+export const dateTime = dateStamp;
 export function tags(value) {
   return value
     ? value

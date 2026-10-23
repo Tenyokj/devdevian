@@ -12,7 +12,7 @@ import {
   ChevronDown,
   Link as LinkIcon,
 } from "lucide-react";
-import { api, readAPIResponse, dateOnly } from "./data";
+import { api, readAPIResponse, dateStamp } from "./data";
 import { Avatar, MD, ErrorMessage } from "./ui";
 export function Pagination({ meta, onPage, label = "items" }) {
   if (!meta || meta.pages <= 1) return null;
@@ -279,8 +279,12 @@ function ReplyRow({ r, depth }) {
           <span>{r.name}</span>
         </button>
         <span>
-          {dateOnly(r.created)}
-          {r.updated_at ? " · edited" : ""}
+          {dateStamp(r.created)}
+          {r.updated_at && (
+            <span className="edited-timestamp">
+              Edited {dateStamp(r.updated_at)}
+            </span>
+          )}
         </span>
         {post.accepted_reply_id === r.id && (
           <span className="resolved-badge">

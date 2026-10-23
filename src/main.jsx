@@ -1,3 +1,4 @@
+import { version as appVersion } from "../package.json";
 import { SubscriptionManager } from "./subscriptions";
 import { FollowButton } from "./follow";
 import PolicyPage from "./policies";
@@ -83,7 +84,7 @@ import {
   ProfileEditor,
   ChooseUsername,
 } from "./forms";
-import { api, types, dateOnly, dateTime, localZone, tags } from "./data";
+import { api, types, dateStamp, dateTime, localZone, tags } from "./data";
 import { initialTheme, applyTheme } from "./theme";
 import {
   NotificationCenter,
@@ -1468,23 +1469,57 @@ export function App() {
               )}
             </>
           )}
-          <footer>
-            <span>
+          <footer className="app-footer">
+            <div className="app-footer-identity">
               <img src="/devdevian-logo.png" alt="" />
-              <strong>devdevian.</strong>
-              <span>A work in good company.</span>
-            </span>
-            <span>
+              <span>
+                <strong>devdevian.</strong>
+                <small>An open-source place to build together.</small>
+              </span>
+              <a
+                className="footer-version"
+                href={`https://github.com/Tenyokj/devdevian/releases/tag/v${appVersion}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`Release v${appVersion}`}
+              >
+                v{appVersion}
+              </a>
+            </div>
+            <nav className="app-footer-links" aria-label="Forum footer">
+              <a
+                href="https://github.com/Tenyokj/devdevian"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Github size={14} /> GitHub
+              </a>
+              <a
+                href="https://github.com/Tenyokj/devdevian/issues/new/choose"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Report a bug <ArrowUpRight size={12} />
+              </a>
               <a href="/privacy">Privacy &amp; Security</a>
               <a href="/terms">Terms of Use</a>
-              Stay curious. Build together.
               <button
-                onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+                onClick={() =>
+                  window.scrollTo({
+                    top: 0,
+                    behavior:
+                      user?.preferences?.reduce_motion ||
+                      window.matchMedia?.("(prefers-reduced-motion: reduce)")
+                        .matches
+                        ? "auto"
+                        : "smooth",
+                  })
+                }
                 aria-label="Back to top"
               >
                 <ArrowUp size={15} />
               </button>
-            </span>
+            </nav>
           </footer>
         </main>
       </div>
@@ -1601,7 +1636,12 @@ function PostCard({
             </span>
           )}
           <span className="post-date">
-            {dateOnly(p.created) + (p.updated_at ? " · edited" : "")}
+            {dateStamp(p.created)}
+            {p.updated_at && (
+              <span className="edited-timestamp">
+                Edited {dateStamp(p.updated_at)}
+              </span>
+            )}
           </span>
         </div>
       </div>
@@ -1850,8 +1890,8 @@ function PostDetail({
             </span>
           )}
           <span>
-            Started {dateOnly(p.created)}
-            {p.updated_at ? " · edited " + dateOnly(p.updated_at) : ""}
+            Started {dateStamp(p.created)}
+            {p.updated_at ? " · edited " + dateStamp(p.updated_at) : ""}
           </span>
         </div>
         <h1>{p.title}</h1>
@@ -1943,7 +1983,7 @@ function PostDetail({
           <p className="resolution-note">
             <CheckCircle2 size={14} />
             {p.kind === "review" ? "Review addressed" : "Solution marked"}{" "}
-            {dateOnly(p.resolved_at)}. New replies are welcome.
+            {dateStamp(p.resolved_at)}. New replies are welcome.
           </p>
         )}
         <div className="detail-actions">
@@ -2513,7 +2553,7 @@ function Profile({
                 <span>
                   <strong>{post.title}</strong>
                   <small>
-                    {dateOnly(post.created)} · {post.reply_count} replies
+                    {dateStamp(post.created)} · {post.reply_count} replies
                   </small>
                 </span>
                 {post.status === "resolved" && (
