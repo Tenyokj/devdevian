@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.1 — Reliability and recovery (unreleased)
+## 0.1.1 — Reliability and recovery (2026-10-23)
 
 - Mailbox-confirmed password recovery with hashed expiring codes, bounded attempts and revocation of saved sessions.
 - Explicit hosted schema migrations, reusable API initialization, database-region alignment and readable dependency failures with request references.
