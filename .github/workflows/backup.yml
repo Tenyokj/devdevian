@@ -13,15 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
-      TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
       UPLOAD_DRIVER: s3
-      S3_ENDPOINT: ${{ secrets.S3_ENDPOINT }}
-      S3_REGION: ${{ secrets.S3_REGION }}
-      S3_BUCKET: ${{ secrets.S3_BUCKET }}
-      S3_ACCESS_KEY_ID: ${{ secrets.S3_ACCESS_KEY_ID }}
-      S3_SECRET_ACCESS_KEY: ${{ secrets.S3_SECRET_ACCESS_KEY }}
-      BACKUP_ENCRYPTION_KEY: ${{ secrets.BACKUP_ENCRYPTION_KEY }}
       BACKUP_MAX_BYTES: '52428800'
     steps:
       - uses: actions/checkout@v7
@@ -31,12 +23,23 @@ jobs:
         with:
           node-version: 24
           cache: npm
-      - name: Check required configuration without printing secrets
-        run: node -e 'for (const k of ["TURSO_DATABASE_URL","TURSO_AUTH_TOKEN","S3_ENDPOINT","S3_BUCKET","S3_ACCESS_KEY_ID","S3_SECRET_ACCESS_KEY","BACKUP_ENCRYPTION_KEY"]) if (!process.env[k]) throw Error("Missing GitHub Actions secret " + k)'
+      # Dependency installation and artifact publication do not need the
+      # production database credentials or the backup decryption key.
       - run: npm ci
-      - run: npm run maintenance
-      - name: Snapshot, encrypt, restore to an isolated directory and verify
-        run: npm run backup -- create backups/nightly.ddb
+      - name: Clean expired records, snapshot, encrypt and verify restoration
+        env:
+          TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
+          TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
+          S3_ENDPOINT: ${{ secrets.S3_ENDPOINT }}
+          S3_REGION: ${{ secrets.S3_REGION }}
+          S3_BUCKET: ${{ secrets.S3_BUCKET }}
+          S3_ACCESS_KEY_ID: ${{ secrets.S3_ACCESS_KEY_ID }}
+          S3_SECRET_ACCESS_KEY: ${{ secrets.S3_SECRET_ACCESS_KEY }}
+          BACKUP_ENCRYPTION_KEY: ${{ secrets.BACKUP_ENCRYPTION_KEY }}
+        run: |
+          node -e 'for (const k of ["TURSO_DATABASE_URL","TURSO_AUTH_TOKEN","S3_ENDPOINT","S3_BUCKET","S3_ACCESS_KEY_ID","S3_SECRET_ACCESS_KEY","BACKUP_ENCRYPTION_KEY"]) if (!process.env[k]) throw Error("Missing GitHub Actions secret " + k)'
+          npm run maintenance
+          npm run backup -- create backups/nightly.ddb
       - uses: actions/upload-artifact@v7
         with:
           name: encrypted-production-backup-${{ github.run_id }}
