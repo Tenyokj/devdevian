@@ -218,7 +218,7 @@ export async function createApp({ migrationOnly = false } = {}) {
     registerAuth(app, db, { required, session, profile, rate });
     app.get("/api/health", (req, res) => {
       db.prepare("SELECT 1 ok").get();
-      res.json({ ok: true, version: "0.1.2" });
+      res.json({ ok: true, version: "0.1.3" });
     });
     app.get("/api/me", (req, res) => res.json({ user: profile(req.user) }));
     app.post("/api/register", rate, async (req, res) => {

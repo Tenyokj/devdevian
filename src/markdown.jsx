@@ -1,3 +1,4 @@
+import { mentionMatches } from "../mention-syntax.mjs";
 import React, { useState, useEffect } from "react";
 import { api } from "./data";
 import Markdown from "react-markdown";
@@ -7,7 +8,18 @@ import "highlight.js/styles/github-dark.css";
 function mentions() {
   return (tree) => {
     function walk(node) {
-      if (["code", "inlineCode", "link", "linkReference"].includes(node.type))
+      if (
+        [
+          "code",
+          "inlineCode",
+          "link",
+          "linkReference",
+          "html",
+          "image",
+          "imageReference",
+          "definition",
+        ].includes(node.type)
+      )
         return;
       if (!node.children) return;
       node.children = node.children.flatMap((child) => {
@@ -16,19 +28,16 @@ function mentions() {
           return [child];
         }
         const parts = [];
-        const re = /(^|\s)@([a-zA-Z][a-zA-Z0-9_]{2,29})\b/g;
-        let last = 0,
-          m;
-        while ((m = re.exec(child.value))) {
-          const start = m.index + m[1].length;
+        let last = 0;
+        for (const { start, end, username } of mentionMatches(child.value)) {
           if (start > last)
             parts.push({ type: "text", value: child.value.slice(last, start) });
           parts.push({
             type: "link",
-            url: "#handle/" + m[2],
-            children: [{ type: "text", value: "@" + m[2] }],
+            url: "#handle/" + username,
+            children: [{ type: "text", value: "@" + username }],
           });
-          last = start + m[2].length + 1;
+          last = end;
         }
         if (last < child.value.length)
           parts.push({ type: "text", value: child.value.slice(last) });

@@ -1,3 +1,4 @@
+import { DatabaseSync } from "node:sqlite";
 import { chromium, expect } from "@playwright/test";
 import { spawn } from "node:child_process";
 import { mkdtempSync, mkdirSync, rmSync } from "node:fs";
@@ -567,7 +568,56 @@ try {
   await expect(page.locator(".topic-follow-bar .follow-button")).toHaveText(
     "Following",
   );
-  await page.locator(".topic-follow-bar .follow-button").click();
+  await context.request.put(
+    base + "/api/subscriptions/post/" + postHash.split("/")[1],
+    { data: { following: true } },
+  );
+  await page.goto(base + "/app#following");
+  await expect(
+    page.getByRole("heading", { name: "A little off the beaten path." }),
+  ).toHaveCount(0);
+  await expect(page.locator(".post-card .post-title")).toContainText(
+    "Browser engineering conversation",
+  );
+  await page
+    .getByRole("button", { name: "Manage subscriptions", exact: true })
+    .click();
+  await expect(page.locator(".subscription-row")).toHaveCount(2);
+  await page
+    .getByRole("textbox", { name: "Search subscriptions" })
+    .fill("Browser");
+  await expect(page.locator(".subscription-row")).toHaveCount(2);
+  await expect(
+    page.getByRole("heading", { name: "A little off the beaten path." }),
+  ).toHaveCount(0);
+  await shot("subscriptions");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.locator(".subscription-row").first()).toBeVisible();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBeTruthy();
+  await shot("mobile-subscriptions");
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page
+    .getByRole("button", { name: "Filter subscriptions", exact: true })
+    .click();
+  await page
+    .getByRole("option", { name: "Conversations", exact: true })
+    .click();
+  await expect(page.locator(".subscription-row")).toHaveCount(1);
+  await page.getByRole("button", { name: "Unfollow", exact: true }).click();
+  await expect(page.locator(".subscription-row")).toHaveCount(0);
+  await page
+    .getByRole("button", { name: "Filter subscriptions", exact: true })
+    .click();
+  await page.getByRole("option", { name: "Topics", exact: true }).click();
+  await expect(page.locator(".subscription-row")).toHaveCount(1);
+  await page.getByRole("button", { name: "Unfollow", exact: true }).click();
+  await expect(page.locator(".subscription-row")).toHaveCount(0);
+  await page.goto(base + "/app#tag/" + followedTopic.id);
+
   await expect(page.locator(".topic-follow-bar .follow-button")).toHaveText(
     "Follow topic",
   );
@@ -586,6 +636,122 @@ try {
   await page.getByRole("button", { name: "Post reply", exact: true }).click();
   await expect(page.locator("[id^=reply-]").first()).toBeVisible();
   await expect(page.locator(".inline-mention")).toContainText("@builder_1");
+  await expect(page.locator(".reply.is-targeted")).toContainText(
+    "Linked reply",
+  );
+  await expect(page.locator(".reply.is-targeted")).toHaveAttribute(
+    "aria-current",
+    "location",
+  );
+  const reviewerPage = await second.newPage();
+  await reviewerPage.goto(base + "/app");
+  await reviewerPage.getByRole("button", { name: /^Notifications/ }).click();
+  await reviewerPage
+    .locator(".notification-item")
+    .filter({ hasText: "mentioned you" })
+    .first()
+    .click();
+  await expect(reviewerPage.locator(".reply.is-targeted")).toContainText(
+    "@builder_1",
+  );
+  // A notification can target a grandchild on page 3 under a root on page 2.
+  const deepResponse = await context.request.post(base + "/api/posts", {
+    data: {
+      title: "Linked branch fixture",
+      body: "A conversation for paginated reply navigation.",
+      kind: "discussion",
+      topic: "web",
+    },
+  });
+  expect(deepResponse.ok()).toBeTruthy();
+  const deepPost = await deepResponse.json();
+  const reviewerUser = (
+    await (await second.request.get(base + "/api/me")).json()
+  ).user;
+  const fixture = new DatabaseSync(join(directory, "app.sqlite"));
+  const addReply = fixture.prepare(
+    "INSERT INTO replies(user_id,post_id,parent_id,body) VALUES(?,?,?,?)",
+  );
+  const roots = [];
+  for (let i = 0; i < 12; i++)
+    roots.push(
+      Number(
+        addReply.run(reviewerUser.id, deepPost.id, null, "Root branch " + i)
+          .lastInsertRowid,
+      ),
+    );
+  const children = [];
+  for (let i = 0; i < 25; i++)
+    children.push(
+      Number(
+        addReply.run(
+          reviewerUser.id,
+          deepPost.id,
+          roots[11],
+          "Nested branch " + i,
+        ).lastInsertRowid,
+      ),
+    );
+  fixture.close();
+  const leafResponse = await context.request.post(
+    base + "/api/posts/" + deepPost.id + "/replies",
+    {
+      data: {
+        parent_id: children[24],
+        body: "A deeply linked reply for @builder_1.",
+      },
+    },
+  );
+  expect(leafResponse.ok()).toBeTruthy();
+  const leaf = await leafResponse.json();
+  await reviewerPage.setViewportSize({ width: 390, height: 844 });
+  await reviewerPage.goto(base + "/app");
+  await reviewerPage.getByRole("button", { name: /^Notifications/ }).click();
+  await reviewerPage
+    .locator(".notification-item")
+    .filter({ hasText: "Linked branch fixture" })
+    .click();
+  await expect(reviewerPage.locator("#reply-" + leaf.id)).toHaveClass(
+    /is-targeted/,
+  );
+  await expect(reviewerPage.locator("#reply-" + leaf.id)).toBeInViewport();
+  await expect(
+    reviewerPage.getByRole("navigation", {
+      name: "replies pagination",
+      exact: true,
+    }),
+  ).toContainText("Page 2 of 2");
+  await expect(
+    reviewerPage.getByRole("navigation", {
+      name: "thread replies pagination",
+      exact: true,
+    }),
+  ).toContainText("Page 3 of 3");
+  expect(
+    await reviewerPage.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBeTruthy();
+  await reviewerPage.screenshot({
+    path: artifacts + "/mobile-linked-reply.png",
+  });
+  await reviewerPage.goto(
+    base + "/app#post/" + deepPost.id + "/reply/" + roots[0],
+  );
+  await expect(reviewerPage.locator("#reply-" + roots[0])).toHaveClass(
+    /is-targeted/,
+  );
+  await expect(
+    reviewerPage.getByRole("navigation", {
+      name: "replies pagination",
+      exact: true,
+    }),
+  ).toContainText("Page 1 of 2");
+  await reviewerPage.goto(
+    base + "/app#post/" + deepPost.id + "/reply/99999999",
+  );
+  await expect(reviewerPage.locator(".linked-reply-notice")).toBeVisible();
+  await reviewerPage.close();
   await shot("conversation");
   await page
     .getByRole("button", { name: "Archive conversation", exact: true })
@@ -642,11 +808,11 @@ try {
   await expect(page.locator(".community-hero .eyebrow")).toHaveCount(0);
   await shot("community-header");
   const space = new URL(page.url()).hash.split("/")[1];
-  const join = await second.request.post(
+  const attendeeJoin = await second.request.post(
     base + "/api/communities/" + space + "/request",
     { data: {} },
   );
-  expect(join.ok()).toBeTruthy();
+  expect(attendeeJoin.ok()).toBeTruthy();
   await page
     .getByRole("button", { name: "Manage access", exact: true })
     .click();

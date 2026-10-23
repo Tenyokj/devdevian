@@ -53,6 +53,13 @@ try {
     "load-test-session",
     Date.now() + 600000,
   );
+  db.prepare(
+    "INSERT INTO subscriptions(user_id,kind,item) VALUES(1,'topic','web')",
+  ).run();
+  for (let i = 1; i <= 100; i++)
+    db.prepare(
+      "INSERT INTO subscriptions(user_id,kind,item) VALUES(1,'post',?)",
+    ).run(String(i));
   db.exec("COMMIT");
   db.close();
   server = run("server.mjs");
@@ -70,6 +77,9 @@ try {
   const endpoints = [
     "/posts?limit=12",
     "/posts?limit=12&page=20",
+    "/posts?following=1&limit=12",
+    "/posts?following=1&limit=12&page=20",
+    "/subscriptions?limit=12",
     "/posts/250",
     "/topics",
     "/me",
@@ -104,6 +114,7 @@ try {
     concurrency: 10,
     posts: 500,
     replies: 1500,
+    following_sources: 101,
     errors: 0,
     p50_ms: Math.round(times[Math.floor(times.length * 0.5)]),
     p95_ms: Math.round(times[Math.floor(times.length * 0.95)]),

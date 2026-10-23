@@ -29,6 +29,7 @@ const messages = {
   event_cancelled: "cancelled an event you’re attending",
   event_restored: "restored an event you’re attending",
   reply: "replied to a conversation",
+  mention: "mentioned you in a conversation",
   topic_post: "started a conversation in a topic you follow",
   solution: "marked your answer as the solution",
   solution_edited: "updated an accepted answer",

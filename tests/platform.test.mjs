@@ -2040,6 +2040,379 @@ test("Devdevian application scenarios with an isolated database", async (t) => {
       },
     );
     await t.test(
+      "Following and subscription management retain access checks, filters and pagination",
+      async () => {
+        const fan = makeClient();
+        const fanId = (
+          await fan("/register", {
+            name: "Following tester",
+            username: "following_tester",
+            email: "following-list@example.test",
+            password: "Following-password123",
+          })
+        ).data.user.id;
+        assert.equal((await anon("/subscriptions")).status, 401);
+        assert.equal((await anon("/posts?following=1")).status, 401);
+        const fixture = new DatabaseSync(path);
+        const add = fixture.prepare(
+          "INSERT INTO posts(user_id,title,body,kind,topic,community_id) VALUES(?,?,?,'discussion',?,?)",
+        );
+        const publicIds = [];
+        for (let i = 0; i < 15; i++)
+          publicIds.push(
+            Number(
+              add.run(
+                authorId,
+                "Following list marker " + i,
+                "Readable conversation for following list tests.",
+                "web",
+                null,
+              ).lastInsertRowid,
+            ),
+          );
+        const secret = Number(
+          add.run(
+            authorId,
+            "Invisible private title marker",
+            "Private details never leave this community.",
+            "web",
+            privateSpace,
+          ).lastInsertRowid,
+        );
+        fixture
+          .prepare(
+            "INSERT INTO subscriptions VALUES(?,'post',?,CURRENT_TIMESTAMP)",
+          )
+          .run(fanId, String(secret));
+        fixture.close();
+        await fan("/subscriptions/topic/web", { following: true }, "PUT");
+        await fan(
+          "/subscriptions/post/" + publicIds[0],
+          { following: true },
+          "PUT",
+        );
+        const feed = (
+          await fan(
+            "/posts?following=1&q=Following%20list%20marker&limit=5&page=2",
+          )
+        ).data;
+        assert.equal(feed.pagination.total, 15); // topic + direct follow are one row, not duplicate cards.
+        assert.equal(feed.length, 5);
+        assert.equal(
+          (await other("/posts?following=1&q=Following%20list%20marker")).data
+            .length,
+          0,
+        );
+        const topicFilter = (
+          await fan("/posts?following=1&topic=ai&q=Following%20list%20marker")
+        ).data;
+        assert.equal(topicFilter.length, 0);
+        const managed = (await fan("/subscriptions?kind=post")).data;
+        assert.equal(managed.pagination.total, 2);
+        assert.ok(
+          !JSON.stringify(managed).includes("Invisible private title marker"),
+        );
+        assert.ok(
+          managed.find((s) => s.item === String(secret)).available === 0,
+        );
+        assert.equal((await fan("/subscriptions?q=Invisible")).data.length, 0);
+        const approval = new DatabaseSync(path);
+        approval
+          .prepare("INSERT INTO memberships VALUES(?,'group',?)")
+          .run(fanId, privateSpace);
+        assert.ok(
+          (await fan("/posts?following=1&q=Invisible")).data.some(
+            (p) => p.id === secret,
+          ),
+        );
+        assert.ok(
+          (await fan("/subscriptions?kind=post")).data.some(
+            (s) => s.item === String(secret) && s.available,
+          ),
+        );
+        approval
+          .prepare(
+            "DELETE FROM memberships WHERE user_id=? AND kind='group' AND item=?",
+          )
+          .run(fanId, privateSpace);
+        approval.close();
+        assert.equal(
+          (await fan("/posts?following=1&q=Invisible")).data.length,
+          0,
+        );
+        assert.ok(
+          !(await other("/subscriptions")).data.some(
+            (s) => s.item === String(secret),
+          ),
+        );
+
+        assert.equal((await fan("/subscriptions?kind=topic")).data.length, 1);
+        assert.equal(
+          (
+            await fan(
+              "/subscriptions/post/" + secret,
+              { following: false },
+              "PUT",
+            )
+          ).status,
+          200,
+        );
+        await fan("/subscriptions/topic/web", { following: false }, "PUT");
+        const direct = (
+          await fan("/posts?following=1&q=Following%20list%20marker")
+        ).data;
+        assert.deepEqual(
+          direct.map((p) => p.id),
+          [publicIds[0]],
+        );
+        await fan(
+          "/subscriptions/post/" + publicIds[0],
+          { following: false },
+          "PUT",
+        );
+        assert.equal((await fan("/posts?following=1")).data.length, 0);
+        // Inaccessible subscriptions remain removable across paginated management pages.
+        const many = new DatabaseSync(path);
+        for (let i = 0; i < 25; i++)
+          many
+            .prepare(
+              "INSERT INTO subscriptions VALUES(?,'post',?,CURRENT_TIMESTAMP)",
+            )
+            .run(fanId, String(900000 + i));
+        many.close();
+        const page2 = (await fan("/subscriptions?page=2&limit=12")).data;
+        assert.equal(page2.length, 12);
+        assert.equal(page2.pagination.pages, 3);
+      },
+    );
+    await t.test(
+      "mentions notify once, skip inaccessible targets and respect preferences and edits",
+      async () => {
+        const writer = makeClient(),
+          tagged = makeClient(),
+          outsider = makeClient();
+        const writerId = (
+          await writer("/register", {
+            name: "Mention writer",
+            username: "mention_writer",
+            email: "mention-writer@example.test",
+            password: "Mention-password123",
+          })
+        ).data.user.id;
+        const taggedId = (
+          await tagged("/register", {
+            name: "Mention target",
+            username: "mention_target",
+            email: "mention-target@example.test",
+            password: "Mention-password123",
+          })
+        ).data.user.id;
+        const outsiderId = (
+          await outsider("/register", {
+            name: "Mention outsider",
+            username: "mention_outsider",
+            email: "mention-outsider@example.test",
+            password: "Mention-password123",
+          })
+        ).data.user.id;
+        await tagged("/subscriptions/topic/ai", { following: true }, "PUT");
+        const first = (
+          await writer("/posts", {
+            title: "Mentions and subscriptions together",
+            body: "Hello @mention_target and @mention_target, can you review this?",
+            kind: "discussion",
+            topic: "ai",
+          })
+        ).data;
+        assert.ok(first.id);
+        let notices = (await tagged("/notifications")).data.items.filter(
+          (n) => n.post_id === first.id,
+        );
+        assert.equal(notices.length, 1);
+        assert.equal(notices[0].type, "mention");
+        await tagged(
+          "/subscriptions/post/" + first.id,
+          { following: true },
+          "PUT",
+        );
+        const reply = (
+          await writer("/posts/" + first.id + "/replies", {
+            body: "(@MENTION_TARGET), here is the follow-up. @mention_target",
+          })
+        ).data;
+        notices = (await tagged("/notifications")).data.items.filter(
+          (n) => n.reply_id === reply.id,
+        );
+        assert.equal(notices.length, 1);
+        assert.equal(notices[0].type, "mention");
+        await writer(
+          "/replies/" + reply.id,
+          {
+            body: "Editing @mention_target a second time should not ping them again.",
+            revision: 0,
+          },
+          "PATCH",
+        );
+        assert.equal(
+          (await tagged("/notifications")).data.items.filter(
+            (n) => n.reply_id === reply.id,
+          ).length,
+          1,
+        );
+        await writer(
+          "/replies/" + reply.id,
+          { body: "A new @mention_outsider joins this reply.", revision: 1 },
+          "PATCH",
+        );
+        assert.equal(
+          (await outsider("/notifications")).data.items.filter(
+            (n) => n.reply_id === reply.id,
+          ).length,
+          1,
+        );
+        await writer(
+          "/replies/" + reply.id,
+          {
+            body: "Removing mentions before adding @mention_target again.",
+            revision: 2,
+          },
+          "PATCH",
+        );
+        assert.equal(
+          (await tagged("/notifications")).data.items.filter(
+            (n) => n.reply_id === reply.id,
+          ).length,
+          1,
+        );
+        const before = (await outsider("/notifications")).data.latest_id;
+        await writer("/posts/" + first.id + "/replies", {
+          body: "Code only: `@mention_outsider` and [@mention_outsider](https://example.test).",
+        });
+        assert.equal((await outsider("/notifications")).data.latest_id, before);
+        await outsider(
+          "/account/preferences",
+          { preferences: { notify_mentions: false } },
+          "PATCH",
+        );
+        await writer("/posts/" + first.id + "/replies", {
+          body: "Notifications for @mention_outsider are disabled.",
+        });
+        assert.equal((await outsider("/notifications")).data.latest_id, before);
+        await outsider(
+          "/account/preferences",
+          { preferences: { notify_mentions: true } },
+          "PATCH",
+        );
+        const community = (
+          await writer("/communities", {
+            name: "Mention access test",
+            description:
+              "Only approved community members receive private mentions.",
+          })
+        ).data;
+        const db = new DatabaseSync(path);
+        db.prepare("INSERT INTO memberships VALUES(?,'group',?)").run(
+          taggedId,
+          community.id,
+        );
+        db.close();
+        const privatePost = (
+          await writer("/posts", {
+            title: "A private mention conversation",
+            body: "Hello @mention_target and @mention_outsider, this stays private.",
+            kind: "discussion",
+            topic: "ai",
+            community_id: community.id,
+          })
+        ).data;
+        assert.ok(
+          (await tagged("/notifications")).data.items.some(
+            (n) => n.post_id === privatePost.id && n.type === "mention",
+          ),
+        );
+        assert.ok(
+          !(await outsider("/notifications")).data.items.some(
+            (n) => n.post_id === privatePost.id,
+          ),
+        );
+        const remove = new DatabaseSync(path);
+        remove
+          .prepare(
+            "DELETE FROM memberships WHERE user_id=? AND kind='group' AND item=?",
+          )
+          .run(taggedId, community.id);
+        remove.close();
+        assert.ok(
+          !(await tagged("/notifications")).data.items.some(
+            (n) => n.post_id === privatePost.id,
+          ),
+        );
+        const editedPost = await writer(
+          "/posts/" + first.id,
+          {
+            title: first.title,
+            body: "A new post mention for @mention_outsider.",
+            revision: 0,
+          },
+          "PATCH",
+        );
+        assert.equal(editedPost.status, 200);
+        assert.equal(
+          (await outsider("/notifications")).data.items.filter(
+            (n) =>
+              n.post_id === first.id &&
+              n.reply_id === null &&
+              n.type === "mention",
+          ).length,
+          1,
+        );
+        await writer(
+          "/posts/" + first.id,
+          {
+            title: first.title,
+            body: "Removing this mention temporarily.",
+            revision: 1,
+          },
+          "PATCH",
+        );
+        await writer(
+          "/posts/" + first.id,
+          {
+            title: first.title,
+            body: "Re-adding @mention_outsider does not notify twice.",
+            revision: 2,
+          },
+          "PATCH",
+        );
+        assert.equal(
+          (await outsider("/notifications")).data.items.filter(
+            (n) =>
+              n.post_id === first.id &&
+              n.reply_id === null &&
+              n.type === "mention",
+          ).length,
+          1,
+        );
+        const me = (await writer("/notifications")).data;
+        await writer("/posts/" + first.id + "/replies", {
+          body: "A self mention @mention_writer should stay quiet.",
+        });
+        assert.equal(
+          (await writer("/notifications")).data.latest_id,
+          me.latest_id,
+        );
+        assert.equal(
+          (await anon("/posts/" + first.id + "?reply_id=99999999")).data
+            .reply_target_missing,
+          true,
+        );
+        assert.equal(
+          (await anon("/posts/" + first.id + "?reply_id=bad")).status,
+          400,
+        );
+      },
+    );
+    await t.test(
       "notification preferences persist and suppress only selected future notifications",
       async () => {
         const sender = makeClient();

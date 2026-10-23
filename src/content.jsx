@@ -10,6 +10,7 @@ import {
   PenLine,
   Check,
   ChevronDown,
+  Link as LinkIcon,
 } from "lucide-react";
 import { api, readAPIResponse, dateOnly } from "./data";
 import { Avatar, MD, ErrorMessage } from "./ui";
@@ -244,15 +245,30 @@ function ReplyRow({ r, depth }) {
   );
   const target = post.reply_path?.at(-1)?.id === r.id;
   useEffect(() => {
-    if (target)
-      document
-        .getElementById("reply-" + r.id)
-        ?.scrollIntoView({ behavior: "smooth", block: "center" });
-  }, [target, r.id]);
+    if (!target) return;
+    const frame = requestAnimationFrame(() => {
+      const element = document.getElementById("reply-" + r.id);
+      const reduced =
+        user?.preferences?.reduce_motion ||
+        window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+      element?.focus({ preventScroll: true });
+      element?.scrollIntoView({
+        behavior: reduced ? "auto" : "smooth",
+        block: "center",
+      });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [target, r.id, user?.preferences?.reduce_motion]);
   return (
     <article
       id={"reply-" + r.id}
-      className={"reply " + (post.accepted_reply_id === r.id ? "accepted" : "")}
+      tabIndex={target ? -1 : undefined}
+      aria-current={target ? "location" : undefined}
+      className={
+        "reply " +
+        (target ? "is-targeted " : "") +
+        (post.accepted_reply_id === r.id ? "accepted" : "")
+      }
     >
       <div className="reply-heading">
         <button
@@ -273,9 +289,16 @@ function ReplyRow({ r, depth }) {
           </span>
         )}
       </div>
+      {target && <span className="linked-reply-label">Linked reply</span>}
       <MD>{r.body}</MD>
       <Attachments files={r.attachments} />
       <div className="reply-actions">
+        <a
+          href={`#post/${post.id}/reply/${r.id}`}
+          aria-label="Link to this reply"
+        >
+          <LinkIcon size={13} /> Link
+        </a>
         <button
           disabled={!!(post.archived_at || post.locked_at)}
           onClick={() => requireUser(() => onReply(r))}

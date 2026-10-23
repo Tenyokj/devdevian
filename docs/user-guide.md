@@ -45,6 +45,16 @@ Archiving stops new replies without removing the conversation. The author can re
 
 **Needs help** includes open Questions and Code reviews without an accepted solution, even when they already have replies. Archived, moderated/locked and solved conversations are excluded. Accepting a solution removes the post from this filter; undoing it brings the post back.
 
+## Following and mentions
+
+**Following** in the sidebar combines public posts from followed topics with individual conversations you follow. Its Recent view orders conversations by the latest post edit or reply; Active and Needs help, search, topic/type filters, and pagination remain available. Following a topic does not include private community activity. A private conversation appears only while you remain an approved member.
+
+Choose **Manage subscriptions** from Following or Settings to search your follows, filter topics/conversations, and unfollow. Removed or inaccessible posts have a generic label and can still be unfollowed. A post may remain in Following after a direct unfollow if you still follow its public topic. Bookmarks are separate.
+
+Mention an @username in the **body** of a conversation or reply to send an in-app notification. Newly added mentions in edits also qualify. At most the first ten distinct handles in a body are considered; code blocks, inline code, links, images, HTML, and your own username do not send alerts. Recipients must have access to the conversation. A recipient receives at most one initial notification per post/reply, even if a mention and a subscription/reply alert overlap; removing and re-adding a mention does not re-ping them. Settings → @Mentions controls mention alerts independently of other categories. Existing notifications remain subject to current access checks.
+
+Notification reply links reveal the correct root and nested pages, focus and highlight the linked reply, and respect reduced-motion preferences. Every reply also has a **Link** permalink. If a linked reply is missing, the conversation opens with an explanation instead.
+
 ## Projects and events
 
 A project can include its logo, screenshots, team members with custom roles, and labeled links. Its feedback conversation keeps reviews in one place. Editing the presentation retains that conversation.

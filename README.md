@@ -6,7 +6,7 @@
   <p>
     <a href="https://github.com/Tenyokj/devdevian/actions/workflows/checks.yml"><img src="https://github.com/Tenyokj/devdevian/actions/workflows/checks.yml/badge.svg" alt="Build and tests" /></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0--only-9e8bff" alt="GPL 3.0 only" /></a>
-    <a href="package.json"><img src="https://img.shields.io/badge/version-0.1.2-7b83ff" alt="Version 0.1.2" /></a>
+    <a href="package.json"><img src="https://img.shields.io/badge/version-0.1.3-7b83ff" alt="Version 0.1.3" /></a>
     <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/Node.js-24%2B-84bc95" alt="Node.js 24 or newer" /></a>
     <img src="https://img.shields.io/badge/status-active_development-b2a0ff" alt="Active development" />
   </p>
@@ -29,7 +29,7 @@ This is a live early release, built in the open. Contributions from developers, 
 | Projects | Present a project with a logo, screenshots, team, links, and a dedicated feedback conversation. |
 | Events | Schedule in an organizer timezone, join an event, and download a calendar entry. Meeting links are restricted to attendees and organizers. |
 | Your corner | Keep a permanent @username, customize your profile, and find your conversations, projects, events, and communities. |
-| Drafts and follows | Restore browser-local conversation drafts, follow public topics or individual conversations, and control in-app subscription notifications. |
+| Drafts and follows | Restore browser-local conversation drafts, browse Following, manage topic/conversation subscriptions, and receive in-app @mention alerts with direct reply links. |
 | Everyday essentials | Google/GitHub sign-in, verified email registration, search, pagination, notifications, and responsive light/dark interfaces. |
 
 ## Take a look

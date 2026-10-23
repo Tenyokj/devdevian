@@ -3,7 +3,13 @@ import { Shield, LogIn, Trash2, Github, Globe } from "lucide-react";
 import { Modal, Field, ErrorMessage } from "./ui";
 import { Select } from "./controls";
 import { api } from "./data";
-export function Settings({ user, close, refresh, onSwitch }) {
+export function Settings({
+  user,
+  close,
+  refresh,
+  onSwitch,
+  onManageSubscriptions,
+}) {
   const [prefs, setPrefs] = useState({ ...user.preferences }),
     [privacy, setPrivacy] = useState(user.privacy || "public"),
     [error, setError] = useState(""),
@@ -86,6 +92,13 @@ export function Settings({ user, close, refresh, onSwitch }) {
               : "Public: other accounts can open your profile."}
           </p>
           <h3>In-app notifications</h3>
+          <button
+            type="button"
+            className="text-button"
+            onClick={onManageSubscriptions}
+          >
+            Manage subscriptions
+          </button>
           <p>
             Choose which new notifications to receive. Existing history stays
             available. Email verification codes are unaffected.
@@ -100,6 +113,11 @@ export function Settings({ user, close, refresh, onSwitch }) {
               "notify_replies",
               "Replies to my conversations",
               "Replies and responses in your threads.",
+            ],
+            [
+              "notify_mentions",
+              "@Mentions",
+              "When someone mentions your @username in a post or reply.",
             ],
             [
               "notify_subscriptions",

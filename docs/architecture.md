@@ -17,6 +17,7 @@ The API loads the server session, derives platform and community permissions, va
 | Private communities, membership, pagination, read access | `spaces.mjs` |
 | Files and object storage | `uploads.mjs`, `object-storage.mjs` |
 | Replies, nesting, accepted-answer paths | `replies.mjs` |
+| Following, subscription management and mention parsing | `subscriptions.mjs`, `mentions.mjs`, `mention-syntax.mjs`, `src/subscriptions.jsx` |
 | Notifications, event changes, moderation | `activity.mjs`, `event-management.mjs`, `moderation.mjs` |
 | Recovery, quotas, backups, diagnostics | `password-reset.mjs`, `passwords.mjs`, `limits.mjs`, `backup.mjs`, `observability.mjs`, `schema.mjs` |
 | Database compatibility and runtime requirements | `database.mjs`, `search-sql.mjs`, `runtime-config.mjs` |

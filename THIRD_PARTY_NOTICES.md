@@ -10,7 +10,7 @@ The Codex entry uses a project-authored terminal glyph (`codex.svg`) to identify
 
 ## Dependencies and fonts
 
-Third-party packages retain their respective licenses. `package-lock.json` records the installed versions; consult each package's license before redistributing a bundle. Interface icons come from Lucide (ISC). React, Vite, and Express are MIT-licensed; Node.js includes its own notices; libSQL and AWS SDK packages retain their upstream licensing.
+Third-party packages retain their respective licenses. `package-lock.json` records the installed versions; consult each package's license before redistributing a bundle. Markdown parsing uses the MIT-licensed unified/remark packages; the server and renderer share mention boundary rules. Interface icons come from Lucide (ISC). React, Vite, and Express are MIT-licensed; Node.js includes its own notices; libSQL and AWS SDK packages retain their upstream licensing.
 
 Manrope and Space Grotesk are served through Google Fonts and are distributed under the SIL Open Font License. Their upstream license terms apply when self-hosting or redistributing the font files.
 

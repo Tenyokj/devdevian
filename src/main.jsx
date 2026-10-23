@@ -1,3 +1,4 @@
+import { SubscriptionManager } from "./subscriptions";
 import { FollowButton } from "./follow";
 import PolicyPage from "./policies";
 import Landing from "./landing";
@@ -29,6 +30,7 @@ import {
   FolderGit2,
   CalendarDays,
   Bookmark,
+  Bell,
   Search,
   Plus,
   ArrowUpRight,
@@ -101,6 +103,7 @@ import "./style.css";
 import "./refresh.css";
 const navigation = [
   ["feed", "Public feed", Compass],
+  ["following", "Following", Bell],
   ["communities", "Communities", Users],
   ["projects", "Projects", FolderGit2],
   ["events", "Events", CalendarDays],
@@ -219,7 +222,8 @@ export function App() {
     if (sort === "Active") params.set("sort", "active");
     if (sort === "Needs help") params.set("sort", "help");
     if (page === "community") params.set("community", id);
-    if (page === "tag") params.set("topic", id);
+    if (page === "tag" || (page === "following" && id)) params.set("topic", id);
+    if (page === "following") params.set("following", "1");
     if (page === "saved") params.set("saved", "1");
     if (page === "profile") params.set("author", "me");
     const list = new URLSearchParams({
@@ -258,11 +262,19 @@ export function App() {
           updates.push(() => setUser(value.user));
         }),
       ];
-      if (["feed", "tag", "saved", "community", "profile"].includes(page))
+      if (
+        ["feed", "tag", "following", "saved", "community", "profile"].includes(
+          page,
+        )
+      )
         tasks.push(
           api("/posts?" + params)
             .catch((e) => {
-              if (e.status === 403 && page === "community") return [];
+              if (
+                (e.status === 403 && page === "community") ||
+                (e.status === 401 && page === "following")
+              )
+                return [];
               throw e;
             })
             .then((value) => {
@@ -362,14 +374,6 @@ export function App() {
         .catch((e) => setDetailError(e.message));
   }, [listPage]);
   useEffect(() => {
-    const parts = route.split("/");
-    if (detail && parts[2] === "reply") {
-      document
-        .getElementById("reply-" + parts[3])
-        ?.scrollIntoView({ behavior: "smooth", block: "center" });
-    }
-  }, [detail, route]);
-  useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(""), 4500);
     return () => clearTimeout(t);
@@ -462,14 +466,18 @@ export function App() {
   const topicName = (topic) =>
     topics.find((t) => t.id === topic)?.name || topic;
   const isFeed =
-    ["feed", "tag", "saved"].includes(page) ||
+    ["feed", "tag", "following", "saved"].includes(page) ||
     (page === "community" && community?.is_member);
   const feed = posts.filter(
     (p) =>
       page === "saved" ||
+      page === "following" ||
       (page === "community" ? p.community_id === id : !p.community_id),
   );
-  const create = (kind = "discussion", topic = page === "tag" ? id : "web") =>
+  const create = (
+    kind = "discussion",
+    topic = (page === "tag" || page === "following") && id ? id : "web",
+  ) =>
     authorized(() =>
       setComposer({
         kind,
@@ -478,17 +486,19 @@ export function App() {
       }),
     );
   const title =
-    page === "moderation"
-      ? "Moderation"
-      : page === "community"
-        ? community?.name || "Community"
-        : page === "post"
-          ? "Conversation"
-          : page === "member"
-            ? "Developer profile"
-            : page === "profile"
-              ? "Your profile"
-              : navigation.find((n) => n[0] === page)?.[1] || "Saved posts";
+    page === "subscriptions"
+      ? "Subscriptions"
+      : page === "moderation"
+        ? "Moderation"
+        : page === "community"
+          ? community?.name || "Community"
+          : page === "post"
+            ? "Conversation"
+            : page === "member"
+              ? "Developer profile"
+              : page === "profile"
+                ? "Your profile"
+                : navigation.find((n) => n[0] === page)?.[1] || "Saved posts";
   return (
     <div
       className={
@@ -499,6 +509,10 @@ export function App() {
     >
       {settingsOpen && user && (
         <Settings
+          onManageSubscriptions={() => {
+            setSettingsOpen(false);
+            go("subscriptions");
+          }}
           user={user}
           close={() => setSettingsOpen(false)}
           refresh={refresh}
@@ -540,7 +554,9 @@ export function App() {
               href={"#" + key}
               className={
                 "nav-item " +
-                (page === key || (key === "communities" && page === "community")
+                (page === key ||
+                (key === "following" && page === "subscriptions") ||
+                (key === "communities" && page === "community")
                   ? "active"
                   : "")
               }
@@ -815,6 +831,30 @@ export function App() {
                         <div className="illustration-orbit" />
                       </div>
                     </section>
+                  ) : page === "following" ? (
+                    <>
+                      <PageTitle
+                        eyebrow="KEEP THE CONVERSATION GOING"
+                        title="The things you follow."
+                        description="Public topics and conversations you follow, with your existing community access."
+                      />
+                      <div className="following-actions">
+                        <button
+                          className="button secondary"
+                          onClick={() => go("subscriptions")}
+                        >
+                          Manage subscriptions <Bell size={15} />
+                        </button>
+                        {!user && (
+                          <button
+                            className="button primary"
+                            onClick={() => authorized(() => {})}
+                          >
+                            Sign in to see Following
+                          </button>
+                        )}
+                      </div>
+                    </>
                   ) : page === "community" ? (
                     <CommunityHeader
                       community={community}
@@ -882,12 +922,21 @@ export function App() {
                         <label className="type-select">
                           <Select
                             aria-label="Filter by topic tag"
-                            value={page === "tag" ? id : ""}
+                            value={
+                              page === "tag" || page === "following"
+                                ? id || ""
+                                : ""
+                            }
                             onChange={(e) =>
                               go(
-                                e.target.value
-                                  ? "tag/" + e.target.value
-                                  : "feed",
+                                page === "following"
+                                  ? "following" +
+                                      (e.target.value
+                                        ? "/" + e.target.value
+                                        : "")
+                                  : e.target.value
+                                    ? "tag/" + e.target.value
+                                    : "feed",
                               )
                             }
                           >
@@ -947,26 +996,30 @@ export function App() {
                               ? "Nothing here matches that search."
                               : page === "saved"
                                 ? "Your good-find collection starts here."
-                                : "A good place for the first word."
+                                : page === "following"
+                                  ? "Your Following feed starts here."
+                                  : "A good place for the first word."
                           }
                           description={
                             query
                               ? "Try another phrase or clear your filters."
                               : page === "saved"
                                 ? "Bookmark a conversation to find it here later."
-                                : "Ask a question, share an idea, or show what you’re working on."
+                                : page === "following"
+                                  ? "Follow topics or individual conversations to see their posts and latest replies here."
+                                  : "Ask a question, share an idea, or show what you’re working on."
                           }
                           action={
                             query
                               ? "Clear search"
-                              : page === "saved"
+                              : page === "saved" || page === "following"
                                 ? "Explore the feed"
                                 : "Start a conversation"
                           }
                           onClick={() =>
                             query
                               ? setQuery("")
-                              : page === "saved"
+                              : page === "saved" || page === "following"
                                 ? go("feed")
                                 : create()
                           }
@@ -1284,6 +1337,27 @@ export function App() {
                   onPage={setListPage}
                 />
               )}
+              {page === "subscriptions" && (
+                <>
+                  <PageTitle
+                    eyebrow="YOUR SIGNAL, YOUR CHOICE"
+                    title="Manage subscriptions."
+                    description="Topics and conversations you want to keep up with."
+                  />
+                  <button
+                    className="text-button"
+                    onClick={() => go("following")}
+                  >
+                    <ArrowLeft size={15} /> Back to Following
+                  </button>
+                  <SubscriptionManager
+                    key={user?.id || "guest"}
+                    user={user}
+                    go={go}
+                    requireUser={authorized}
+                  />
+                </>
+              )}
               {page === "post" &&
                 (detailError ? (
                   <Empty
@@ -1372,6 +1446,8 @@ export function App() {
               )}
               {![
                 "moderation",
+                "following",
+                "subscriptions",
                 "feed",
                 "tag",
                 "community",
@@ -1947,9 +2023,15 @@ function PostDetail({
         </h2>
         <span>Different perspectives welcome.</span>
       </div>
+      {p.reply_target_missing && (
+        <p className="linked-reply-notice" role="status">
+          That reply is no longer available. You can still read this
+          conversation below.
+        </p>
+      )}
       <div className="replies-list">
         <ReplyThreads
-          key={p.id}
+          key={p.id + ":" + (p.reply_path?.at(-1)?.id || "root")}
           post={p}
           user={user}
           go={go}

@@ -1,3 +1,4 @@
+import { notifyMentions } from "./mentions.mjs";
 import { notificationAllowed } from "./preferences.mjs";
 import { scopeSQL, pageRows } from "./spaces.mjs";
 // In-app activity only. No email, push service, or external delivery.
@@ -229,21 +230,31 @@ export function registerActivity(app, db, required) {
       return res
         .status(400)
         .json({ error: "Keep a demo link or an attachment on your showcase." });
-    const result = db
-      .prepare(
-        "UPDATE posts SET title=?,body=?,stack=?,code=?,review_focus=?,repo_url=?,demo_url=?,updated_at=CURRENT_TIMESTAMP,revision=revision+1 WHERE id=? AND revision=?",
-      )
-      .run(
-        title.trim(),
-        body.trim(),
-        stack.trim(),
-        code,
-        review_focus,
-        repo_url,
-        demo_url,
-        post.id,
-        version,
-      );
+    const result = transaction(db, () => {
+      const result = db
+        .prepare(
+          "UPDATE posts SET title=?,body=?,stack=?,code=?,review_focus=?,repo_url=?,demo_url=?,updated_at=CURRENT_TIMESTAMP,revision=revision+1 WHERE id=? AND revision=?",
+        )
+        .run(
+          title.trim(),
+          body.trim(),
+          stack.trim(),
+          code,
+          review_focus,
+          repo_url,
+          demo_url,
+          post.id,
+          version,
+        );
+      if (result.changes)
+        notifyMentions(db, {
+          post: post.id,
+          actor: req.user.id,
+          body,
+          previous: post.body,
+        });
+      return result;
+    });
     if (!result.changes)
       return res.status(409).json({
         error:
@@ -276,6 +287,13 @@ export function registerActivity(app, db, required) {
       const post = db
         .prepare("SELECT * FROM posts WHERE id=?")
         .get(reply.post_id);
+      notifyMentions(db, {
+        post: post.id,
+        reply: reply.id,
+        actor: req.user.id,
+        body,
+        previous: reply.body,
+      });
       if (post.accepted_reply_id === reply.id)
         notify(db, {
           recipient: post.user_id,

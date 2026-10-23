@@ -1,3 +1,4 @@
+import { notifyMentions } from "./mentions.mjs";
 import { notifyTopic } from "./subscriptions.mjs";
 import { InputError } from "./validation.mjs";
 import { pageRows, scopeSQL, memberOf } from "./spaces.mjs";
@@ -222,6 +223,17 @@ export function registerDomain(app, db, required, profile) {
   app.get("/api/posts", (req, res) => {
     const where = [scopeSQL("p", req.user), "p.removed_at IS NULL"],
       params = [];
+    const following = req.query.following === "1";
+    if (following && !req.user)
+      return res
+        .status(401)
+        .json({ error: "Sign in to see your Following feed." });
+    if (following) {
+      where.push(
+        `EXISTS(SELECT 1 FROM subscriptions s WHERE s.user_id=? AND ((s.kind='post' AND s.item=CAST(p.id AS TEXT)) OR (s.kind='topic' AND p.community_id IS NULL AND s.item=p.topic)))`,
+      );
+      params.push(req.user.id);
+    }
     if (req.query.community) {
       if (!memberOf(db, req.user, String(req.query.community)))
         return res.status(403).json({
@@ -230,7 +242,11 @@ export function registerDomain(app, db, required, profile) {
         });
       where.push("p.community_id=?");
       params.push(String(req.query.community));
-    } else if (req.query.author !== "me" && req.query.saved !== "1")
+    } else if (
+      !following &&
+      req.query.author !== "me" &&
+      req.query.saved !== "1"
+    )
       where.push("p.community_id IS NULL");
     if (req.query.author) {
       const author =
@@ -264,7 +280,9 @@ export function registerDomain(app, db, required, profile) {
     const order =
       req.query.sort === "active"
         ? " ORDER BY (reply_count+vote_count) DESC,p.id DESC"
-        : " ORDER BY p.id DESC";
+        : following
+          ? " ORDER BY MAX(COALESCE(p.updated_at,p.created),COALESCE((SELECT MAX(r.created) FROM replies r WHERE r.post_id=p.id),p.created)) DESC,p.id DESC"
+          : " ORDER BY p.id DESC";
     const result = pageRows(
       db,
       req,
@@ -299,6 +317,12 @@ export function registerDomain(app, db, required, profile) {
   app.get("/api/posts/:id", (req, res) => {
     const p = post(req.params.id);
     if (!p) return res.status(404).json({ error: "Conversation not found." });
+    if (
+      req.query.reply_id !== undefined &&
+      (!Number.isSafeInteger(Number(req.query.reply_id)) ||
+        Number(req.query.reply_id) < 1)
+    )
+      return res.status(400).json({ error: "Choose a valid reply link." });
     const path = req.query.reply_id
       ? replyPath(db, p.id, Number(req.query.reply_id))
       : [];
@@ -337,6 +361,7 @@ export function registerDomain(app, db, required, profile) {
       replies: r.items,
       reply_pagination: r.pagination,
       reply_path: path,
+      reply_target_missing: !!req.query.reply_id && !path.length,
       project,
       updates: updates.items,
       updates_pagination: updates.pagination,
@@ -428,6 +453,7 @@ export function registerDomain(app, db, required, profile) {
         );
       const id = Number(result.lastInsertRowid);
       attachFiles(db, id, req.user, attachment_ids);
+      notifyMentions(db, { post: id, actor: req.user.id, body });
       notifyTopic(db, { id, topic, community_id }, req.user.id);
       return id;
     });
@@ -477,6 +503,7 @@ export function registerDomain(app, db, required, profile) {
         .run(req.user.id, p.id, parent_id, body.trim());
       const id = Number(result.lastInsertRowid);
       attachFiles(db, p.id, req.user, attachment_ids, id);
+      notifyMentions(db, { post: p.id, reply: id, actor: req.user.id, body });
       notifyReply(db, p, id, req.user.id, parent_id);
       return id;
     });

@@ -60,6 +60,8 @@ const pages = [
 ];
 const template = readFileSync("dist/index.html", "utf8");
 const vite = await createServer({
+  // This server renders HTML only; it never serves a development browser.
+  optimizeDeps: { noDiscovery: true, include: [] },
   server: { middlewareMode: true, hmr: false, ws: false, watch: null },
   appType: "custom",
 });
