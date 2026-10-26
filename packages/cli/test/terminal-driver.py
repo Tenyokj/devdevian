@@ -4,7 +4,10 @@ master,slave=pty.openpty()
 def resize(cols,rows):
     fcntl.ioctl(master,termios.TIOCSWINSZ,struct.pack('HHHH',rows,cols,0,0))
 resize(100,32)
-child=subprocess.Popen(sys.argv[1:],stdin=slave,stdout=slave,stderr=slave,start_new_session=True)
+# Exercise the interactive user session even when this test runner runs in CI.
+# Ink deliberately suppresses terminal rendering in CI by default.
+terminal_env={**os.environ,"CI":"false","CONTINUOUS_INTEGRATION":"false"}
+child=subprocess.Popen(sys.argv[1:],stdin=slave,stdout=slave,stderr=slave,start_new_session=True,env=terminal_env)
 os.close(slave)
 try:
     while child.poll() is None:
