@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.6 — Devdevian CLI Alpha support (unreleased)
+
+- Official standalone `@tenyokjs/devdevian-cli` alpha package with an interactive menu and explicit commands for inbox, feeds/search, questions, conversation replies, file-based code review, line remarks, feedback threads/status and community discovery.
+- Browser-approved terminal login with expiring, one-use device requests. Separate 30-day Bearer credentials are hashed at rest, bound to the approving account and revocable in Settings or from the CLI. Password recovery revokes active sessions; approvals predating a password change cannot mint a new session.
+- CLI uses the same API, quotas, community membership and moderation rules as the web client. Selected content is previewed before publishing; noninteractive publication requires explicit `--yes`. Redirects are rejected and remote terminal control sequences are stripped from human output.
+- CLI credentials and pending authorizations are excluded from backups. Schema v6 preparation keeps the current deployment available.
+
 ## 0.1.5 — Feedback discussions (unreleased)
 
 - Paginated reply threads on line feedback, with author-only editing and revision-checked deletion. Deletion preserves other members’ replies through tombstones.

@@ -1,12 +1,12 @@
 {
   "name": "devdevian",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "node server.mjs",
     "build": "vite build && node scripts/prerender.mjs",
-    "test": "node --test tests/*.test.mjs",
+    "test": "node --test tests/*.test.mjs packages/cli/test/*.test.mjs",
     "start": "NODE_ENV=production node server.mjs",
     "demo": "npm run build && node scripts/demo.mjs",
     "test:browser": "npm run build && node scripts/browser-check.mjs",

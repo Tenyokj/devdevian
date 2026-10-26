@@ -75,3 +75,9 @@ Create and verify a database/file backup first. With the operator-selected produ
 ### Upgrading v0.1.4 to v0.1.5
 
 Back up and verify data/files, run `node scripts/migrate.mjs --prepare-feedback` with the selected production environment, deploy v0.1.5, verify health, then finalize with `node scripts/migrate.mjs`. Preparation adds thread/report tables and nullable notification/deletion columns while preserving marker 4 for the active release. No accounts or content are reset.
+
+### Enabling CLI access (v0.1.6)
+
+Back up and verify data/files, run `node scripts/migrate.mjs --prepare-cli` with the selected production environment, deploy v0.1.6, verify health and browser approval, then finalize with `node scripts/migrate.mjs`. Preparation creates only CLI device/token tables while preserving marker 5. No new OAuth provider keys or email service permissions are required. CLI uses the existing sign-in page.
+
+The standalone package in `packages/cli` has no runtime dependencies. Check `npm pack --dry-run` before publication; only its bin/lib files, README, package metadata and GPL license are included. Publish with the `alpha` dist-tag; the browser application and CLI have independent versions. Never package operator environment files or credentials.

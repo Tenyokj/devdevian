@@ -6,7 +6,7 @@
   <p>
     <a href="https://github.com/Tenyokj/devdevian/actions/workflows/checks.yml"><img src="https://github.com/Tenyokj/devdevian/actions/workflows/checks.yml/badge.svg" alt="Build and tests" /></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0--only-9e8bff" alt="GPL 3.0 only" /></a>
-    <a href="package.json"><img src="https://img.shields.io/badge/version-0.1.5-7b83ff" alt="Version 0.1.5" /></a>
+    <a href="package.json"><img src="https://img.shields.io/badge/version-0.1.6-7b83ff" alt="Version 0.1.6" /></a>
     <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/Node.js-24%2B-84bc95" alt="Node.js 24 or newer" /></a>
     <img src="https://img.shields.io/badge/status-active_development-b2a0ff" alt="Active development" />
   </p>
@@ -92,3 +92,7 @@ For vulnerabilities, follow [SECURITY.md](SECURITY.md) and contact maintainers p
 [Privacy & Security](https://devdevian.vercel.app/privacy) · [Terms of Use](https://devdevian.vercel.app/terms) · [Changelog](CHANGELOG.md)
 
 The software is licensed under the **GNU General Public License, version 3 only**. See [LICENSE](LICENSE). This does not automatically license user posts, code snippets, images, or attachments under GPL; their authors retain their respective rights.
+
+## Terminal client (alpha)
+
+Devdevian also offers an official terminal client using the same account, API and community permissions. Install `@tenyokjs/devdevian-cli@alpha` with npm, then run `devdevian login`. See the [CLI README](packages/cli/README.md) for commands, credential storage, scope and local development.

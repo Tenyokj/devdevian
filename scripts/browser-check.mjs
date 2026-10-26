@@ -1257,6 +1257,73 @@ try {
     .getByRole("button", { name: "Next code lines page", exact: true })
     .click();
   await expect(page.locator(".snippet-line")).toHaveCount(5);
+
+  const cliRequest = await context.request.post(base + "/api/cli/device", {
+    data: { name: "Browser acceptance terminal" },
+  });
+  expect(cliRequest.ok()).toBeTruthy();
+  const cliDevice = await cliRequest.json();
+  await page.goto(base + "/app#cli/authorize/" + cliDevice.user_code);
+  await expect(page.locator(".cli-device-code")).toContainText(
+    cliDevice.user_code,
+  );
+  await expect(page.locator(".cli-device-code")).toContainText(
+    "Browser acceptance terminal",
+  );
+  await page
+    .getByRole("button", { name: "Authorize terminal", exact: true })
+    .click();
+  await expect(page.getByRole("status")).toContainText(
+    "Connected. Return to your terminal.",
+  );
+  const cliExchange = await context.request.post(base + "/api/cli/token", {
+    data: { device_code: cliDevice.device_code },
+  });
+  expect(cliExchange.ok()).toBeTruthy();
+  const cliToken = (await cliExchange.json()).access_token;
+  const cliIdentity = await context.request.get(base + "/api/me", {
+    headers: { Authorization: "Bearer " + cliToken },
+  });
+  expect(cliIdentity.ok()).toBeTruthy();
+  await page
+    .getByRole("button", { name: "Open settings", exact: true })
+    .click();
+  await expect(page.locator(".cli-session")).toContainText(
+    "Browser acceptance terminal",
+  );
+  await page
+    .getByRole("button", { name: "Revoke terminal", exact: true })
+    .click();
+  await expect(page.locator(".cli-session")).toHaveCount(0);
+  expect(
+    (
+      await context.request.get(base + "/api/me", {
+        headers: { Authorization: "Bearer " + cliToken },
+      })
+    ).status(),
+  ).toBe(401);
+  await page.getByRole("button", { name: "Close dialog", exact: true }).click();
+  await page.setViewportSize({ width: 360, height: 800 });
+  const declinedRequest = await context.request.post(base + "/api/cli/device", {
+      data: { name: "Declined acceptance terminal" },
+    }),
+    declined = await declinedRequest.json();
+  await page.goto(base + "/app#cli/authorize/" + declined.user_code);
+  await expect(page.locator(".cli-device-code")).toBeVisible();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBeTruthy();
+  await shot("cli-approval-mobile");
+  await page.getByRole("button", { name: "Decline", exact: true }).click();
+  expect(
+    (
+      await context.request.post(base + "/api/cli/token", {
+        data: { device_code: declined.device_code },
+      })
+    ).status(),
+  ).toBe(403);
   await lineReviewer.close();
   expect(errors).toEqual([]);
   await page.setViewportSize({ width: 1440, height: 1000 });

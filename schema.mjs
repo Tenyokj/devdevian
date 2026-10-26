@@ -1,7 +1,7 @@
 // Bump this whenever a migration changes. Requests check one version record;
 // migrations run explicitly before a hosted release, never on a cold start.
-export const SCHEMA_VERSION = 5;
-export function inspectSchema(db, { allowPreparedFeedback = false } = {}) {
+export const SCHEMA_VERSION = 6;
+export function inspectSchema(db, { allowPreparedCli = false } = {}) {
   const table = db
     .prepare(
       "SELECT 1 FROM sqlite_master WHERE type='table' AND name='app_schema'",
@@ -11,18 +11,18 @@ export function inspectSchema(db, { allowPreparedFeedback = false } = {}) {
     ? db.prepare("SELECT version FROM app_schema WHERE id=1").get()?.version
     : null;
   db.schemaCurrent = version === SCHEMA_VERSION;
-  // v5 adds feedback threads and additive columns. During a rolling v4 -> v5 deployment the
+  // v6 adds CLI devices and sessions. During a rolling v5 -> v6 deployment the
   // prepared table allows both releases to run without cold-start DDL/writes.
   if (
     !db.schemaCurrent &&
-    SCHEMA_VERSION === 5 &&
-    version === 4 &&
-    allowPreparedFeedback
+    SCHEMA_VERSION === 6 &&
+    version === 5 &&
+    allowPreparedCli
   ) {
     db.schemaCurrent =
       db
         .prepare(
-          "SELECT COUNT(*) n FROM sqlite_master WHERE type='table' AND name IN ('code_review_replies','feedback_reports')",
+          "SELECT COUNT(*) n FROM sqlite_master WHERE type='table' AND name IN ('cli_devices','cli_tokens')",
         )
         .get().n === 2;
   }

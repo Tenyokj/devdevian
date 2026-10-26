@@ -54,6 +54,13 @@ const privacy = [
         during sign-in; the application does not store them for later access to
         your repositories, Gmail, or Google Drive.
       </p>
+      <p>
+        When you connect Devdevian CLI, we store the device name, authorization
+        request and a hashed session credential. Terminal access expires after
+        30 days and can be revoked in Settings. The CLI stores its access token
+        in a local credentials file on your computer. Publications sent through
+        the CLI follow the same audience and membership rules as the website.
+      </p>
     </>,
   ],
   [

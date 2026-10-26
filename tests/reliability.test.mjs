@@ -46,6 +46,11 @@ test("database and binary objects round-trip through authenticated encrypted bac
   db.exec(`CREATE TABLE users(id INTEGER PRIMARY KEY,name TEXT); INSERT INTO users VALUES(1,'Private name');
     CREATE TABLE sessions(token TEXT PRIMARY KEY,user_id INTEGER); INSERT INTO sessions VALUES('private-session-token',1);
     CREATE TABLE uploads(id TEXT PRIMARY KEY,size INTEGER); CREATE INDEX file_sizes ON uploads(size);`);
+  const { prepareCli } = await import("../cli-auth.mjs");
+  prepareCli(db);
+  db.exec(
+    "INSERT INTO cli_devices(device_hash,user_code,name,expires) VALUES('private-device','123456ABCD','Terminal',9999999999999); INSERT INTO cli_tokens(id,session_token,user_id,name) VALUES('id','private-session-token',1,'Terminal')",
+  );
   const id = "12345678-1234-1234-1234-123456789012",
     body = Buffer.from([0, 1, 2, 255, 32, 10]),
     key = randomBytes(32).toString("hex");
@@ -79,6 +84,14 @@ test("database and binary objects round-trip through authenticated encrypted bac
       restored
         .prepare("SELECT 1 FROM sqlite_master WHERE name='file_sizes'")
         .get(),
+    );
+    assert.equal(
+      restored.prepare("SELECT COUNT(*) n FROM cli_devices").get().n,
+      0,
+    );
+    assert.equal(
+      restored.prepare("SELECT COUNT(*) n FROM cli_tokens").get().n,
+      0,
     );
     restored.close();
     assert.equal(db.prepare("SELECT COUNT(*) n FROM sessions").get().n, 1);
@@ -347,21 +360,21 @@ test("schema marker is recorded only explicitly after successful initialization"
   db.close();
 });
 
-test("prepared feedback keeps v4 and v5 requests compatible until migration finalization", async () => {
-  const { prepareFeedback } = await import("../feedback-discussion.mjs");
+test("prepared CLI keeps v5 and v6 requests compatible until migration finalization", async () => {
+  const { prepareCli } = await import("../cli-auth.mjs");
   const db = new DatabaseSync(":memory:");
   db.exec(
-    "CREATE TABLE app_schema(id INTEGER PRIMARY KEY,version INTEGER); INSERT INTO app_schema VALUES(1,4); CREATE TABLE code_reviews(id INTEGER); CREATE TABLE notifications(id INTEGER)",
+    "CREATE TABLE app_schema(id INTEGER PRIMARY KEY,version INTEGER); INSERT INTO app_schema VALUES(1,5)",
   );
-  assert.equal(inspectSchema(db, { allowPreparedFeedback: true }), false);
-  prepareFeedback(db);
-  assert.equal(db.prepare("SELECT version FROM app_schema").get().version, 4);
+  assert.equal(inspectSchema(db, { allowPreparedCli: true }), false);
+  prepareCli(db);
+  assert.equal(db.prepare("SELECT version FROM app_schema").get().version, 5);
   assert.equal(inspectSchema(db), false);
-  assert.equal(inspectSchema(db, { allowPreparedFeedback: true }), true);
+  assert.equal(inspectSchema(db, { allowPreparedCli: true }), true);
   // Explicit migration runs strictly and marks completion; request inspection never writes.
   inspectSchema(db);
   completeSchema(db);
-  assert.equal(db.prepare("SELECT version FROM app_schema").get().version, 5);
+  assert.equal(db.prepare("SELECT version FROM app_schema").get().version, 6);
   assert.equal(inspectSchema(db), true);
   db.close();
 });

@@ -94,3 +94,9 @@ Choose **Discuss feedback** under a line remark to open its paginated reply thre
 Reply notifications go to the publication and remark authors; status notifications go to the remark author. They follow the reply and solution notification preferences respectively. Notifications open the exact remark and, where applicable, the paginated reply.
 
 Use **Report feedback** on the particular remark or reply. Community reports go to its owner and appointed validators, while public reports go to Devdevian moderators. The **Reported code feedback** queue allows a documented decision or removal of that item without hiding the whole publication.
+
+### Devdevian in the terminal
+
+Install `@tenyokjs/devdevian-cli@alpha` with npm (Node.js 24+), run `devdevian login`, compare the displayed code with the browser approval screen, sign in, and choose **Authorize terminal**. Then run `devdevian` for an interactive menu or `devdevian --help` for commands. The CLI uses the same account, publications, private-community permissions, feedback and notifications.
+
+Selected text/files are previewed before publication. Revoke an individual terminal under **Settings → Connected terminals** or run `devdevian logout`. The alpha's scope and local credential-file permissions are documented in the [CLI README](../packages/cli/README.md). Browser-only controls remain available for media/profile editing, event administration and moderation.

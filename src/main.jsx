@@ -1,3 +1,4 @@
+import { CliApproval } from "./cli";
 import { CodeReview } from "./code-review";
 import { version as appVersion } from "../package.json";
 import { SubscriptionManager } from "./subscriptions";
@@ -1337,6 +1338,14 @@ export function App() {
                   meta={events.pagination}
                   label="events"
                   onPage={setListPage}
+                />
+              )}
+              {page === "cli" && (
+                <CliApproval
+                  key={route}
+                  user={user}
+                  requireUser={authorized}
+                  code={route.split("/")[2] || ""}
                 />
               )}
               {page === "subscriptions" && (

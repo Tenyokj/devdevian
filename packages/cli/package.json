@@ -1,0 +1,42 @@
+{
+  "name": "@tenyokjs/devdevian-cli",
+  "version": "0.1.0-alpha.1",
+  "description": "Devdevian in your terminal: discussions, questions and human code reviews.",
+  "type": "module",
+  "bin": {
+    "devdevian": "bin/devdevian.mjs"
+  },
+  "files": [
+    "bin/",
+    "lib/",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=24"
+  },
+  "license": "GPL-3.0-only",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Tenyokj/devdevian.git",
+    "directory": "packages/cli"
+  },
+  "homepage": "https://devdevian.vercel.app",
+  "bugs": {
+    "url": "https://github.com/Tenyokj/devdevian/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "keywords": [
+    "devdevian",
+    "cli",
+    "forum",
+    "code-review",
+    "developers"
+  ],
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  }
+}

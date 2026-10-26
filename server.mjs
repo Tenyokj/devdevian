@@ -1,3 +1,4 @@
+import { registerCliAuth, cliSessionKey } from "./cli-auth.mjs";
 import { registerFeedback } from "./feedback-discussion.mjs";
 import packageInfo from "./package.json" with { type: "json" };
 import { registerCodeReviews } from "./code-reviews.mjs";
@@ -37,7 +38,7 @@ export async function createApp({ migrationOnly = false } = {}) {
   if (!migrationOnly) assertRuntime();
   const db = await openDatabase();
   try {
-    inspectSchema(db, { allowPreparedFeedback: !migrationOnly });
+    inspectSchema(db, { allowPreparedCli: !migrationOnly });
     if (!db.schemaCurrent && process.env.VERCEL === "1" && !migrationOnly)
       throw Error(
         "Database schema requires migration before starting this release.",
@@ -140,10 +141,22 @@ export async function createApp({ migrationOnly = false } = {}) {
     }
     app.use("/api", (req, res, next) => {
       if (["/health", "/auth/config"].includes(req.path)) return next();
-      const token = req.headers.cookie
-        ?.split("; ")
-        .find((c) => c.startsWith(SESSION_COOKIE + "="))
-        ?.slice(SESSION_COOKIE.length + 1);
+      const bearer = req.headers.authorization?.match(/^Bearer (.+)$/i)?.[1];
+      if (req.headers.authorization && !cliSessionKey(bearer))
+        return res
+          .status(401)
+          .json({ error: "Invalid CLI authorization. Sign in again." });
+      const token = bearer
+        ? cliSessionKey(bearer)
+        : req.headers.cookie
+            ?.split("; ")
+            .find((c) => c.startsWith(SESSION_COOKIE + "="))
+            ?.slice(SESSION_COOKIE.length + 1);
+      if (!bearer && token?.startsWith("cli:"))
+        return res
+          .status(401)
+          .json({ error: "CLI tokens must use Bearer authorization." });
+      if (bearer) req.cli = token;
       if (token) {
         const s = db
           .prepare(
@@ -161,6 +174,10 @@ export async function createApp({ migrationOnly = false } = {}) {
               : "member";
         }
       }
+      if (bearer && !req.user)
+        return res.status(401).json({
+          error: "Your CLI session expired or was revoked. Sign in again.",
+        });
       if (req.user) {
         req.user.validator_communities = db
           .prepare(
@@ -221,6 +238,7 @@ export async function createApp({ migrationOnly = false } = {}) {
     registerUploads(app, db, required);
     installAccess(app, db);
     registerAuth(app, db, { required, session, profile, rate });
+    registerCliAuth(app, db, required);
     app.get("/api/health", (req, res) => {
       db.prepare("SELECT 1 ok").get();
       res.json({ ok: true, version: packageInfo.version });

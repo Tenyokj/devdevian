@@ -9,12 +9,16 @@ try {
   const now = Date.now();
   for (const table of [
     "sessions",
+    "cli_devices",
     "registrations",
     "password_resets",
     "oauth_states",
     "oauth_link_challenges",
   ])
     db.prepare(`DELETE FROM ${table} WHERE expires<?`).run(now);
+  db.prepare(
+    "DELETE FROM cli_tokens WHERE NOT EXISTS(SELECT 1 FROM sessions WHERE token=cli_tokens.session_token)",
+  ).run();
   db.prepare(
     "DELETE FROM device_accounts WHERE NOT EXISTS(SELECT 1 FROM sessions WHERE token=device_accounts.token)",
   ).run();

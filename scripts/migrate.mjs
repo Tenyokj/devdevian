@@ -3,7 +3,24 @@
 process.env.VERCEL = "1";
 const { createApp } = await import("../server.mjs");
 try {
-  if (process.argv.includes("--prepare-feedback")) {
+  if (process.argv.includes("--prepare-cli")) {
+    const { openDatabase } = await import("../database.mjs");
+    const { prepareCli } = await import("../cli-auth.mjs");
+    const db = await openDatabase();
+    try {
+      if (
+        ![5, 6].includes(
+          db.prepare("SELECT version FROM app_schema WHERE id=1").get()
+            ?.version,
+        )
+      )
+        throw Error("Prepare CLI requires schema v5 or v6.");
+      prepareCli(db);
+    } finally {
+      db.close();
+    }
+    console.log("CLI tables prepared; active schema marker preserved.");
+  } else if (process.argv.includes("--prepare-feedback")) {
     const { openDatabase } = await import("../database.mjs");
     const { prepareFeedback } = await import("../feedback-discussion.mjs");
     const db = await openDatabase();

@@ -1,3 +1,4 @@
+import { CliSessions } from "./cli";
 import React, { useState, useEffect } from "react";
 import { Shield, LogIn, Trash2, Github, Globe } from "lucide-react";
 import { Modal, Field, ErrorMessage } from "./ui";
@@ -214,6 +215,7 @@ export function Settings({
           )}
         </div>
       </div>
+      <CliSessions />
       <div className="settings-section">
         <h3>Your accounts</h3>
         <p>
