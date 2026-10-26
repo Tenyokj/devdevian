@@ -1,3 +1,4 @@
+import packageInfo from "../package.json" with { type: "json" };
 import { startS3Fixture } from "./s3-fixture.mjs";
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -153,6 +154,7 @@ test("Devdevian application scenarios with an isolated database", async (t) => {
     await t.test(
       "serves the Devdevian build and preserves migrated accounts and posts",
       async () => {
+        assert.equal((await anon("/health")).data.version, packageInfo.version);
         const r = await fetch(base);
         assert.equal(r.status, 200);
         assert.match(await r.text(), /Devdevian/);
