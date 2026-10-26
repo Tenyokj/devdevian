@@ -19,3 +19,6 @@ coverage/
 
 # Encrypted database/file backup archives
 *.ddb
+
+# Python terminal test driver cache
+__pycache__/

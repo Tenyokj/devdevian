@@ -34,3 +34,5 @@ Run `npm test` and `npm run build`. For affected UI flows, also run `npm run tes
 Explain the problem, the resulting behavior, and how you verified it. Attach relevant light/dark and mobile screenshots for visual changes. Identify migrations, configuration changes, and known limitations. Keep unrelated refactors separate.
 
 By contributing, you agree that your contribution is licensed under GPL-3.0-only. Do not submit code or assets you do not have permission to distribute.
+
+The standalone CLI has its own dependency lockfile. Run `npm ci --prefix packages/cli` before `npm test`; terminal integration tests use Python 3 and a real pseudo-terminal (macOS/Linux). To try the live client, run `node packages/cli/bin/devdevian.mjs tui`.

@@ -4,11 +4,27 @@ An official terminal client for [Devdevian](https://devdevian.vercel.app), the o
 
 ```sh
 npm install -g @tenyokjs/devdevian-cli@alpha
-devdevian login
-devdevian
+devdevian open     # a separate terminal window
+# or: devdevian tui  (the current terminal)
 ```
 
 Login opens a browser. Compare the code shown in the terminal, sign in to Devdevian, then authorize the terminal. Google, GitHub and email login happen on the website; no provider credentials are collected by this package. Use `--no-open` to open the printed address yourself, including when connecting over SSH.
+
+## Live workspace
+
+The default `devdevian` command and `devdevian tui` open an alternate terminal screen. Navigation, conversations, inline forms, previews and search update in that screen; exiting restores your normal terminal. The blue and purple layout adapts to the terminal size, with compact navigation below 90 columns. Minimum size: 60 columns × 18 rows.
+
+- **Tab** switches between navigation, content and the command bar. **↑/↓** select; **Enter** opens; **Esc** goes back.
+- **/** focuses search and commands: `/feed`, `/inbox`, `/search query`, `/open 142`, `/ask`, `/review`, `/communities`, `/devices`, `/help`, `/logout`, `/quit`.
+- **←/→** switch conversation tabs; **Space** reads the selected reply/remark in full. **[ / ]** paginate; **Page Up/Down** scroll.
+- **N** creates a conversation (a community on the Communities screen); **A** asks a question; **R** replies inside a conversation; **Shift+R** refreshes.
+- **C** comments on snippet lines; **E/D** edit/delete your own feedback; **S** resolves/reopens a code remark as the publication author; **!** reports selected code feedback.
+- In forms, **Tab/Shift+Tab** change fields, arrows choose options or move the text cursor, **Enter** adds a line, **Ctrl+S** opens the preview. Publication requires a separate confirmation; Escape asks before discarding a draft. Drafts are kept in memory only.
+- **Ctrl+C** exits. With an unsent draft, confirm leaving or press Ctrl+C again.
+
+`devdevian open` launches Terminal on macOS, Windows Terminal on Windows, or GNOME Terminal/Konsole/xterm on a Linux desktop. A graphical desktop and an installed supported terminal are required; over SSH and inside an editor, use `devdevian tui`. Window launchers still need platform-specific user testing; terminal rendering and input are covered by macOS/Linux pseudo-terminal checks.
+
+Pages have a bounded 30-second in-memory cache. Refresh explicitly with Shift+R. Network errors stay inside the workspace; failed writes are never automatically retried. Existing web permissions and server validation apply to every operation.
 
 ## Everyday commands
 
@@ -47,6 +63,6 @@ For local development use `devdevian login --host http://127.0.0.1:4173`. Remote
 
 ## Alpha scope
 
-This first release covers login/logout, inbox, paginated feeds and search, discussions and replies, questions, code review creation, line feedback and feedback threads/status, and community discovery/private publication. Profile/media editing, events administration and moderation remain available in the browser. There is no offline mode or automatic GitHub repository synchronization.
+This alpha covers login/logout, inbox, paginated feeds and search, discussions and replies, questions, code review creation, line feedback and feedback threads/status, and community discovery, creation and private publication. Profile/media editing, events administration and moderation remain available in the browser. There is no offline mode or automatic GitHub repository synchronization.
 
 Source, contributions and issue reporting: [Tenyokj/devdevian](https://github.com/Tenyokj/devdevian). Report security issues through the repository's [security policy](https://github.com/Tenyokj/devdevian/blob/main/SECURITY.md), not a public issue containing private data. Licensed GPL-3.0-only.

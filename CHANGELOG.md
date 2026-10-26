@@ -1,8 +1,15 @@
 # Changelog
 
+## CLI 0.2.0-alpha.1 — Live terminal workspace
+
+- Replaced the scrolling numbered menu with a responsive blue/purple workspace, arrow navigation, command/search bar, conversation tabs and paginated lists.
+- Added inline publication/reply forms, explicit previews, draft-discard confirmation, full-text reading, feedback editing/deletion/reporting and connected-terminal controls.
+- Added `devdevian open` for a separate supported desktop terminal; `devdevian tui` and the default command run in the current terminal. Existing script commands and JSON output remain supported.
+- Added cancellable reads, a bounded short-lived page cache, Unicode-aware input and PTY-based resize/publication/terminal-restoration checks. Browser and API versions remain unchanged.
+
 ## 0.1.6 — Devdevian CLI Alpha support (unreleased)
 
-- Official standalone `@tenyokjs/devdevian-cli` alpha package with an interactive menu and explicit commands for inbox, feeds/search, questions, conversation replies, file-based code review, line remarks, feedback threads/status and community discovery.
+- Official standalone `@tenyokjs/devdevian-cli` alpha package with a live alternate-screen workspace and explicit commands for inbox, feeds/search, questions, conversation replies, file-based code review, line remarks, feedback threads/status and community discovery.
 - Browser-approved terminal login with expiring, one-use device requests. Separate 30-day Bearer credentials are hashed at rest, bound to the approving account and revocable in Settings or from the CLI. Password recovery revokes active sessions; approvals predating a password change cannot mint a new session.
 - CLI uses the same API, quotas, community membership and moderation rules as the web client. Selected content is previewed before publishing; noninteractive publication requires explicit `--yes`. Redirects are rejected and remote terminal control sequences are stripped from human output.
 - CLI credentials and pending authorizations are excluded from backups. Schema v6 preparation keeps the current deployment available.

@@ -1,6 +1,6 @@
 {
   "name": "@tenyokjs/devdevian-cli",
-  "version": "0.1.0-alpha.1",
+  "version": "0.2.0-alpha.1",
   "description": "Devdevian in your terminal: discussions, questions and human code reviews.",
   "type": "module",
   "bin": {
@@ -38,5 +38,14 @@
   ],
   "scripts": {
     "test": "node --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "ink": "8.0.0",
+    "react": "19.3.1",
+    "string-width": "8.1.1",
+    "wrap-ansi": "10.0.0"
+  },
+  "devDependencies": {
+    "@xterm/headless": "5.5.0"
   }
 }

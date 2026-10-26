@@ -6,6 +6,7 @@ Use Node.js 24+ and npm:
 
 ```sh
 npm ci
+npm ci --prefix packages/cli
 cp .env.example .env
 npm run dev
 ```

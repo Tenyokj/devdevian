@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+import { fileURLToPath } from "node:url";
+import packageInfo from "../package.json" with { type: "json" };
 import { parseArgs } from "node:util";
 import { readFile, writeFile, mkdtemp, rm } from "node:fs/promises";
 import { hostname, tmpdir } from "node:os";
@@ -14,7 +16,7 @@ import {
   removeConfig,
   clean,
 } from "../lib/client.mjs";
-const version = "0.1.0-alpha.1";
+const version = packageInfo.version;
 const options = {
   host: { type: "string" },
   page: { type: "string" },
@@ -71,7 +73,9 @@ const positive = (value, label = "ID") => {
 };
 const help = `Devdevian CLI ${version} · alpha
 
-  devdevian                       Interactive menu
+  devdevian                       Live terminal workspace
+  devdevian tui                   Live workspace in this terminal
+  devdevian open                  Open the workspace in a new terminal window
   devdevian login                 Authorize in your browser
   devdevian logout                Revoke this terminal
   devdevian whoami
@@ -455,59 +459,7 @@ async function execute(args, flags) {
   }
   throw Error("Unknown command. Run devdevian --help.");
 }
-async function menu(flags) {
-  const config = await loadConfig();
-  if (!config) {
-    out("Devdevian · developer commons");
-    if (
-      (await prompt("Connect your account? (yes/no)", "yes")).toLowerCase() !==
-      "yes"
-    )
-      return;
-    await login(flags);
-  }
-  const identityConfig = await loadConfig(),
-    identity = await client(identityConfig.origin, identityConfig.token)("/me");
-  while (true) {
-    out(
-      `\nDEVDEVIAN · @${identity.user.username}\n  1  Inbox\n  2  Public feed\n  3  Open conversation\n  4  Ask a question\n  5  Request code review\n  6  Communities\n  7  Review feedback\n  8  Search\n  9  Reply to a conversation\n  0  Exit`,
-    );
-    const choice = await prompt("Choose", "0");
-    if (choice === "0") return;
-    try {
-      if (choice === "1") await execute(["inbox"], flags);
-      else if (choice === "2") await execute(["feed"], flags);
-      else if (choice === "3")
-        await execute(["conversation", "open", await prompt("Post ID")], flags);
-      else if (choice === "4") await execute(["ask"], flags);
-      else if (choice === "5") await execute(["review", "create"], flags);
-      else if (choice === "6") await execute(["communities"], flags);
-      else if (choice === "7") {
-        const post = await prompt("Review post ID");
-        await execute(["review", "list", post], flags);
-        const action = await prompt(
-          "Action: thread / comment / reply / resolve / reopen / back",
-          "back",
-        );
-        if (action !== "back") {
-          const id = action === "comment" ? null : await prompt("Feedback ID");
-          const next = { ...flags };
-          if (action === "comment") {
-            next["start-line"] = await prompt("Start line");
-            next["end-line"] = await prompt("End line", next["start-line"]);
-          }
-          await execute(["review", action, post, ...(id ? [id] : [])], next);
-        }
-      } else if (choice === "9")
-        await execute(["reply", await prompt("Post ID")], flags);
-      else if (choice === "8")
-        await execute(["search", await prompt("Search")], flags);
-      else out("Choose one of the listed actions.");
-    } catch (e) {
-      out("Error: " + e.message);
-    }
-  }
-}
+
 try {
   const { values, positionals } = parseArgs({
     options,
@@ -515,8 +467,19 @@ try {
     strict: true,
   });
   if (!positionals.length && !values.help && !values.version)
-    await menu(values);
-  else await execute(positionals, values);
+    await (await import("../lib/tui.mjs")).startTui(values);
+  else if (positionals[0] === "tui")
+    await (await import("../lib/tui.mjs")).startTui(values);
+  else if (positionals[0] === "open") {
+    const args = [];
+    for (const key of ["host", "name"])
+      if (values[key]) args.push("--" + key, values[key]);
+    if (values["no-open"]) args.push("--no-open");
+    await (
+      await import("../lib/window.mjs")
+    ).openWindow({ entry: fileURLToPath(import.meta.url), args });
+    out("Devdevian opened in a separate terminal window.");
+  } else await execute(positionals, values);
 } catch (e) {
   process.stderr.write("Devdevian: " + clean(e.message) + "\n");
   process.exitCode = 1;

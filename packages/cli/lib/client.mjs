@@ -90,7 +90,7 @@ export async function removeConfig() {
 }
 export function client(origin, token = null) {
   origin = originOf(origin);
-  return async (path, { method = "GET", body } = {}) => {
+  return async (path, { method = "GET", body, signal } = {}) => {
     if (!path.startsWith("/") || path.startsWith("//"))
       throw Error("Invalid API path.");
     let response;
@@ -104,9 +104,12 @@ export function client(origin, token = null) {
           ...(token ? { Authorization: "Bearer " + token } : {}),
         },
         body: body ? JSON.stringify(body) : undefined,
-        signal: AbortSignal.timeout(20000),
+        signal: signal
+          ? AbortSignal.any([signal, AbortSignal.timeout(20000)])
+          : AbortSignal.timeout(20000),
       });
-    } catch {
+    } catch (error) {
+      if (signal?.aborted) throw error;
       throw Error(
         "Could not reach Devdevian. Check your connection and server address.",
       );

@@ -95,4 +95,4 @@ The software is licensed under the **GNU General Public License, version 3 only*
 
 ## Terminal client (alpha)
 
-Devdevian also offers an official terminal client using the same account, API and community permissions. Install `@tenyokjs/devdevian-cli@alpha` with npm, then run `devdevian login`. See the [CLI README](packages/cli/README.md) for commands, credential storage, scope and local development.
+Devdevian also offers an official terminal client using the same account, API and community permissions. Install `@tenyokjs/devdevian-cli@alpha` with npm, then run `devdevian open` for a separate terminal window or `devdevian tui` in the current one. The live workspace has keyboard navigation, inline writing and publication previews. See the [CLI README](packages/cli/README.md) for commands, credential storage, scope and local development.

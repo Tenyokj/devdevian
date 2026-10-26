@@ -16,6 +16,7 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      - run: npm ci --prefix packages/cli
       - run: npm test
       - run: node --test tests/*.test.mjs
         env:
