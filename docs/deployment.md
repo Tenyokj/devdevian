@@ -67,3 +67,7 @@ References: [Express functions](https://vercel.com/docs/frameworks/backend/expre
 ### Rolling upgrade from v0.1.1 to v0.1.2
 
 Back up and verify the database and files first. Using the operator-selected production environment, run `node scripts/migrate.mjs --prepare-subscriptions` **before** deploying v0.1.2. This creates only the subscriptions table/index and preserves schema marker 2, so v0.1.1 can continue serving traffic. v0.1.2 accepts this explicitly prepared schema without running DDL during requests. After the new deployment passes its health check, run `node scripts/migrate.mjs` to finalize marker 3. No user records, posts, files, or sessions are reset. A rollback to v0.1.1 after finalization requires a reviewed schema-marker compatibility step; do not restore an old database over new user activity.
+
+### Upgrading v0.1.3 to v0.1.4
+
+Create and verify a database/file backup first. With the operator-selected production environment, run `node scripts/migrate.mjs --prepare-code-reviews` before deployment. This prepares only the additive feedback table/index and leaves marker 3 intact for the active release. Deploy v0.1.4, verify health, then run `node scripts/migrate.mjs` to finalize marker 4. Requests never run migration DDL. No accounts, sessions, posts, or files are reset. After finalization, rollback to v0.1.3 needs a reviewed marker compatibility step; do not overwrite newer user activity with an older backup.

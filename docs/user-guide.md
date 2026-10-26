@@ -78,3 +78,11 @@ Report a publication with a clear reason. Community reports go to that community
 Account deletion in Settings requires your username as confirmation. Transfer owned communities first. Deletion removes account access and anonymizes the profile; contributions and some attachments can remain. Read [Privacy & Security](https://devdevian.vercel.app/privacy) for details and further removal requests.
 
 For a reproducible non-sensitive bug, open a [GitHub issue](https://github.com/Tenyokj/devdevian/issues) with the page, steps, expected/actual results, browser, and viewport. For private account or data questions, email **dv842449@gmail.com**. Do not publish passwords, codes, API keys, or private community content.
+
+### Focused code feedback
+
+Questions and code reviews offer optional outlines in the composer. Applying an outline appends it to existing text; it does not replace your draft.
+
+For a published Code review snippet, click a line number or select a range with Shift-click or the From/To fields. Add a remark about up to 50 lines. Long snippets show 100 numbered lines per page to keep rendering bounded. Line feedback has separate pagination and filters for open/resolved remarks and snippet versions. The publication author receives an in-app reply notification according to their notification settings.
+
+Only the publication author can resolve or reopen a remark. This does not accept a solution or close the conversation. After a code edit, remarks about different snippet content show **Earlier snippet version** and keep their original excerpt. Removing the snippet keeps earlier remarks readable. New remarks are blocked when replies are paused; private-community feedback is visible only to members with access.

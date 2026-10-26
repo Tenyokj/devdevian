@@ -1158,6 +1158,171 @@ test("Devdevian application scenarios with an isolated database", async (t) => {
         });
         assert.equal(review.status, 201);
         assert.match(review.data.code, /function retry/);
+        const endpoint = `/posts/${review.data.id}/code-reviews`;
+        let feedback = await anon(endpoint);
+        assert.equal(feedback.status, 200);
+        const hash = feedback.data.snippet_hash;
+        const inputFeedback = {
+          snippet_hash: hash,
+          start_line: 1,
+          end_line: 1,
+          body: "Handle the rejected promise before returning.",
+        };
+        assert.equal((await anon(endpoint, inputFeedback)).status, 401);
+        assert.equal(
+          (await other(endpoint, { ...inputFeedback, end_line: 2 })).status,
+          400,
+        );
+        assert.equal(
+          (await other(endpoint, { ...inputFeedback, snippet_hash: "stale" }))
+            .status,
+          409,
+        );
+        const added = await other(endpoint, inputFeedback);
+        assert.equal(added.status, 201);
+        feedback = await author(endpoint);
+        const remark = feedback.data.items[0];
+        assert.equal(remark.quote, review.data.code);
+        assert.equal(remark.outdated, false);
+        const action = endpoint + "/" + added.data.id;
+        assert.equal(
+          (await other(action, { resolved: true, revision: 1 }, "PATCH"))
+            .status,
+          403,
+        );
+        assert.equal(
+          (await author(action, { resolved: true, revision: 1 }, "PATCH"))
+            .status,
+          200,
+        );
+        assert.equal(
+          (await author(action, { resolved: false, revision: 1 }, "PATCH"))
+            .status,
+          409,
+        );
+        assert.equal(
+          (await anon(endpoint + "?status=open")).data.items.length,
+          0,
+        );
+        assert.equal(
+          (await anon(endpoint + "?status=resolved")).data.items.length,
+          1,
+        );
+        assert.equal(
+          (await author(action, { resolved: false, revision: 2 }, "PATCH"))
+            .status,
+          200,
+        );
+        const modified = await author(
+          `/posts/${review.data.id}`,
+          {
+            ...input,
+            revision: review.data.revision,
+            code: "async function retry() { return 2; }",
+            review_focus: "Check correctness of retry behavior.",
+          },
+          "PATCH",
+        );
+        assert.equal(modified.status, 200, JSON.stringify(modified.data));
+        feedback = await anon(endpoint);
+        assert.equal(feedback.data.items[0].outdated, true);
+        assert.equal(feedback.data.items[0].quote, review.data.code);
+        assert.equal(
+          (await anon(endpoint + "?version=current")).data.items.length,
+          0,
+        );
+        assert.equal((await other(endpoint, inputFeedback)).status, 409);
+        const currentHash = feedback.data.snippet_hash;
+        for (let i = 0; i < 12; i++)
+          assert.equal(
+            (
+              await other(endpoint, {
+                ...inputFeedback,
+                snippet_hash: currentHash,
+                body: "Additional bounded feedback " + i,
+              })
+            ).status,
+            201,
+          );
+        const secondPage = await anon(endpoint + "?page=2");
+        assert.equal(secondPage.data.pagination.total, 13);
+        assert.equal(secondPage.data.items.length, 3);
+        assert.equal(
+          (
+            await author(`/posts/${review.data.id}/lifecycle`, {
+              action: "archive",
+            })
+          ).status,
+          200,
+        );
+        assert.equal(
+          (
+            await other(endpoint, {
+              ...inputFeedback,
+              snippet_hash: currentHash,
+            })
+          ).status,
+          409,
+        );
+        assert.equal(
+          (
+            await author(`/posts/${review.data.id}/lifecycle`, {
+              action: "restore",
+            })
+          ).status,
+          200,
+        );
+        for (let i = 0; i < 2; i++)
+          assert.equal(
+            (
+              await other(endpoint, {
+                ...inputFeedback,
+                snippet_hash: currentHash,
+              })
+            ).status,
+            201,
+          );
+        assert.equal(
+          (
+            await other(endpoint, {
+              ...inputFeedback,
+              snippet_hash: currentHash,
+            })
+          ).status,
+          429,
+        );
+        // Removing a snippet must not erase or hide its earlier feedback.
+        const removedSnippet = await author(
+          `/posts/${review.data.id}`,
+          {
+            ...input,
+            revision: (await author(`/posts/${review.data.id}`)).data.revision,
+            code: "",
+            repo_url: "https://example.test/repository",
+            review_focus: "Check correctness of retry behavior.",
+          },
+          "PATCH",
+        );
+        assert.equal(removedSnippet.status, 200);
+        assert.equal((await anon(endpoint)).data.pagination.total, 15);
+
+        // A community's snippet and remarks must remain unreadable to outsiders.
+        const privateReview = await author("/posts", {
+          ...input,
+          code: review.data.code,
+          review_focus: "Check correctness of retry behavior.",
+          community_id: privateSpace,
+        });
+        assert.equal(
+          privateReview.status,
+          201,
+          JSON.stringify(privateReview.data),
+        );
+        assert.equal(
+          (await anon(`/posts/${privateReview.data.id}/code-reviews`)).status,
+          404,
+        );
+
         const showcase = await other("/posts", {
           title: "A small retry visualizer",
           body: "A demonstration of how bounded retries behave under load.",

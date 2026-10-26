@@ -1,3 +1,4 @@
+import { CodeReview } from "./code-review";
 import { version as appVersion } from "../package.json";
 import { SubscriptionManager } from "./subscriptions";
 import { FollowButton } from "./follow";
@@ -1478,7 +1479,7 @@ export function App() {
               </span>
               <a
                 className="footer-version"
-                href={`https://github.com/Tenyokj/devdevian/releases/tag/v${appVersion}`}
+                href="https://github.com/Tenyokj/devdevian/releases"
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label={`Release v${appVersion}`}
@@ -1946,7 +1947,13 @@ function PostDetail({
             <span className="eyebrow">REVIEW REQUEST</span>
             <h3>What to review</h3>
             <MD>{p.review_focus}</MD>
-            {p.code && <MD>{"```\n" + p.code + "\n```"}</MD>}
+            <CodeReview
+              key={p.id}
+              post={p}
+              user={user}
+              requireUser={requireUser}
+              go={go}
+            />
             {p.repo_url && !p.links?.length && (
               <a
                 className="text-button"

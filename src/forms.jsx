@@ -611,6 +611,32 @@ export function Composer({
             }
           </span>
         </div>
+        {["question", "review"].includes(kind) && (
+          <div className="publication-template">
+            <span>
+              Need a starting point? An optional outline helps others understand
+              your request.
+            </span>
+            <button
+              type="button"
+              className="text-button"
+              onClick={() => {
+                const outline =
+                  kind === "question"
+                    ? "## The problem\n\n\n## Expected behavior\n\n\n## What I tried\n\n\n## Environment\n"
+                    : "## Context\n\n\n## Expected behavior\n\n\n## Constraints and trade-offs\n\n\n## Questions for reviewers\n";
+                setBody(
+                  (current) =>
+                    (current.trim() ? current + "\n\n" : "") + outline,
+                );
+                setPreview(false);
+              }}
+            >
+              {" "}
+              {body.trim() ? "Append outline" : "Use outline"}
+            </button>
+          </div>
+        )}
         <Field label="Title">
           <input
             name="title"

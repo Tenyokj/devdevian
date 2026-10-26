@@ -1,3 +1,4 @@
+import { registerCodeReviews } from "./code-reviews.mjs";
 import { registerSubscriptions } from "./subscriptions.mjs";
 import { encodePassword, checkPassword } from "./passwords.mjs";
 import {
@@ -12,7 +13,9 @@ import { requestContext, apiError } from "./observability.mjs";
 import { assertRuntime, allowedOrigin } from "./runtime-config.mjs";
 import { preferences, validUsername } from "./preferences.mjs";
 import { existsSync } from "node:fs";
-if (existsSync(".env")) process.loadEnvFile(".env");
+// Isolated tests supply their own environment and must never read developer secrets.
+if (process.env.NODE_ENV !== "test" && existsSync(".env"))
+  process.loadEnvFile(".env");
 import { registerAuth } from "./auth.mjs";
 import {
   registerEnhancements,
@@ -32,7 +35,7 @@ export async function createApp({ migrationOnly = false } = {}) {
   if (!migrationOnly) assertRuntime();
   const db = await openDatabase();
   try {
-    inspectSchema(db, { allowPreparedSubscriptions: !migrationOnly });
+    inspectSchema(db, { allowPreparedCodeReviews: !migrationOnly });
     if (!db.schemaCurrent && process.env.VERCEL === "1" && !migrationOnly)
       throw Error(
         "Database schema requires migration before starting this release.",
@@ -461,6 +464,7 @@ export async function createApp({ migrationOnly = false } = {}) {
     registerModeration(app, db, required);
     registerEventManagement(app, db, required);
     registerReplies(app, db);
+    registerCodeReviews(app, db, required);
     if (!db.schemaCurrent)
       db.exec(`
   CREATE INDEX IF NOT EXISTS memberships_item ON memberships(kind,item,user_id);

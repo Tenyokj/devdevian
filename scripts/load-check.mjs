@@ -1,3 +1,4 @@
+import { snippetHash } from "../code-reviews.mjs";
 import { spawn } from "node:child_process";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -49,6 +50,15 @@ try {
     );
     for (let j = 0; j < 3; j++) reply.run(i, "An answer with enough context.");
   }
+  const code = "async function work() { return request(); }";
+  db.prepare(
+    "UPDATE posts SET kind='review',code=?,review_focus='Check error handling.' WHERE id=1",
+  ).run(code);
+  const feedback = db.prepare(
+    "INSERT INTO code_reviews(post_id,user_id,snippet_hash,start_line,end_line,quote,body) VALUES(1,1,?,1,1,?,?)",
+  );
+  for (let i = 0; i < 1000; i++)
+    feedback.run(snippetHash(code), code, "Bounded line feedback fixture " + i);
   db.prepare("INSERT INTO sessions VALUES(?,1,?)").run(
     "load-test-session",
     Date.now() + 600000,
@@ -81,6 +91,7 @@ try {
     "/posts?following=1&limit=12&page=20",
     "/subscriptions?limit=12",
     "/posts/250",
+    "/posts/1/code-reviews?page=50&status=open&version=current",
     "/topics",
     "/me",
     "/events?limit=12",
@@ -114,6 +125,7 @@ try {
     concurrency: 10,
     posts: 500,
     replies: 1500,
+    line_feedback: 1000,
     following_sources: 101,
     errors: 0,
     p50_ms: Math.round(times[Math.floor(times.length * 0.5)]),

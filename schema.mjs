@@ -1,7 +1,7 @@
 // Bump this whenever a migration changes. Requests check one version record;
 // migrations run explicitly before a hosted release, never on a cold start.
-export const SCHEMA_VERSION = 3;
-export function inspectSchema(db, { allowPreparedSubscriptions = false } = {}) {
+export const SCHEMA_VERSION = 4;
+export function inspectSchema(db, { allowPreparedCodeReviews = false } = {}) {
   const table = db
     .prepare(
       "SELECT 1 FROM sqlite_master WHERE type='table' AND name='app_schema'",
@@ -11,17 +11,17 @@ export function inspectSchema(db, { allowPreparedSubscriptions = false } = {}) {
     ? db.prepare("SELECT version FROM app_schema WHERE id=1").get()?.version
     : null;
   db.schemaCurrent = version === SCHEMA_VERSION;
-  // v3 adds only subscriptions. During a rolling v2 -> v3 deployment the
+  // v4 adds only code_reviews. During a rolling v3 -> v4 deployment the
   // prepared table allows both releases to run without cold-start DDL/writes.
   if (
     !db.schemaCurrent &&
-    SCHEMA_VERSION === 3 &&
-    version === 2 &&
-    allowPreparedSubscriptions
+    SCHEMA_VERSION === 4 &&
+    version === 3 &&
+    allowPreparedCodeReviews
   ) {
     db.schemaCurrent = !!db
       .prepare(
-        "SELECT 1 FROM sqlite_master WHERE type='table' AND name='subscriptions'",
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name='code_reviews'",
       )
       .get();
   }

@@ -347,21 +347,21 @@ test("schema marker is recorded only explicitly after successful initialization"
   db.close();
 });
 
-test("prepared subscriptions keep v2 and v3 requests compatible until migration finalization", async () => {
-  const { prepareSubscriptions } = await import("../subscriptions.mjs");
+test("prepared code reviews keep v3 and v4 requests compatible until migration finalization", async () => {
+  const { prepareCodeReviews } = await import("../code-reviews.mjs");
   const db = new DatabaseSync(":memory:");
   db.exec(
-    "CREATE TABLE app_schema(id INTEGER PRIMARY KEY,version INTEGER); INSERT INTO app_schema VALUES(1,2)",
+    "CREATE TABLE app_schema(id INTEGER PRIMARY KEY,version INTEGER); INSERT INTO app_schema VALUES(1,3)",
   );
-  assert.equal(inspectSchema(db, { allowPreparedSubscriptions: true }), false);
-  prepareSubscriptions(db);
-  assert.equal(db.prepare("SELECT version FROM app_schema").get().version, 2);
+  assert.equal(inspectSchema(db, { allowPreparedCodeReviews: true }), false);
+  prepareCodeReviews(db);
+  assert.equal(db.prepare("SELECT version FROM app_schema").get().version, 3);
   assert.equal(inspectSchema(db), false);
-  assert.equal(inspectSchema(db, { allowPreparedSubscriptions: true }), true);
+  assert.equal(inspectSchema(db, { allowPreparedCodeReviews: true }), true);
   // Explicit migration runs strictly and marks completion; request inspection never writes.
   inspectSchema(db);
   completeSchema(db);
-  assert.equal(db.prepare("SELECT version FROM app_schema").get().version, 3);
+  assert.equal(db.prepare("SELECT version FROM app_schema").get().version, 4);
   assert.equal(inspectSchema(db), true);
   db.close();
 });

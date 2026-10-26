@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.4 — Focused code feedback (unreleased)
+
+- Optional Question and Code review outlines that preserve existing draft text.
+- Feedback on a line or range of up to 50 lines in a published code snippet, with pagination and status/version filters.
+- Publication authors can resolve or reopen individual remarks independently of accepted solutions. Concurrent status updates are checked by revision.
+- Snippet fingerprints and preserved excerpts prevent feedback from silently moving to different lines after edits. Earlier remarks remain readable when a snippet is removed.
+- Private-community access checks, paused-conversation enforcement, bounded posting limits, and in-app notifications to the publication author.
+- Additive schema preparation supports deployment without resetting user data or running migrations during requests.
+
 ## 0.1.3 — Following and mentions (2026-10-24)
 
 - A Following feed combining public topic follows and individually followed conversations, with access checks, recent-activity ordering, search, type/topic filters and pagination.

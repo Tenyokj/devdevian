@@ -1,3 +1,7 @@
+import { readFileSync } from "node:fs";
+const appVersion = JSON.parse(
+  readFileSync(new URL("../package.json", import.meta.url)),
+).version;
 import { DatabaseSync } from "node:sqlite";
 import { chromium, expect } from "@playwright/test";
 import { spawn } from "node:child_process";
@@ -1026,14 +1030,145 @@ try {
       await shot(`responsive-${width}-${route}`);
     }
   }
+
+  // Optional templates append without erasing a draft; line feedback remains separate from replies.
+  await page.goto(base + "/app#feed");
+  await page
+    .getByRole("button", { name: "Start a conversation", exact: true })
+    .first()
+    .click();
+  await page.getByRole("button", { name: "Question", exact: true }).click();
+  await page.getByRole("button", { name: "Use outline", exact: true }).click();
+  await expect(
+    page.getByRole("textbox", { name: "Post content", exact: true }),
+  ).toHaveValue(/## The problem/);
+  await page
+    .getByRole("textbox", { name: "Post content", exact: true })
+    .fill("Keep this existing draft.");
+  await page.getByRole("button", { name: "Code review", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Append outline", exact: true })
+    .click();
+  await expect(
+    page.getByRole("textbox", { name: "Post content", exact: true }),
+  ).toHaveValue(/^Keep this existing draft.[\s\S]*## Questions for reviewers/);
+  await page
+    .getByRole("button", { name: "Discard draft", exact: true })
+    .click();
+  const reviewResponse = await context.request.post(base + "/api/posts", {
+    data: {
+      title: "Line review browser fixture",
+      body: "Review this worker and its bounded retry strategy.",
+      kind: "review",
+      topic: "web",
+      code: "async function work() {\n  return await request();\n}",
+      review_focus: "Check error handling and retry safety.",
+    },
+  });
+  expect(reviewResponse.ok()).toBeTruthy();
+  const reviewPost = await reviewResponse.json();
+  const lineReviewer = await second.newPage();
+  await lineReviewer.goto(base + "/app#post/" + reviewPost.id);
+  await lineReviewer
+    .getByRole("button", { name: "Select code line 2", exact: true })
+    .click();
+  await lineReviewer
+    .getByRole("button", { name: "Select code line 3", exact: true })
+    .click({ modifiers: ["Shift"] });
+  await expect(
+    lineReviewer.getByRole("spinbutton", {
+      name: "Feedback start line",
+      exact: true,
+    }),
+  ).toHaveValue("2");
+  await expect(
+    lineReviewer.getByRole("spinbutton", {
+      name: "Feedback end line",
+      exact: true,
+    }),
+  ).toHaveValue("3");
+
+  await lineReviewer
+    .getByRole("textbox", { name: "What would you change?", exact: true })
+    .fill("Catch request failures and add a bounded retry.");
+  await lineReviewer
+    .getByRole("button", { name: "Add line feedback", exact: true })
+    .click();
+  await expect(lineReviewer.locator(".line-feedback-card")).toContainText(
+    "Catch request failures",
+  );
+  await expect(lineReviewer.locator(".line-feedback-card")).toContainText(
+    "Lines 2–3",
+  );
+  await expect(
+    lineReviewer.getByRole("button", { name: "Mark resolved", exact: true }),
+  ).toHaveCount(0);
+  await page.goto(base + "/app#post/" + reviewPost.id);
+  await page
+    .getByRole("button", { name: "Mark resolved", exact: true })
+    .click();
+  await expect(page.locator(".line-feedback-card")).toHaveClass(/is-resolved/);
+  await page
+    .getByRole("button", { name: "Reopen feedback", exact: true })
+    .click();
+  await expect(page.locator(".line-feedback-card")).not.toHaveClass(
+    /is-resolved/,
+  );
+  for (const width of [360, 768, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.waitForTimeout(300);
+    await page
+      .locator(".code-review-workbench")
+      .evaluate((el) => el.scrollIntoView({ block: "start" }));
+    await page.evaluate(() =>
+      window.scrollTo({ left: 0, top: window.scrollY }),
+    );
+    const box = await page.locator(".code-review-workbench").boundingBox();
+    expect(box.x, `Left edge at ${width}px`).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width, `Right edge at ${width}px`).toBeLessThanOrEqual(
+      width,
+    );
+
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+      `Line review overflow at ${width}px`,
+    ).toBeTruthy();
+    await page.screenshot({ path: artifacts + `/code-review-${width}.png` });
+  }
+
+  const longReview = await context.request.post(base + "/api/posts", {
+    data: {
+      title: "Long snippet pagination fixture",
+      body: "A larger snippet should keep the browser responsive.",
+      kind: "review",
+      topic: "web",
+      code: Array.from({ length: 205 }, (_, i) => `const value${i}=1;`).join(
+        "\n",
+      ),
+      review_focus: "Review the highlighted line range.",
+    },
+  });
+  expect(longReview.ok()).toBeTruthy();
+  await page.goto(base + "/app#post/" + (await longReview.json()).id);
+  await expect(page.locator(".snippet-line")).toHaveCount(100);
+  await page
+    .getByRole("button", { name: "Next code lines page", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Select code line 101", exact: true }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Next code lines page", exact: true })
+    .click();
+  await expect(page.locator(".snippet-line")).toHaveCount(5);
+  await lineReviewer.close();
   expect(errors).toEqual([]);
   await page.setViewportSize({ width: 1440, height: 1000 });
   await expect(
-    page.getByRole("link", { name: "Release v0.1.3", exact: true }),
-  ).toHaveAttribute(
-    "href",
-    "https://github.com/Tenyokj/devdevian/releases/tag/v0.1.3",
-  );
+    page.getByRole("link", { name: `Release v${appVersion}`, exact: true }),
+  ).toHaveAttribute("href", "https://github.com/Tenyokj/devdevian/releases");
   await expect(
     page.getByRole("link", { name: "Report a bug", exact: true }),
   ).toHaveAttribute(
