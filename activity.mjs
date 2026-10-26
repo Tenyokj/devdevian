@@ -125,7 +125,7 @@ export function registerActivity(app, db, required) {
     const result = pageRows(
       db,
       req,
-      `SELECT n.id,n.type,n.post_id,n.event_id,n.reply_id,n.created,n.read_at,u.name actor_name,u.id actor_id,COALESCE(p.title,e.title) post_title` +
+      `SELECT n.id,n.type,n.post_id,n.event_id,n.reply_id,n.code_review_id,n.feedback_reply_id,n.created,n.read_at,u.name actor_name,u.id actor_id,COALESCE(p.title,e.title) post_title` +
         from +
         " ORDER BY n.id DESC",
       [req.user.id],

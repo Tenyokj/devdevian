@@ -1,7 +1,8 @@
+import { notifyFeedback } from "./feedback-discussion.mjs";
 import { createHash } from "node:crypto";
 import { canRead, pageRows } from "./spaces.mjs";
 import { consumeBudget } from "./limits.mjs";
-import { notify, transaction } from "./activity.mjs";
+import { transaction } from "./activity.mjs";
 
 export const snippetHash = (code) =>
   createHash("sha256")
@@ -44,9 +45,24 @@ export function registerCodeReviews(app, db, required) {
       filters.push("c.snippet_hash=?");
       args.push(hash);
     }
+    const query = { ...req.query };
+    if (query.target_id) {
+      const target = db
+        .prepare("SELECT id FROM code_reviews WHERE id=? AND post_id=?")
+        .get(query.target_id, req.reviewPost.id);
+      if (target) {
+        query.page = Math.ceil(
+          db
+            .prepare(
+              "SELECT COUNT(*) n FROM code_reviews WHERE post_id=? AND id>=?",
+            )
+            .get(req.reviewPost.id, target.id).n / 10,
+        );
+      }
+    }
     const page = pageRows(
       db,
-      req,
+      { ...req, query },
       `SELECT c.*,u.name,json_extract(d.data,'$.avatar') author_avatar FROM code_reviews c JOIN users u ON u.id=c.user_id LEFT JOIN entity_details d ON d.kind='user' AND d.entity_id=CAST(c.user_id AS TEXT) WHERE ${filters.join(" AND ")} ORDER BY c.id DESC`,
       args,
       10,
@@ -122,11 +138,12 @@ export function registerCodeReviews(app, db, required) {
         );
       if (!result.changes) return null;
       const id = Number(result.lastInsertRowid);
-      notify(db, {
-        recipient: p.user_id,
+      notifyFeedback(db, {
+        recipients: [p.user_id],
+        review: id,
         actor: req.user.id,
         post: p.id,
-        type: "reply",
+        type: "feedback_reply",
         key: `code-review:${id}`,
       });
       return id;
@@ -138,39 +155,4 @@ export function registerCodeReviews(app, db, required) {
       });
     res.status(201).json({ id });
   });
-  app.patch(
-    "/api/posts/:id/code-reviews/:reviewId",
-    required,
-    target,
-    (req, res) => {
-      const p = req.reviewPost;
-      if (p.user_id !== req.user.id)
-        return res.status(403).json({
-          error:
-            "Only the publication author can resolve or reopen line feedback.",
-        });
-      if (
-        typeof req.body.resolved !== "boolean" ||
-        !Number.isSafeInteger(req.body.revision)
-      )
-        return res
-          .status(400)
-          .json({ error: "Send the feedback revision and desired status." });
-      const result = db
-        .prepare(
-          `UPDATE code_reviews SET resolved=?,revision=revision+1,updated_at=CURRENT_TIMESTAMP WHERE id=? AND post_id=? AND revision=?`,
-        )
-        .run(
-          req.body.resolved ? 1 : 0,
-          req.params.reviewId,
-          p.id,
-          req.body.revision,
-        );
-      if (!result.changes)
-        return res.status(409).json({
-          error: "Feedback changed or is unavailable. Reload and try again.",
-        });
-      res.json({ ok: true });
-    },
-  );
 }

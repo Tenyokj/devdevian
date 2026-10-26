@@ -29,6 +29,9 @@ const messages = {
   event_cancelled: "cancelled an event you’re attending",
   event_restored: "restored an event you’re attending",
   reply: "replied to a conversation",
+  feedback_reply: "added feedback to a code review",
+  feedback_resolved: "resolved your code feedback",
+  feedback_reopened: "reopened your code feedback",
   mention: "mentioned you in a conversation",
   topic_post: "started a conversation in a topic you follow",
   solution: "marked your answer as the solution",
@@ -90,7 +93,9 @@ export function NotificationCenter({ user, onNavigate }) {
       onNavigate(
         item.event_id
           ? `events/${item.event_id}`
-          : `post/${item.post_id}${item.reply_id ? "/reply/" + item.reply_id : ""}`,
+          : item.code_review_id
+            ? `post/${item.post_id}/review/${item.code_review_id}${item.feedback_reply_id ? "/reply/" + item.feedback_reply_id : ""}`
+            : `post/${item.post_id}${item.reply_id ? "/reply/" + item.reply_id : ""}`,
       );
     } catch (e) {
       setError(e.message);

@@ -1,3 +1,4 @@
+import { FeedbackActions, FeedbackReplies } from "./feedback-thread";
 import React, { useEffect, useState } from "react";
 import { api, dateStamp } from "./data";
 import { Avatar, MD, ErrorMessage } from "./ui";
@@ -17,6 +18,16 @@ export function CodeReview({ post, user, requireUser, go }) {
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
     [reload, setReload] = useState(0);
+  const [jumpToTarget, setJumpToTarget] = useState(true);
+  const [hash, setHash] = useState(() => window.location.hash);
+  useEffect(() => {
+    const update = () => setHash(window.location.hash);
+    window.addEventListener("hashchange", update);
+    return () => window.removeEventListener("hashchange", update);
+  }, []);
+  const parts = hash.split("/"),
+    targetId = parts[2] === "review" ? parts[3] : null,
+    targetReply = parts[4] === "reply" ? parts[5] : null;
   const lines = post.code ? post.code.split("\n") : [],
     paused = !!(post.archived_at || post.locked_at);
   useEffect(() => {
@@ -27,18 +38,44 @@ export function CodeReview({ post, user, requireUser, go }) {
     setData(null);
   }, [post.id, post.code]);
   useEffect(() => {
+    if (targetId) {
+      setJumpToTarget(true);
+      setStatus("all");
+      setVersion("all");
+      setPage(1);
+    }
+  }, [targetId]);
+  useEffect(() => {
     let alive = true;
     setError("");
     setData(null);
     api(
-      `/posts/${post.id}/code-reviews?status=${status}&version=${version}&page=${page}`,
+      `/posts/${post.id}/code-reviews?status=${status}&version=${version}&page=${page}${targetId && jumpToTarget ? "&target_id=" + targetId : ""}`,
     )
       .then((result) => alive && setData(result))
       .catch((e) => alive && setError(e.message));
     return () => {
       alive = false;
     };
-  }, [post.id, post.code, user?.id, status, version, page, reload]);
+  }, [
+    post.id,
+    post.code,
+    user?.id,
+    status,
+    version,
+    page,
+    reload,
+    targetId,
+    jumpToTarget,
+  ]);
+  useEffect(() => {
+    if (!data || !targetId) return;
+    const element = document.getElementById("code-review-" + targetId);
+    if (element && !targetReply) {
+      element.scrollIntoView({ block: "center" });
+      element.focus({ preventScroll: true });
+    }
+  }, [data, targetId, targetReply]);
   async function submit(e) {
     e.preventDefault();
     if (!user) {
@@ -203,6 +240,7 @@ export function CodeReview({ post, user, requireUser, go }) {
           aria-label="Line feedback status"
           value={status}
           onChange={(e) => {
+            setJumpToTarget(false);
             setStatus(e.target.value);
             setPage(1);
           }}
@@ -215,6 +253,7 @@ export function CodeReview({ post, user, requireUser, go }) {
           aria-label="Snippet version filter"
           value={version}
           onChange={(e) => {
+            setJumpToTarget(false);
             setVersion(e.target.value);
             setPage(1);
           }}
@@ -223,7 +262,7 @@ export function CodeReview({ post, user, requireUser, go }) {
           <option value="current">Current snippet</option>
         </Select>
       </div>
-      <ErrorMessage>{error}</ErrorMessage>
+      <ErrorMessage error={error} />
       {error && (
         <button
           type="button"
@@ -245,6 +284,8 @@ export function CodeReview({ post, user, requireUser, go }) {
             "line-feedback-card" + (item.resolved ? " is-resolved" : "")
           }
           key={item.id}
+          id={"code-review-" + item.id}
+          tabIndex={-1}
         >
           <header>
             <button
@@ -266,16 +307,27 @@ export function CodeReview({ post, user, requireUser, go }) {
               <span className="outdated-note">Earlier snippet version</span>
             )}
           </div>
-          <pre aria-label="Reviewed code">
-            <code>{item.quote}</code>
-          </pre>
-          <MD>{item.body}</MD>
+          {!item.deleted_at && (
+            <pre aria-label="Reviewed code">
+              <code>{item.quote}</code>
+            </pre>
+          )}
+          {item.deleted_at ? (
+            <p className="muted">
+              This feedback was deleted. Its discussion is preserved.
+            </p>
+          ) : (
+            <MD>{item.body}</MD>
+          )}
+          {item.edited_at && !item.deleted_at && (
+            <small>Edited {dateStamp(item.edited_at)}</small>
+          )}
           {item.updated_at && (
             <small className="muted">
               Status changed {dateStamp(item.updated_at)}
             </small>
           )}
-          {user?.id === post.user_id && (
+          {!item.deleted_at && user?.id === post.user_id && (
             <button
               type="button"
               className="text-button"
@@ -290,11 +342,28 @@ export function CodeReview({ post, user, requireUser, go }) {
               {item.resolved ? "Reopen feedback" : "Mark resolved"}
             </button>
           )}
+          <FeedbackActions
+            row={item}
+            user={user}
+            url={`/posts/${post.id}/code-reviews/${item.id}`}
+            reportUrl={`/posts/${post.id}/code-reviews/${item.id}/report`}
+            onChange={() => setReload((v) => v + 1)}
+          />
+          <FeedbackReplies
+            item={item}
+            post={post}
+            user={user}
+            requireUser={requireUser}
+            targetReply={Number(targetId) === item.id ? targetReply : null}
+          />
         </article>
       ))}
       <Pagination
         meta={data?.pagination}
-        onPage={setPage}
+        onPage={(p) => {
+          setJumpToTarget(false);
+          setPage(p);
+        }}
         label="line feedback"
       />
       <p className="muted line-review-note">

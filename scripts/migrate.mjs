@@ -3,7 +3,24 @@
 process.env.VERCEL = "1";
 const { createApp } = await import("../server.mjs");
 try {
-  if (process.argv.includes("--prepare-code-reviews")) {
+  if (process.argv.includes("--prepare-feedback")) {
+    const { openDatabase } = await import("../database.mjs");
+    const { prepareFeedback } = await import("../feedback-discussion.mjs");
+    const db = await openDatabase();
+    try {
+      if (
+        ![4, 5].includes(
+          db.prepare("SELECT version FROM app_schema WHERE id=1").get()
+            ?.version,
+        )
+      )
+        throw Error("Prepare feedback requires schema v4 or v5.");
+      prepareFeedback(db);
+    } finally {
+      db.close();
+    }
+    console.log("Feedback prepared; active schema marker preserved.");
+  } else if (process.argv.includes("--prepare-code-reviews")) {
     const { openDatabase } = await import("../database.mjs");
     const { prepareCodeReviews } = await import("../code-reviews.mjs");
     const db = await openDatabase();

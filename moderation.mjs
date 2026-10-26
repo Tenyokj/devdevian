@@ -1,3 +1,15 @@
+export const moderationScope = (req) => {
+  const managed = `((${scopeSQL("p", req.user)}) AND p.community_id IN (SELECT community_id FROM validators WHERE user_id=${Number(req.user.id)} UNION SELECT id FROM private_communities WHERE owner_id=${Number(req.user.id)}))`;
+  if (req.query.scope === "communities") return managed;
+  if (req.query.scope === "public")
+    return req.user.platform_role === "moderator"
+      ? "p.community_id IS NULL"
+      : "0=1";
+  return req.user.platform_role === "moderator"
+    ? `(p.community_id IS NULL OR ${managed})`
+    : managed;
+};
+
 import { manages, canModeratePost } from "./enhancements.mjs";
 import { scopeSQL, canRead, pageRows } from "./spaces.mjs";
 import { transaction } from "./activity.mjs";
@@ -98,17 +110,6 @@ export function registerModeration(app, db, required) {
     });
     res.json({ ok: true });
   });
-  const moderationScope = (req) => {
-    const managed = `((${scopeSQL("p", req.user)}) AND p.community_id IN (SELECT community_id FROM validators WHERE user_id=${Number(req.user.id)} UNION SELECT id FROM private_communities WHERE owner_id=${Number(req.user.id)}))`;
-    if (req.query.scope === "communities") return managed;
-    if (req.query.scope === "public")
-      return req.user.platform_role === "moderator"
-        ? "p.community_id IS NULL"
-        : "0=1";
-    return req.user.platform_role === "moderator"
-      ? `(p.community_id IS NULL OR ${managed})`
-      : managed;
-  };
   app.get("/api/moderation/reports", required, moderator, (req, res) => {
     if (req.query.scope === "public" && req.user.platform_role !== "moderator")
       return res.status(403).json({

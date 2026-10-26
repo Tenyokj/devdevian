@@ -1138,6 +1138,100 @@ try {
     await page.screenshot({ path: artifacts + `/code-review-${width}.png` });
   }
 
+  await page
+    .getByRole("button", { name: "Discuss feedback", exact: true })
+    .click();
+  await page
+    .getByRole("textbox", { name: "Reply to this feedback", exact: true })
+    .fill("Would bounded retries with a deadline address this concern?");
+  await page
+    .getByRole("button", { name: "Send feedback reply", exact: true })
+    .click();
+  await expect(page.locator(".feedback-thread-reply")).toContainText(
+    "bounded retries",
+  );
+  await lineReviewer.reload();
+  await lineReviewer
+    .locator(".line-feedback-card > .feedback-actions")
+    .getByRole("button", { name: "Edit feedback", exact: true })
+    .click();
+  await lineReviewer
+    .getByRole("textbox", { name: "Edit feedback text", exact: true })
+    .fill("Handle request failures with a deadline and bounded retries.");
+  await lineReviewer
+    .getByRole("button", { name: "Save feedback", exact: true })
+    .click();
+  await expect(lineReviewer.locator(".line-feedback-card")).toContainText(
+    "deadline and bounded retries",
+  );
+  await lineReviewer.getByRole("button", { name: /^Notifications/ }).click();
+  await lineReviewer
+    .locator(".notification-item")
+    .filter({ hasText: "Line review browser fixture" })
+    .first()
+    .click();
+  await expect(lineReviewer.locator(".feedback-thread-reply")).toContainText(
+    "bounded retries",
+  );
+  await lineReviewer
+    .locator(".line-feedback-card > .feedback-actions")
+    .getByRole("button", { name: "Delete feedback", exact: true })
+    .click();
+  await lineReviewer
+    .getByRole("button", { name: "Confirm deletion", exact: true })
+    .click();
+  await expect(lineReviewer.locator(".line-feedback-card")).toContainText(
+    "This feedback was deleted",
+  );
+  if (
+    await lineReviewer
+      .getByRole("button", { name: "Discuss feedback", exact: true })
+      .count()
+  )
+    await lineReviewer
+      .getByRole("button", { name: "Discuss feedback", exact: true })
+      .click();
+  await expect(lineReviewer.locator(".feedback-thread-reply")).toContainText(
+    "bounded retries",
+  );
+  await lineReviewer
+    .locator(".feedback-thread-reply")
+    .getByRole("button", { name: "Report feedback", exact: true })
+    .click();
+  await lineReviewer
+    .getByRole("textbox", { name: "Feedback report reason", exact: true })
+    .fill("This reply contains irrelevant spam content.");
+  await lineReviewer
+    .getByRole("button", { name: "Submit report", exact: true })
+    .click();
+  await expect(lineReviewer.getByRole("dialog")).toHaveCount(0);
+  await lineReviewer.goto(base + "/app#moderation/public");
+  await lineReviewer
+    .getByRole("button", { name: "Review feedback report", exact: true })
+    .click();
+  await lineReviewer
+    .getByRole("button", { name: "Feedback moderation decision", exact: true })
+    .click();
+  await lineReviewer
+    .getByRole("option", {
+      name: "Resolve · remove selected feedback",
+      exact: true,
+    })
+    .click();
+  await lineReviewer
+    .getByRole("textbox", { name: "Feedback moderation note", exact: true })
+    .fill("Remove this individual reply while preserving the conversation.");
+  await lineReviewer
+    .getByRole("button", { name: "Save feedback decision", exact: true })
+    .click();
+  await expect(lineReviewer.getByRole("dialog")).toHaveCount(0);
+  await page.reload();
+  await page
+    .getByRole("button", { name: "Discuss feedback", exact: true })
+    .click();
+  await expect(page.locator(".feedback-thread-reply")).toContainText(
+    "This reply was deleted",
+  );
   const longReview = await context.request.post(base + "/api/posts", {
     data: {
       title: "Long snippet pagination fixture",

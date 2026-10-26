@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.5 — Feedback discussions (unreleased)
+
+- Paginated reply threads on line feedback, with author-only editing and revision-checked deletion. Deletion preserves other members’ replies through tombstones.
+- In-app notifications for feedback replies and resolved/reopened remarks, with links to the exact paginated feedback thread. Existing reply/solution notification preferences apply.
+- Targeted reports on individual remarks/replies, separate scoped moderation queues, reversible post restrictions left unchanged, and audited decisions that can remove only the reported feedback.
+- Additive schema v5 preparation preserves v0.1.4 availability during deployment.
+
 ## 0.1.4 — Focused code feedback (unreleased)
 
 - Optional Question and Code review outlines that preserve existing draft text.

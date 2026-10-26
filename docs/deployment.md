@@ -71,3 +71,7 @@ Back up and verify the database and files first. Using the operator-selected pro
 ### Upgrading v0.1.3 to v0.1.4
 
 Create and verify a database/file backup first. With the operator-selected production environment, run `node scripts/migrate.mjs --prepare-code-reviews` before deployment. This prepares only the additive feedback table/index and leaves marker 3 intact for the active release. Deploy v0.1.4, verify health, then run `node scripts/migrate.mjs` to finalize marker 4. Requests never run migration DDL. No accounts, sessions, posts, or files are reset. After finalization, rollback to v0.1.3 needs a reviewed marker compatibility step; do not overwrite newer user activity with an older backup.
+
+### Upgrading v0.1.4 to v0.1.5
+
+Back up and verify data/files, run `node scripts/migrate.mjs --prepare-feedback` with the selected production environment, deploy v0.1.5, verify health, then finalize with `node scripts/migrate.mjs`. Preparation adds thread/report tables and nullable notification/deletion columns while preserving marker 4 for the active release. No accounts or content are reset.

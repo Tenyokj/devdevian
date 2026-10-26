@@ -1,3 +1,4 @@
+import { registerFeedback } from "./feedback-discussion.mjs";
 import packageInfo from "./package.json" with { type: "json" };
 import { registerCodeReviews } from "./code-reviews.mjs";
 import { registerSubscriptions } from "./subscriptions.mjs";
@@ -36,7 +37,7 @@ export async function createApp({ migrationOnly = false } = {}) {
   if (!migrationOnly) assertRuntime();
   const db = await openDatabase();
   try {
-    inspectSchema(db, { allowPreparedCodeReviews: !migrationOnly });
+    inspectSchema(db, { allowPreparedFeedback: !migrationOnly });
     if (!db.schemaCurrent && process.env.VERCEL === "1" && !migrationOnly)
       throw Error(
         "Database schema requires migration before starting this release.",
@@ -466,6 +467,7 @@ export async function createApp({ migrationOnly = false } = {}) {
     registerEventManagement(app, db, required);
     registerReplies(app, db);
     registerCodeReviews(app, db, required);
+    registerFeedback(app, db, required);
     if (!db.schemaCurrent)
       db.exec(`
   CREATE INDEX IF NOT EXISTS memberships_item ON memberships(kind,item,user_id);

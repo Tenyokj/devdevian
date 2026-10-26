@@ -24,9 +24,10 @@ export function notificationAllowed(db, id, type) {
   const key =
     type === "mention"
       ? "notify_mentions"
-      : type === "reply"
+      : type === "reply" || type === "feedback_reply"
         ? "notify_replies"
-        : type.startsWith("solution")
+        : type.startsWith("solution") ||
+            ["feedback_resolved", "feedback_reopened"].includes(type)
           ? "notify_solutions"
           : type === "project_update"
             ? "notify_projects"

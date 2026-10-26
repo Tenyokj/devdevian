@@ -86,3 +86,11 @@ Questions and code reviews offer optional outlines in the composer. Applying an 
 For a published Code review snippet, click a line number or select a range with Shift-click or the From/To fields. Add a remark about up to 50 lines. Long snippets show 100 numbered lines per page to keep rendering bounded. Line feedback has separate pagination and filters for open/resolved remarks and snippet versions. The publication author receives an in-app reply notification according to their notification settings.
 
 Only the publication author can resolve or reopen a remark. This does not accept a solution or close the conversation. After a code edit, remarks about different snippet content show **Earlier snippet version** and keep their original excerpt. Removing the snippet keeps earlier remarks readable. New remarks are blocked when replies are paused; private-community feedback is visible only to members with access.
+
+### Discussing and reporting feedback
+
+Choose **Discuss feedback** under a line remark to open its paginated reply thread. You can edit or delete your own remarks and replies; stale edits are rejected instead of overwriting another tab. Deletion removes the text and leaves a placeholder so other members’ replies survive.
+
+Reply notifications go to the publication and remark authors; status notifications go to the remark author. They follow the reply and solution notification preferences respectively. Notifications open the exact remark and, where applicable, the paginated reply.
+
+Use **Report feedback** on the particular remark or reply. Community reports go to its owner and appointed validators, while public reports go to Devdevian moderators. The **Reported code feedback** queue allows a documented decision or removal of that item without hiding the whole publication.

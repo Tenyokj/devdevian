@@ -1,3 +1,4 @@
+import { FeedbackModeration } from "./feedback-thread";
 import {
   Select,
   TaxonomyPicker,
@@ -416,6 +417,7 @@ export function Moderation({ user, go, scope = "all" }) {
           </section>
         </>
       )}
+      <FeedbackModeration key={scope} scope={scope} />
       {selected && (
         <Modal title="Review report" onClose={close} wide>
           <h2>{selected.post_title}</h2>
