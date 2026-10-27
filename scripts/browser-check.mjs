@@ -301,6 +301,12 @@ try {
   await expect(page.locator(".landing-faq")).toBeVisible();
   const reduced = await context.newPage();
   await reduced.emulateMedia({ reducedMotion: "reduce" });
+  await reduced.bringToFront();
+  await reduced.route("**/api/public-stats", (route) =>
+    route.fulfill({
+      json: { conversations: 13, updated_at: new Date().toISOString() },
+    }),
+  );
   await reduced.goto(base);
   expect(
     await reduced
