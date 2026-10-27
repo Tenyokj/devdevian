@@ -8,6 +8,13 @@ Every published npm artifact has a unique immutable version. We record each vers
 
 **0.6.0 brings Projects and Events into the terminal**, using the same hosted data and permissions as the browser.
 
+## 0.6.1-alpha.1 — A clearer first impression
+
+- Added a large terminal wordmark and selective blue/violet accents to `--help`. Compact terminals, `NO_COLOR`, redirected output and JSON help remain readable without ANSI decoration.
+- Help now points to the interactive Projects/Events commands and actions. CLI documentation includes real terminal captures and install/login/workspace guidance.
+- The website introduces the CLI near the top, with keyboard-accessible screenshot tabs, copyable install/review commands and GitHub documentation links. A cached public-only activity counter updates while visible and respects reduced motion.
+- No schema migration, account/credential change or production-data reset. The CLI package and web/API keep independent versions.
+
 ## 0.6.0-alpha.1 — Projects and Events
 
 - Added paginated catalogs, text search and filter forms. Projects filter by topic, stage, owner and order; Events by topic, calendar date with viewer timezone, upcoming/past, participation and order.

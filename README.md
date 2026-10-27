@@ -19,6 +19,21 @@ Devdevian brings technical conversations, code feedback, projects, and developer
 
 This is a live early release, built in the open. Contributions from developers, designers, writers, and people who can explain a reproducible bug are welcome. Features are still evolving; do not use the forum as your only copy of important work.
 
+## Devdevian in your terminal
+
+The same forum, account and permissions, inside your editor or favorite terminal. Ask questions, review project files and Git diffs, follow conversations, manage Projects and Events, and customize your workspace with themes and Devi.
+
+```sh
+npm install -g @tenyokjs/devdevian-cli@alpha
+devdevian tui
+```
+
+Requires Node.js 24+. Login is approved in your browser. Use `devdevian open` for a separate terminal window.
+
+[CLI documentation](packages/cli/README.md) · [npm package](https://www.npmjs.com/package/@tenyokjs/devdevian-cli) · [Version history](packages/cli/VERSIONS.md)
+
+![Devdevian CLI code review — actual terminal, demonstration data](public/screenshots/cli-review.png)
+
 ## Inside the forum
 
 | Feature | What you can do |
@@ -92,7 +107,3 @@ For vulnerabilities, follow [SECURITY.md](SECURITY.md) and contact maintainers p
 [Privacy & Security](https://devdevian.vercel.app/privacy) · [Terms of Use](https://devdevian.vercel.app/terms) · [Changelog](CHANGELOG.md)
 
 The software is licensed under the **GNU General Public License, version 3 only**. See [LICENSE](LICENSE). This does not automatically license user posts, code snippets, images, or attachments under GPL; their authors retain their respective rights.
-
-## Terminal client (alpha)
-
-Devdevian also offers an official terminal client using the same account, API and community permissions. Install `@tenyokjs/devdevian-cli@alpha` with npm, then run `devdevian open` for a separate terminal window or `devdevian tui` in the current one. The live workspace has keyboard navigation, inline writing, local drafts and publication previews. Code reviews can select project files, line ranges or staged/unstaged Git hunks without leaving the terminal. The Appearance workspace previews themes, accents and layout preferences before saving them locally. See the [CLI README](packages/cli/README.md) for commands, credential storage, scope and local development, and [CLI version history](packages/cli/VERSIONS.md) for individual updates and the customization roadmap.

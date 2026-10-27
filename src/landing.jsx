@@ -1,3 +1,4 @@
+import { CLISection, CLIReview, PublicActivity } from "./landing-cli";
 import StackRibbon from "./stack";
 import React, { useEffect, useRef, useState } from "react";
 import {
@@ -101,51 +102,9 @@ const questions = [
   ],
   [
     "Is Devdevian finished?",
-    "It's in active development. You can explore the early version, and the public production launch is still being prepared. Screens and workflows will evolve. Issues, ideas, and thoughtful contributions help shape what comes next.",
+    "It's live and in active development. The web forum and terminal client share the same account and conversations. Screens and workflows will evolve. Issues, ideas, and thoughtful contributions help shape what comes next.",
   ],
 ];
-const originalCode = `async function getAccount() {
-  const response = await fetch('/api/me');
-  return response.json();
-}`;
-const reviewedCode = `async function getAccount() {
-  const response = await fetch('/api/me');
-
-  if (!response.ok) {
-    throw new Error('Could not load account');
-  }
-
-  return response.json();
-}`;
-
-function Code({ value }) {
-  return (
-    <pre>
-      <code>
-        {value
-          .split(
-            /('[^']*'|\b(?:async|function|const|await|return|if|throw|new)\b)/g,
-          )
-          .map((token, i) => (
-            <span
-              key={i}
-              className={
-                token.startsWith("'")
-                  ? "syntax-string"
-                  : /^(async|function|const|await|return|if|throw|new)$/.test(
-                        token,
-                      )
-                    ? "syntax-keyword"
-                    : undefined
-              }
-            >
-              {token}
-            </span>
-          ))}
-      </code>
-    </pre>
-  );
-}
 function GlowCard({ children, className = "", ...props }) {
   return (
     <div
@@ -270,9 +229,6 @@ function FAQItem({ children, ...props }) {
 export default function Landing() {
   const root = useRef(null);
   const [active, setActive] = useState(0);
-  const [reviewed, setReviewed] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const copyTimer = useRef(null);
   const example = conversations[active];
   useEffect(() => {
     // Keep the landing dark without overwriting the forum's saved theme.
@@ -317,21 +273,8 @@ export default function Landing() {
       reveal.disconnect();
       hero.disconnect();
       document.removeEventListener("visibilitychange", syncMotion);
-      clearTimeout(copyTimer.current);
     };
   }, []);
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(
-        reviewed ? reviewedCode : originalCode,
-      );
-      setCopied(true);
-      clearTimeout(copyTimer.current);
-      copyTimer.current = setTimeout(() => setCopied(false), 1800);
-    } catch {
-      setCopied(false);
-    }
-  };
   return (
     <div className="landing" ref={root}>
       <a href="#explore" className="landing-skip">
@@ -343,6 +286,7 @@ export default function Landing() {
           devdevian<span>.</span>
         </a>
         <div className="landing-nav-links">
+          <a href="#cli">CLI</a>
           <a href="#explore">Explore</a>
           <a href="#community">Communities</a>
           <a href="#open-source">Open source</a>
@@ -427,6 +371,8 @@ export default function Landing() {
             </div>
           </div>
         </section>
+
+        <CLISection />
 
         <section
           className="landing-showcase"
@@ -563,42 +509,7 @@ export default function Landing() {
               Find a fresh perspective <ArrowUpRight size={17} />
             </a>
           </div>
-          <GlowCard className="landing-code-card">
-            <div className="code-card-heading">
-              <span>
-                <Terminal size={15} /> account.ts
-              </span>
-              <button onClick={copy} aria-label="Copy example code">
-                {copied ? <Check size={16} /> : <Copy size={16} />}{" "}
-                {copied ? "Copied" : "Copy"}
-              </button>
-            </div>
-            <Code value={reviewed ? reviewedCode : originalCode} />
-            <div className="code-review-comment">
-              <span className="review-avatar">
-                <GitPullRequest size={18} />
-              </span>
-              <p>
-                <strong>One small thing to check</strong>A resolved fetch can
-                still be a 404 or 500. What happens before we parse the body?
-              </p>
-            </div>
-            <button
-              className={"review-suggestion " + (reviewed ? "applied" : "")}
-              onClick={() => {
-                setReviewed(!reviewed);
-                setCopied(false);
-              }}
-            >
-              {reviewed ? <CheckCircle2 size={17} /> : <Plus size={17} />}{" "}
-              {reviewed
-                ? "Suggestion applied · reset example"
-                : "Try the suggested change"}
-            </button>
-            <span className="code-example-note">
-              INTERACTIVE EXAMPLE · NO CODE IS EXECUTED
-            </span>
-          </GlowCard>
+          <CLIReview />
         </section>
 
         <section className="landing-paired-shots" data-reveal>
@@ -713,6 +624,7 @@ export default function Landing() {
         </section>
 
         <StackRibbon />
+        <PublicActivity />
 
         <section className="landing-open-source" id="open-source" data-reveal>
           <div className="source-grid" aria-hidden="true" />
@@ -824,6 +736,9 @@ export default function Landing() {
               <small>Open source · GPL v3 · In active development</small>
             </span>
             <div>
+              <a href={repository + "/blob/main/packages/cli/README.md"}>
+                CLI documentation
+              </a>
               <a href={repository + "/blob/main/docs/README.md"}>
                 Documentation
               </a>

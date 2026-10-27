@@ -28,6 +28,7 @@ import { registerSpaces, installAccess, canRead } from "./spaces.mjs";
 import { registerUploads } from "./uploads.mjs";
 import { registerReplies } from "./replies.mjs";
 import express from "express";
+import { registerPublicStats } from "./public-stats.mjs";
 import { registerCatalog } from "./catalog-api.mjs";
 import { registerEventManagement } from "./event-management.mjs";
 import { registerModeration } from "./moderation.mjs";
@@ -140,6 +141,7 @@ export async function createApp({ migrationOnly = false } = {}) {
         .all(u.id);
       return user;
     }
+    registerPublicStats(app, db);
     app.use("/api", (req, res, next) => {
       if (["/health", "/auth/config"].includes(req.path)) return next();
       const bearer = req.headers.authorization?.match(/^Bearer (.+)$/i)?.[1];

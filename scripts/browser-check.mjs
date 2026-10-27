@@ -146,7 +146,9 @@ try {
     page.getByRole("button", { name: /Switch to .* theme/ }),
   ).toHaveCount(0);
   await page.getByRole("tab", { name: "Code reviews", exact: true }).click();
-  await expect(page.getByRole("tabpanel")).toContainText("error handling");
+  await expect(page.locator("#conversation-example")).toContainText(
+    "error handling",
+  );
   await page
     .getByRole("tab", { name: "Code reviews", exact: true })
     .press("ArrowRight");
@@ -154,32 +156,71 @@ try {
     page.getByRole("tab", { name: "Show & tell", exact: true }),
   ).toBeFocused();
   await page
-    .getByRole("button", { name: "Try the suggested change", exact: true })
+    .getByRole("button", { name: "From the command line", exact: true })
     .click();
   await expect(page.locator(".landing-code-card pre")).toContainText(
-    "if (!response.ok)",
+    "devdevian",
   );
   await context.grantPermissions(["clipboard-read", "clipboard-write"], {
     origin: base,
   });
   await page
-    .getByRole("button", { name: "Copy example code", exact: true })
+    .getByRole("button", { name: "Copy review command", exact: true })
     .click();
   await expect(
-    page.getByRole("button", { name: "Copy example code", exact: true }),
+    page.getByRole("button", { name: "Copy review command", exact: true }),
   ).toContainText("Copied");
   expect(await page.evaluate(() => navigator.clipboard.readText())).toContain(
-    "if (!response.ok)",
+    "devdevian review create",
   );
   await page
-    .getByRole("button", {
-      name: "Suggestion applied · reset example",
-      exact: true,
-    })
+    .getByRole("button", { name: "Live workspace", exact: true })
     .click();
-  await expect(page.locator(".landing-code-card pre")).not.toContainText(
-    "if (!response.ok)",
+  await expect(page.locator(".cli-review-card>img")).toBeVisible();
+  await page
+    .getByRole("tab", { name: "Human code review", exact: true })
+    .click();
+  await expect(page.locator(".cli-preview img")).toHaveAttribute(
+    "src",
+    "/screenshots/cli-review.png",
   );
+  await page
+    .getByRole("tab", { name: "Human code review", exact: true })
+    .press("ArrowRight");
+  await expect(
+    page.getByRole("tab", { name: "Make it yours", exact: true }),
+  ).toBeFocused();
+  await expect(page.locator(".cli-preview img")).toHaveAttribute(
+    "src",
+    "/screenshots/cli-appearance.png",
+  );
+  await page.locator(".cli-preview img").evaluate(async (image) => {
+    if (!image.complete)
+      await new Promise((r) =>
+        image.addEventListener("load", r, { once: true }),
+      );
+    if (!image.naturalWidth) throw Error("Missing CLI capture");
+  });
+  let activityCount = 12;
+  await page.route("**/api/public-stats", (route) =>
+    route.fulfill({
+      json: {
+        conversations: activityCount,
+        updated_at: new Date().toISOString(),
+      },
+    }),
+  );
+  await page.locator(".landing-activity").scrollIntoViewIfNeeded();
+  await expect(
+    page.getByRole("status", { name: "12 public conversations", exact: true }),
+  ).toBeVisible();
+  activityCount = 13;
+  await page.evaluate(() =>
+    document.dispatchEvent(new Event("visibilitychange")),
+  );
+  await expect(
+    page.getByRole("status", { name: "13 public conversations", exact: true }),
+  ).toBeVisible();
   await page.locator(".faq-list summary").first().click();
   await expect(page.locator(".faq-list details").first()).toHaveAttribute(
     "open",
@@ -273,6 +314,11 @@ try {
       .locator(".stack-track")
       .evaluate((e) => e.getAnimations().length),
   ).toBe(0);
+  await reduced.locator(".landing-activity").scrollIntoViewIfNeeded();
+  await expect(reduced.locator(".activity-reel").first()).toHaveCSS(
+    "transition-duration",
+    "0s",
+  );
   await reduced.close();
   await page.setViewportSize({ width: 1440, height: 1000 });
   for (const [path, title] of [

@@ -28,9 +28,9 @@ const pages = [
   {
     path: "/",
     file: "index.html",
-    title: "Devdevian — An open-source forum for developers",
+    title: "Devdevian — Your developer forum, in the browser and terminal",
     description:
-      "Ask programming questions, get code reviews, share projects, and find your developer community. Devdevian is a free, open-source forum built together.",
+      "Ask questions, review code and share projects in your browser or terminal. Devdevian is an open-source developer forum with an official CLI.",
     index: true,
   },
   {

@@ -1,5 +1,12 @@
 # Changelog
 
+## CLI 0.6.1-alpha.1 — Terminal-first introduction
+
+- Large, selectively colored terminal help with plain/narrow/NO_COLOR fallbacks and Projects/Events workspace hints.
+- Early landing section for the CLI, actual terminal captures, copyable commands and GitHub guide links; code-review card now demonstrates the terminal workflow.
+- Animated public-conversation count with bounded server/CDN caching, visible-only refreshes and reduced-motion support. Private and removed conversations are excluded.
+- Updated product and CLI documentation; reproducible screenshot capture uses disposable local data.
+
 ## CLI 0.6.0-alpha.1 — Projects and Events
 
 - Interactive catalogs, search, filters, pagination and full detail pages for Projects and Events.

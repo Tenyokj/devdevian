@@ -23,6 +23,7 @@ import {
   loadAppearance,
   saveAppearance,
 } from "../lib/appearance.mjs";
+import { renderHelp } from "../lib/help.mjs";
 const version = packageInfo.version;
 const options = {
   host: { type: "string" },
@@ -112,6 +113,9 @@ const help = `Devdevian CLI ${version} · alpha
   devdevian review resolve POST_ID REVIEW_ID
   devdevian review reopen POST_ID REVIEW_ID
   devdevian communities [--page 2]
+
+  Inside the workspace: /projects, /project ID, /events, /event ID
+  N creates · F filters · E edits your publication · X opens actions
 
   --theme NAME       midnight | nebula | daylight | contrast
   --accent NAME      blue | violet | cyan | rose
@@ -257,7 +261,15 @@ async function login(flags) {
 }
 async function execute(args, flags) {
   if (flags.help) {
-    out(help);
+    process.stdout.write(
+      renderHelp(help, {
+        tty: !!process.stdout.isTTY,
+        columns: process.stdout.columns || 80,
+        noColor:
+          process.env.NO_COLOR !== undefined || process.env.TERM === "dumb",
+        json: !!flags.json,
+      }) + "\n",
+    );
     return;
   }
   if (flags.version) {

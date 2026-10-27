@@ -12,6 +12,22 @@ Login opens a browser. Compare the code shown in the terminal, sign in to Devdev
 
 Version-by-version changes and the customization roadmap: [CLI version history](VERSIONS.md).
 
+## A look inside
+
+Actual CLI captures from isolated demonstration accounts. Your terminal uses your real forum account and permissions.
+
+![Devdevian terminal feed](https://raw.githubusercontent.com/Tenyokj/devdevian/main/public/screenshots/cli-feed.png)
+
+<details>
+<summary>Code review and appearance</summary>
+
+![Side-by-side human code review](https://raw.githubusercontent.com/Tenyokj/devdevian/main/public/screenshots/cli-review.png)
+![Appearance controls](https://raw.githubusercontent.com/Tenyokj/devdevian/main/public/screenshots/cli-appearance.png)
+
+</details>
+
+Run `devdevian --help` for script commands and workspace shortcuts. Interactive help has a large wordmark and selective accents; `NO_COLOR=1` keeps it uncolored, narrow terminals use a compact heading, and redirected output stays plain.
+
 ## Live workspace
 
 The default `devdevian` command and `devdevian tui` open an alternate terminal screen. Navigation, conversations, inline forms, previews and search update in that screen; exiting restores your normal terminal. The blue and purple layout adapts to the terminal size, with compact navigation below 90 columns. Minimum size: 60 columns × 18 rows.
