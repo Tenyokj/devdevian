@@ -19,6 +19,7 @@ export const navigation = [
   ["communities", "Communities", "Your private spaces"],
   ["search", "Search", "Find a conversation"],
   ["devices", "Connected terminals", "Manage CLI access"],
+  ["appearance", "Appearance", "Themes & layout"],
   ["help", "Help", "Keys & commands"],
 ];
 export async function notificationRoute(api, item) {
@@ -238,6 +239,7 @@ export function contentLines(route, data) {
       "Ctrl+S           Preview the current form",
       "Ctrl+O / Ctrl+G  Select a code file / Git diff in a review form",
       "/drafts          Restore locally saved drafts for this account/project",
+      "/appearance      Preview and save local themes and layout",
       "Ctrl+C           Exit and restore the original terminal",
       "",
       "Commands: /feed  /inbox  /search words  /open 142",

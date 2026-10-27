@@ -2,7 +2,7 @@ import React from "react";
 import { Box, Text } from "ink";
 import { clip, graphemes } from "./tui-model.mjs";
 import { syntaxSpans } from "./rich-text.mjs";
-import { colors as c } from "./theme.mjs";
+import { useTheme } from "./theme.mjs";
 const h = React.createElement;
 export function codeRange(line, anchor = null) {
   return {
@@ -32,8 +32,11 @@ export function ReviewWorkspace({
   anchor,
   horizontal = 0,
   rows,
+  layout = "auto",
+  stride = 4,
 }) {
-  const split = width >= 78,
+  const c = useTheme();
+  const split = width >= 78 && layout !== "stacked",
     codeWidth = split ? Math.floor(width * 0.55) : width;
   const selectedNote = note || items[index];
   const excerpt = reviewExcerpt(post, focus === "code" ? null : selectedNote),
@@ -114,14 +117,14 @@ export function ReviewWorkspace({
         },
         ...(text.startsWith("+") || text.startsWith("-")
           ? [rendered]
-          : syntaxSpans(rendered).map((span, j) =>
+          : syntaxSpans(rendered, c).map((span, j) =>
               h(Text, { key: j, color: span.color }, span.text),
             )),
       );
     }),
   );
   const notesWidth = split ? width - codeWidth - 2 : width;
-  const visible = Math.max(1, Math.floor((height - 2) / 4)),
+  const visible = Math.max(1, Math.floor((height - 2) / stride)),
     first = Math.max(0, index - visible + 1);
   const notes = h(
     Box,
@@ -140,7 +143,7 @@ export function ReviewWorkspace({
       : null,
     ...(items.length
       ? rows(notesWidth)
-          .slice(first * 4, first * 4 + height - header)
+          .slice(first * stride, first * stride + height - header)
           .map((row, i) =>
             h(
               Text,

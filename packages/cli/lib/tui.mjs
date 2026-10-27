@@ -32,7 +32,15 @@ import {
   notificationRoute,
 } from "./tui-data.mjs";
 import { basename } from "node:path";
-import { colors } from "./theme.mjs";
+import { themeFor, ThemeContext, useTheme } from "./theme.mjs";
+import {
+  appearanceFields,
+  defaultAppearance,
+  loadAppearance,
+  saveAppearance,
+  normalizeAppearance,
+  appearanceFlags,
+} from "./appearance.mjs";
 import { liveLoop, anchoredIndex } from "./live.mjs";
 import { contextActions } from "./context-actions.mjs";
 import { editExternal } from "./external-editor.mjs";
@@ -83,6 +91,7 @@ function openBrowser(url) {
   child.unref();
 }
 function fieldsFor(form) {
+  if (form.kind === "appearance") return appearanceFields;
   if (form.kind === "publication")
     return [
       {
@@ -190,10 +199,16 @@ function fieldsFor(form) {
     },
   ];
 }
-function TextLine({ text, width, color = colors.text, bold = false }) {
-  return h(Text, { color, bold, wrap: "truncate" }, clip(text, width));
+function TextLine({ text, width, color, bold = false }) {
+  const colors = useTheme();
+  return h(
+    Text,
+    { color: color || colors.text, bold, wrap: "truncate" },
+    clip(text, width),
+  );
 }
 function FrameRows({ rows, width, height, offset = 0 }) {
+  const colors = useTheme();
   return h(
     Box,
     { flexDirection: "column", height, overflow: "hidden" },
@@ -226,6 +241,7 @@ function FrameRows({ rows, width, height, offset = 0 }) {
   );
 }
 function InputText({ value, cursor, width, height = 1 }) {
+  const colors = useTheme();
   const result = cursorLines(value, cursor, width),
     start = Math.max(0, result.line - height + 1);
   return h(
@@ -244,6 +260,7 @@ function InputText({ value, cursor, width, height = 1 }) {
   );
 }
 function FormView({ form, active, cursor, width, height }) {
+  const colors = useTheme();
   const fields = fieldsFor(form),
     rows = [];
   let selectedLine = 0;
@@ -295,14 +312,19 @@ function FormView({ form, active, cursor, width, height }) {
   rows.push({
     text:
       (active === fields.length ? "› " : "  ") +
-      "Preview publication  [Ctrl+S]",
+      (form.kind === "appearance"
+        ? "Save appearance  [Ctrl+S]"
+        : "Preview publication  [Ctrl+S]"),
     color: colors.blue,
     bold: true,
   });
-  const offset = Math.max(0, Math.min(selectedLine - 1, rows.length - height));
+  const offset = Math.max(
+    0,
+    Math.min(selectedLine - (height >= 4 ? 1 : 0), rows.length - height),
+  );
   return h(FrameRows, { rows, width, height, offset });
 }
-function listRows(route, data, index, width) {
+function listRows(route, data, index, width, colors, density = "comfortable") {
   const items = data.items || [];
   return items.flatMap((item, i) => {
     let title = item.title || item.name || "",
@@ -388,21 +410,28 @@ function listRows(route, data, index, width) {
         color: selected ? colors.text : colors.muted,
         selected,
       },
-      { text: "  " + "─".repeat(Math.max(0, width - 4)), color: colors.line },
+      ...(density === "compact"
+        ? []
+        : [
+            {
+              text: "  " + "─".repeat(Math.max(0, width - 4)),
+              color: colors.line,
+            },
+          ]),
     ];
   });
 }
-function documentRows(route, data, width) {
+function documentRows(route, data, width, colors) {
   if (route.view !== "post" || (route.tab && route.tab !== "overview"))
     return contentLines(route, data).flatMap((line) => wrap(line, width));
   const post = data?.post;
   if (!post) return [];
-  const rows = markdownRows(post.body || "", width);
+  const rows = markdownRows(post.body || "", width, colors);
   if (post.review_focus)
     rows.push(
       { text: "" },
       { text: "REVIEW FOCUS", color: colors.purple, bold: true },
-      ...markdownRows(post.review_focus, width),
+      ...markdownRows(post.review_focus, width, colors),
     );
   if (post.code) {
     // Pick a fence longer than any backtick run in the snippet.
@@ -414,7 +443,7 @@ function documentRows(route, data, width) {
     );
     rows.push(
       { text: "" },
-      ...markdownRows(fence + "\n" + post.code + "\n" + fence, width),
+      ...markdownRows(fence + "\n" + post.code + "\n" + fence, width, colors),
     );
   }
   if (post.links?.length)
@@ -431,9 +460,63 @@ function documentRows(route, data, width) {
     });
   return rows;
 }
-function App({ initialConfig, flags, root }) {
+function AppearanceView({ form, active, cursor, width, height }) {
+  const c = useTheme(),
+    wide = width >= 100;
+  return h(
+    Box,
+    { height, overflow: "hidden", gap: wide ? 2 : 0 },
+    h(
+      Box,
+      { width: wide ? width - 36 : width, flexDirection: "column" },
+      h(FormView, {
+        form,
+        active,
+        cursor,
+        width: wide ? width - 36 : width,
+        height,
+      }),
+    ),
+    wide
+      ? h(
+          Box,
+          {
+            width: 34,
+            height,
+            borderStyle: c.frame,
+            borderColor: c.line,
+            paddingX: 1,
+            flexDirection: "column",
+            overflow: "hidden",
+          },
+          h(Text, { color: c.purple, bold: true }, "LIVE PREVIEW"),
+          h(Text, { color: c.muted }, "Only this terminal changes."),
+          h(Text, null, " "),
+          h(
+            Text,
+            { color: c.text, bold: true },
+            "A good conversation starts here",
+          ),
+          h(
+            Text,
+            { color: c.blue, backgroundColor: c.selected },
+            "▸ Your selected conversation",
+          ),
+          h(Text, { color: c.muted }, "Ada · code review · just now"),
+          h(Text, { color: c.green }, "+ ship with confidence"),
+          h(Text, { color: c.red }, "− leave the guesswork behind"),
+          h(Text, null, " "),
+          h(Text, { color: c.purple }, "← → change · Tab next"),
+          h(Text, { color: c.text }, "Ctrl+S save · Esc cancel"),
+          h(Text, { color: c.muted }, "0 restores the default preview"),
+        )
+      : null,
+  );
+}
+function App({ initialConfig, flags, root, initialAppearance }) {
   const { exit, suspendTerminal } = useApp(),
     { columns, rows } = useWindowSize();
+  const [appearance, setAppearance] = useState(initialAppearance.settings);
   const [config, setConfig] = useState(initialConfig),
     [phase, setPhase] = useState(
       initialConfig && !flags.initialLogin ? "checking" : "auth",
@@ -452,7 +535,7 @@ function App({ initialConfig, flags, root }) {
     [command, setCommand] = useState(""),
     [commandCursor, setCommandCursor] = useState(0),
     [error, setError] = useState(""),
-    [notice, setNotice] = useState("");
+    [notice, setNotice] = useState(initialAppearance.warning || "");
   const [form, setForm] = useState(null),
     [field, setField] = useState(0),
     [cursor, setCursor] = useState(0),
@@ -496,9 +579,13 @@ function App({ initialConfig, flags, root }) {
     () => (config ? client(config.origin, config.token) : null),
     [config?.origin, config?.token],
   );
+  const effectiveAppearance =
+    form?.kind === "appearance" ? normalizeAppearance(form.values) : appearance;
+  const colors = themeFor(effectiveAppearance),
+    stride = effectiveAppearance.density === "compact" ? 3 : 4;
   const width = Math.max(1, columns),
     height = Math.max(1, rows - 1),
-    compact = width < 90,
+    compact = width < 90 || effectiveAppearance.sidebar === "hidden",
     sidebar = compact ? 0 : 25,
     bodyHeight = Math.max(1, height - 9),
     contentWidth = Math.max(1, width - sidebar - 6),
@@ -786,10 +873,14 @@ function App({ initialConfig, flags, root }) {
     };
   }, []);
   useEffect(() => {
-    if (!loading && !pending && phase !== "pending") return;
+    if (
+      effectiveAppearance.motion === "reduced" ||
+      (!loading && !pending && phase !== "pending")
+    )
+      return;
     const timer = setInterval(() => setTick((v) => (v + 1) % 4), 180);
     return () => clearInterval(timer);
-  }, [loading, pending, phase]);
+  }, [loading, pending, phase, effectiveAppearance.motion]);
   useEffect(() => {
     if (phase !== "checking" || !api) return;
     const controller = new AbortController();
@@ -944,6 +1035,7 @@ function App({ initialConfig, flags, root }) {
   async function chooseNav(i) {
     const name = navigation[i]?.[0];
     setNavIndex(i);
+    if (name === "appearance") return openAppearance();
     if (name === "ask" || name === "review")
       return composePublication(name === "review" ? "review" : "question");
     if (name === "open")
@@ -958,6 +1050,16 @@ function App({ initialConfig, flags, root }) {
       setCommand("");
       setCommandCursor(0);
     }
+  }
+  function openAppearance() {
+    openForm({
+      kind: "appearance",
+      title: "Appearance",
+      values: { ...appearance },
+    });
+    setNotice(
+      "Live preview · ← → change · Ctrl+S save · Esc cancel · 0 defaults",
+    );
   }
   function openForm(next) {
     setForm({
@@ -1123,6 +1225,18 @@ function App({ initialConfig, flags, root }) {
   }
   async function prepare() {
     if (!form) return;
+    if (form.kind === "appearance") {
+      await task(async () => {
+        const saved = await saveAppearance(form.values);
+        setAppearance(saved);
+        setForm(null);
+        setFocus("content");
+        setNotice(
+          "Appearance saved locally. Your account and other devices are unchanged.",
+        );
+      });
+      return;
+    }
     await task(async () => {
       if (
         form.unavailableAudience &&
@@ -1571,6 +1685,10 @@ function App({ initialConfig, flags, root }) {
         );
         return;
       }
+      if (parsed.command === "appearance") {
+        openAppearance();
+        return;
+      }
       if (parsed.command === "open") {
         navigate({ view: "post", id: parsed.arg, tab: "overview", page: 1 });
         return;
@@ -1591,6 +1709,10 @@ function App({ initialConfig, flags, root }) {
     }
   }
   function askQuit() {
+    if (form?.kind === "appearance") {
+      exit();
+      return;
+    }
     if (form) {
       askConfirm(
         "Leave this draft?",
@@ -1677,6 +1799,7 @@ function App({ initialConfig, flags, root }) {
             ? "[deleted — discussion preserved]"
             : reading.body || "",
           contentWidth,
+          colors,
         ),
         maximum = Math.max(0, lines.length - contentHeight);
       if (keyEvent.escape || keyEvent.return || input === " ") {
@@ -1725,6 +1848,17 @@ function App({ initialConfig, flags, root }) {
       return;
     }
     if (form) {
+      if (form.kind === "appearance" && keyEvent.escape) {
+        setForm(null);
+        setFocus("content");
+        setNotice("Appearance preview cancelled. Saved preferences kept.");
+        return;
+      }
+      if (form.kind === "appearance" && input === "0") {
+        setForm((old) => ({ ...old, values: { ...defaultAppearance } }));
+        setNotice("Default preview restored. Ctrl+S saves; Esc cancels.");
+        return;
+      }
       if (keyEvent.ctrl && input === "e") {
         externalEdit();
         return;
@@ -1775,20 +1909,20 @@ function App({ initialConfig, flags, root }) {
           keyEvent.downArrow
         ) {
           const opts = active.options,
-            i = Math.max(
+            step = keyEvent.leftArrow || keyEvent.upArrow ? -1 : 1;
+          setForm((old) => {
+            const i = Math.max(
               0,
               opts.findIndex(
                 (item) =>
-                  String(item[0]) === String(form.values[active.key] || ""),
+                  String(item[0]) === String(old.values[active.key] || ""),
               ),
-            ),
-            step = keyEvent.leftArrow || keyEvent.upArrow ? -1 : 1,
-            next = opts[(i + step + opts.length) % opts.length];
-          if (next)
-            setForm((old) => ({
-              ...old,
-              values: { ...old.values, [active.key]: next[0] },
-            }));
+            );
+            const next = opts[(i + step + opts.length) % opts.length];
+            return next
+              ? { ...old, values: { ...old.values, [active.key]: next[0] } }
+              : old;
+          });
         } else if (keyEvent.return) changeField(field + 1);
         return;
       }
@@ -1860,6 +1994,10 @@ function App({ initialConfig, flags, root }) {
         setNavIndex((v) => (v + 1) % navigation.length);
       else if (keyEvent.return) chooseNav(navIndex);
       else if (keyEvent.rightArrow) setFocus("content");
+      return;
+    }
+    if (input === ",") {
+      openAppearance();
       return;
     }
     if (input === "x" || input === "X" || input === "?") {
@@ -1948,13 +2086,13 @@ function App({ initialConfig, flags, root }) {
     ) {
       const step =
           keyEvent.pageUp || keyEvent.pageDown
-            ? Math.max(1, Math.floor(contentHeight / 4))
+            ? Math.max(1, Math.floor(contentHeight / stride))
             : 1,
         delta = keyEvent.upArrow || keyEvent.pageUp ? -step : step;
       if (prose) {
         const maximum = Math.max(
           0,
-          documentRows(route, current || {}, contentWidth).length -
+          documentRows(route, current || {}, contentWidth, colors).length -
             contentHeight,
         );
         const amount =
@@ -2079,7 +2217,8 @@ function App({ initialConfig, flags, root }) {
       : loading
         ? "Loading…"
         : "Shared account · shared conversations · same permissions");
-  const spin = ["◐", "◓", "◑", "◒"][tick];
+  const spin =
+    effectiveAppearance.motion === "reduced" ? "·" : ["◐", "◓", "◑", "◒"][tick];
   let center;
   if (width < 60 || rows < 18)
     center = h(
@@ -2143,7 +2282,7 @@ function App({ initialConfig, flags, root }) {
     center = h(
       Box,
       {
-        borderStyle: "round",
+        borderStyle: colors.frame,
         borderColor: colors.purple,
         flexDirection: "column",
         paddingX: 2,
@@ -2162,7 +2301,7 @@ function App({ initialConfig, flags, root }) {
     center = h(
       Box,
       {
-        borderStyle: "round",
+        borderStyle: colors.frame,
         borderColor: colors.purple,
         flexDirection: "column",
         paddingX: 2,
@@ -2202,6 +2341,7 @@ function App({ initialConfig, flags, root }) {
           ? "[deleted — discussion preserved]"
           : reading.body || "",
         contentWidth,
+        colors,
       );
       body = h(FrameRows, {
         rows: lines,
@@ -2258,7 +2398,7 @@ function App({ initialConfig, flags, root }) {
         ),
       );
     } else if (form)
-      body = h(FormView, {
+      body = h(form.kind === "appearance" ? AppearanceView : FormView, {
         form,
         active: field,
         cursor,
@@ -2324,7 +2464,17 @@ function App({ initialConfig, flags, root }) {
         line: reviewLine,
         anchor: reviewAnchor,
         horizontal: reviewHorizontal,
-        rows: (w) => listRows(route, current, index, w),
+        layout: effectiveAppearance.reviewLayout,
+        stride,
+        rows: (w) =>
+          listRows(
+            route,
+            current,
+            index,
+            w,
+            colors,
+            effectiveAppearance.density,
+          ),
       });
     else if (error && !current)
       body = h(FrameRows, {
@@ -2342,7 +2492,7 @@ function App({ initialConfig, flags, root }) {
         height: contentHeight,
       });
     else {
-      const lines = documentRows(route, current || {}, contentWidth);
+      const lines = documentRows(route, current || {}, contentWidth, colors);
       if (lines.length)
         body = h(FrameRows, {
           rows: lines,
@@ -2374,12 +2524,16 @@ function App({ initialConfig, flags, root }) {
           ),
         );
       else {
-        const visible = Math.max(1, Math.floor(contentHeight / 4)),
+        const visible = Math.max(1, Math.floor(contentHeight / stride)),
           first = Math.max(0, index - visible + 1),
-          rows = listRows(route, current, index, contentWidth).slice(
-            first * 4,
-            first * 4 + contentHeight,
-          );
+          rows = listRows(
+            route,
+            current,
+            index,
+            contentWidth,
+            colors,
+            effectiveAppearance.density,
+          ).slice(first * stride, first * stride + contentHeight);
         body = h(
           Box,
           {
@@ -2419,7 +2573,7 @@ function App({ initialConfig, flags, root }) {
     const pane = h(
       Box,
       {
-        borderStyle: "round",
+        borderStyle: colors.frame,
         borderColor: focus === "nav" && !compact ? colors.line : colors.purple,
         backgroundColor: colors.panel,
         flexDirection: "column",
@@ -2470,7 +2624,9 @@ function App({ initialConfig, flags, root }) {
           )
         : h(TextLine, {
             text: form
-              ? "Tab next field · Ctrl+E editor · Ctrl+S preview" +
+              ? (form.kind === "appearance"
+                  ? "Local preferences · Preview now · Ctrl+S save · Esc cancel"
+                  : "Tab next field · Ctrl+E editor · Ctrl+S preview") +
                 (draftSaved ? " · Draft saved locally" : "")
               : preview
                 ? "Scroll to review · ← → choose · Enter confirms"
@@ -2493,7 +2649,7 @@ function App({ initialConfig, flags, root }) {
         ? h(
             Box,
             {
-              borderStyle: "round",
+              borderStyle: colors.frame,
               borderColor: focus === "nav" ? colors.blue : colors.line,
               backgroundColor: colors.panel,
               flexDirection: "column",
@@ -2546,97 +2702,103 @@ function App({ initialConfig, flags, root }) {
     );
   }
   const hint =
-    actionIndex !== null
-      ? "Actions are scoped to the selected item · Esc closes"
-      : reviewing && !form && !preview && !reading
-        ? "W code / discussion · Space select · C comment · X actions · F filter"
-        : picker
-          ? "Project files stay local until publication is confirmed"
-          : reading
-            ? "↑↓ scroll · R reply · E edit · D delete · Esc close"
-            : preview
-              ? "← → choose · Enter confirm · Esc edit"
-              : form
-                ? "Tab field · Ctrl+E editor · Ctrl+O files · Ctrl+G diff · Ctrl+S preview"
-                : phase !== "ready"
-                  ? "Enter connect / open browser · Ctrl+C exit"
-                  : route.view === "feedback"
-                    ? "↑↓ select · R reply · E edit · D delete · S resolve · ! report"
-                    : route.view === "post"
-                      ? "←→ tabs · ↑↓ select · R reply · E edit · D delete · Space read"
-                      : "↑↓ select · Enter open · Tab sections · [ ] pages · N new · / search";
+    form?.kind === "appearance"
+      ? "← → choose · Tab next · Ctrl+S save · Esc cancel · 0 default preview"
+      : actionIndex !== null
+        ? "Actions are scoped to the selected item · Esc closes"
+        : reviewing && !form && !preview && !reading
+          ? "W code / discussion · Space select · C comment · X actions · F filter"
+          : picker
+            ? "Project files stay local until publication is confirmed"
+            : reading
+              ? "↑↓ scroll · R reply · E edit · D delete · Esc close"
+              : preview
+                ? "← → choose · Enter confirm · Esc edit"
+                : form
+                  ? "Tab field · Ctrl+E editor · Ctrl+O files · Ctrl+G diff · Ctrl+S preview"
+                  : phase !== "ready"
+                    ? "Enter connect / open browser · Ctrl+C exit"
+                    : route.view === "feedback"
+                      ? "↑↓ select · R reply · E edit · D delete · S resolve · ! report"
+                      : route.view === "post"
+                        ? "←→ tabs · ↑↓ select · R reply · E edit · D delete · Space read"
+                        : "↑↓ select · Enter open · Tab sections · [ ] pages · N new · / search";
   return h(
-    Box,
-    {
-      flexDirection: "column",
-      width,
-      height,
-      overflow: "hidden",
-      backgroundColor: colors.bg,
-    },
+    ThemeContext.Provider,
+    { value: colors },
     h(
       Box,
       {
-        height: 3,
-        borderStyle: "round",
-        borderColor: colors.line,
-        paddingX: 1,
-        justifyContent: "space-between",
+        flexDirection: "column",
+        width,
+        height,
         overflow: "hidden",
+        backgroundColor: colors.bg,
       },
       h(
-        Text,
-        { color: colors.purple, bold: true },
-        clip("◈ DEVDEVIAN  ·  " + basename(root), Math.max(10, width - 36)),
-      ),
-      h(
-        Text,
-        { color: colors.blue },
-        clip(
-          user
-            ? "@" +
-                user.username +
-                " · " +
-                unread +
-                " unread · " +
-                (live ? "● Live" : "○ Paused")
-            : "CLI · ALPHA",
-          32,
+        Box,
+        {
+          height: 3,
+          borderStyle: colors.frame,
+          borderColor: colors.line,
+          paddingX: 1,
+          justifyContent: "space-between",
+          overflow: "hidden",
+        },
+        h(
+          Text,
+          { color: colors.purple, bold: true },
+          clip("◈ DEVDEVIAN  ·  " + basename(root), Math.max(10, width - 36)),
+        ),
+        h(
+          Text,
+          { color: colors.blue },
+          clip(
+            user
+              ? "@" +
+                  user.username +
+                  " · " +
+                  unread +
+                  " unread · " +
+                  (live ? "● Live" : "○ Paused")
+              : "CLI · ALPHA",
+            32,
+          ),
         ),
       ),
-    ),
-    center,
-    h(TextLine, {
-      text: clip((pending || loading ? spin + " " : "") + status, width),
-      width,
-      color: error ? colors.red : notice ? colors.green : colors.muted,
-    }),
-    h(
-      Box,
-      {
-        height: 3,
-        borderStyle: "round",
-        borderColor: focus === "prompt" ? colors.blue : colors.line,
-        paddingX: 1,
-        overflow: "hidden",
-      },
-      h(Text, { color: colors.purple, bold: true }, "› "),
-      focus === "prompt"
-        ? h(InputText, {
-            value: command,
-            cursor: commandCursor,
-            width: Math.max(1, width - 6),
-          })
-        : h(
-            Text,
-            { color: colors.muted },
-            clip(
-              "Search or /command     ·     Press / to type · X actions",
-              width - 6,
+      center,
+      h(TextLine, {
+        text: clip((pending || loading ? spin + " " : "") + status, width),
+        width,
+        color: error ? colors.red : notice ? colors.green : colors.muted,
+      }),
+      h(
+        Box,
+        {
+          height: 3,
+          borderStyle: colors.frame,
+          borderColor: focus === "prompt" ? colors.blue : colors.line,
+          paddingX: 1,
+          overflow: "hidden",
+        },
+        h(Text, { color: colors.purple, bold: true }, "› "),
+        focus === "prompt"
+          ? h(InputText, {
+              value: command,
+              cursor: commandCursor,
+              width: Math.max(1, width - 6),
+            })
+          : h(
+              Text,
+              { color: colors.muted },
+              clip(
+                "Search or /command     ·     Press / to type · X actions · , appearance",
+                width - 6,
+              ),
             ),
-          ),
+      ),
+      h(TextLine, { text: hint, width, color: colors.muted }),
     ),
-    h(TextLine, { text: hint, width, color: colors.muted }),
   );
 }
 export async function startTui(flags = {}) {
@@ -2648,13 +2810,24 @@ export async function startTui(flags = {}) {
   if (flags.host && config && originOf(flags.host) !== config.origin)
     config = null;
   const root = await workspaceRoot(flags.project || process.cwd());
-  const app = render(h(App, { initialConfig: config, flags, root }), {
-    alternateScreen: true,
-    exitOnCtrlC: false,
-    patchConsole: true,
-    maxFps: 20,
-    incrementalRendering: false,
-  });
+  const loaded = await loadAppearance();
+  const initialAppearance = {
+    ...loaded,
+    settings: normalizeAppearance({
+      ...loaded.settings,
+      ...appearanceFlags(flags),
+    }),
+  };
+  const app = render(
+    h(App, { initialConfig: config, flags, root, initialAppearance }),
+    {
+      alternateScreen: true,
+      exitOnCtrlC: false,
+      patchConsole: true,
+      maxFps: 20,
+      incrementalRendering: false,
+    },
+  );
   try {
     await app.waitUntilExit();
   } finally {

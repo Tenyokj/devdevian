@@ -1,9 +1,9 @@
 import { clean } from "./client.mjs";
 import { wrap } from "./tui-model.mjs";
-import { colors as c } from "./theme.mjs";
+import { colors } from "./theme.mjs";
 
 // Small, predictable terminal renderer. HTML and terminal hyperlinks are never executed.
-export function syntaxSpans(text) {
+export function syntaxSpans(text, c = colors) {
   const pattern =
     /("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`[^`]*`|\/\/.*$|#.*$|\b(?:async|await|function|return|const|let|var|if|else|throw|new|class|import|from|export|def|None|True|False|true|false|null|try|catch|for|while)\b|\b\d+(?:\.\d+)?\b)/g;
   const parts = [];
@@ -27,7 +27,7 @@ export function syntaxSpans(text) {
   if (start < text.length) parts.push({ text: text.slice(start) });
   return parts;
 }
-export function markdownRows(value, width) {
+export function markdownRows(value, width, c = colors) {
   let fence = null,
     number = 0;
   const rows = [];
@@ -59,7 +59,7 @@ export function markdownRows(value, width) {
       const prefix = String(++number).padStart(4) + "  ";
       for (const [i, line] of wrap(raw, Math.max(1, width - 6)).entries()) {
         const text = (i ? "      " : prefix) + line;
-        rows.push({ text, spans: syntaxSpans(text) });
+        rows.push({ text, spans: syntaxSpans(text, c) });
       }
       continue;
     }

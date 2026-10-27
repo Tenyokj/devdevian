@@ -129,6 +129,7 @@ export function parseCommand(text) {
       "help",
       "devices",
       "drafts",
+      "appearance",
     ].includes(cmd)
   )
     return { command: cmd, arg };
@@ -140,7 +141,7 @@ export function parseCommand(text) {
     return { command: cmd, arg: Number(arg) };
   if (["quit", "logout"].includes(cmd)) return { command: cmd };
   throw Error(
-    "Use /feed, /inbox, /search words, /open ID, /ask, /review, /communities, /devices, /drafts, /help or /quit.",
+    "Use /feed, /inbox, /search words, /open ID, /ask, /review, /communities, /devices, /drafts, /appearance, /help or /quit.",
   );
 }
 export class PageCache {

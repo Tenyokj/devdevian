@@ -16,6 +16,13 @@ import {
   clean,
 } from "../lib/client.mjs";
 import { editExternal } from "../lib/external-editor.mjs";
+import {
+  appearanceFields,
+  appearanceFlags,
+  defaultAppearance,
+  loadAppearance,
+  saveAppearance,
+} from "../lib/appearance.mjs";
 const version = packageInfo.version;
 const options = {
   host: { type: "string" },
@@ -40,6 +47,13 @@ const options = {
   editor: { type: "boolean" },
   "no-open": { type: "boolean" },
   "no-live": { type: "boolean" },
+  ...Object.fromEntries(
+    appearanceFields.map((field) => [
+      field.key === "reviewLayout" ? "review-layout" : field.key,
+      { type: "string" },
+    ]),
+  ),
+  reset: { type: "boolean" },
   help: { type: "boolean", short: "h" },
   version: { type: "boolean", short: "v" },
 };
@@ -80,6 +94,9 @@ const help = `Devdevian CLI ${version} · alpha
   devdevian open                  Open the workspace in a new terminal window
   devdevian login                 Authorize in your browser
   devdevian logout                Revoke this terminal
+  devdevian appearance             Show local theme and layout preferences
+  devdevian appearance --theme daylight --accent violet
+  devdevian appearance --reset     Restore the default appearance
   devdevian whoami
   devdevian inbox [--page 2]
   devdevian feed [--topic web] [--page 2]
@@ -96,6 +113,13 @@ const help = `Devdevian CLI ${version} · alpha
   devdevian review reopen POST_ID REVIEW_ID
   devdevian communities [--page 2]
 
+  --theme NAME       midnight | nebula | daylight | contrast
+  --accent NAME      blue | violet | cyan | rose
+  --density NAME     comfortable | compact
+  --sidebar MODE     auto | hidden (Tab opens navigation)
+  --review-layout MODE  auto | stacked
+  --frame STYLE      round | single
+  --motion MODE      subtle | reduced
   --no-live          Disable background reads in the live workspace
   --project PATH     Root directory for the live file/diff picker (default: current directory)
   --community ID     Publish to an approved private community
@@ -240,6 +264,20 @@ async function execute(args, flags) {
     return;
   }
   const command = args[0];
+  if (command === "appearance") {
+    const loaded = await loadAppearance(),
+      updates = appearanceFlags(flags);
+    if (flags.reset && Object.keys(updates).length)
+      throw Error("Use --reset on its own, or choose appearance options.");
+    if (loaded.warning) process.stderr.write(loaded.warning + "\n");
+    const settings = flags.reset
+      ? await saveAppearance(defaultAppearance)
+      : Object.keys(updates).length
+        ? await saveAppearance({ ...loaded.settings, ...updates })
+        : loaded.settings;
+    out(JSON.stringify(settings, null, 2));
+    return;
+  }
   if (command === "login") return login(flags);
   const config = await loadConfig();
   if (!config) throw Error("Sign in first: devdevian login");
@@ -456,7 +494,14 @@ try {
     await (await import("../lib/tui.mjs")).startTui(values);
   else if (positionals[0] === "open") {
     const args = [];
-    for (const key of ["host", "name", "project"])
+    for (const key of [
+      "host",
+      "name",
+      "project",
+      ...appearanceFields.map((field) =>
+        field.key === "reviewLayout" ? "review-layout" : field.key,
+      ),
+    ])
       if (values[key]) args.push("--" + key, values[key]);
     if (values["no-open"]) args.push("--no-open");
     if (values["no-live"]) args.push("--no-live");

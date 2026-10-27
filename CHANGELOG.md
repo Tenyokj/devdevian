@@ -1,5 +1,12 @@
 # Changelog
 
+## CLI 0.5.0-alpha.1 — Themes and interface customization
+
+- Added a live Appearance workspace, four themes, four accents and explicit local save/cancel/reset controls.
+- Configurable list density, navigation, review panels, frame style and reduced loading motion; one palette covers the workspace, text/code rendering and file picker.
+- Validated atomic preferences, offline appearance commands and session-only launch overrides. Credentials, local drafts and the production schema remain unchanged.
+- Fixed batched option navigation and small-terminal active-field visibility. See [CLI version history](packages/cli/VERSIONS.md) for controls and compatibility.
+
 ## CLI 0.4.1-alpha.1 — Everyday writing and navigation
 
 - External-editor handoff for multiline fields, with private local drafts and terminal restoration.

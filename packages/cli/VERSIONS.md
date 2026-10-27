@@ -4,10 +4,24 @@ The CLI is a separately versioned Devdevian client. Its npm version does not hav
 
 Every published npm artifact has a unique immutable version. We record each version here, even when several ship in one working session. A GitHub release can summarize a day's work and link to the individual entries; it does not need to be created for every npm publication. An unfinished change stays under **Unreleased** until its package version is assigned. Alpha packages use the `alpha` npm tag.
 
-## Roadmap
+## Current milestone
 
-- **0.5.0 — Themes and interface customization:** visual presets, appearance preferences and layout customization. Planned, not shipped; exact settings will be agreed before implementation.
-- Projects and Events parity is deferred; it is not the 0.5.0 milestone.
+**0.5.0 focuses on themes, interface customization and local appearance preferences.** Projects and Events parity remains a separate future milestone.
+
+## 0.5.0-alpha.1 — Make the terminal yours
+
+**Changes**
+
+- Appearance workspace with immediate whole-interface previews, a sample panel on wide terminals and explicit save/cancel/default controls. Open it with `/appearance`, navigation or **,**.
+- Midnight, Nebula, Daylight and Contrast themes, with blue/violet/cyan/rose accents shared by navigation, Markdown, code review, forms and the local file/Git picker.
+- Comfortable/compact list density, automatic/hidden navigation, automatic/stacked review panels, rounded/straight frames and reduced loading motion. Compact layouts remain keyboard-accessible.
+- Atomic, validated local preference storage, independent of account credentials and production data. Invalid configuration falls back visibly without overwriting the file.
+- Offline `devdevian appearance` commands and temporary `tui`/`open` appearance flags. Theme text and selection contrast are checked across all preset/accent combinations.
+- Rapid option-arrow changes no longer overwrite each other when input events are batched. Small terminal forms retain the active option in the viewport.
+
+**Compatibility and checks**
+
+No API/schema changes. Existing credentials and local drafts remain compatible; missing preferences use Midnight defaults. Regression checks cover save/restart, preview cancellation, reset, corrupt files, credential isolation, palette contrast, compact lists, hidden navigation, stacked reviews and 60×18 resizing in a real pseudo-terminal. Preferences apply to the local CLI installation, across its accounts and projects.
 
 ## 0.4.1-alpha.1 — Everyday writing and navigation
 

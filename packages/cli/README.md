@@ -31,6 +31,29 @@ Pages have a bounded 30-second in-memory cache. Refresh explicitly with Shift+R.
 
 Ordinary reply deletion replaces your text with a placeholder and preserves nested replies. Its attachments become unavailable. Deleting an accepted answer reopens the question. D/d works on a selected reply or while reading it in full; confirmation is required.
 
+## Themes and layout
+
+Open **Appearance** in navigation, type `/appearance`, or press **,** from a reading/list screen. Use arrows to choose options and Tab to move between them. The entire interface previews each change, including code colors, the file picker and navigation. Wide terminals include a sample card next to the controls.
+
+- **Midnight** preserves the original blue/purple design; **Nebula** uses a deeper violet surface; **Daylight** is light; **Contrast** emphasizes readable foregrounds.
+- Choose a **blue, violet, cyan or rose accent**, comfortable/compact lists, automatic/hidden sidebar, automatic/stacked review panels, rounded/straight frames and subtle/reduced loading indicators.
+- **Ctrl+S** saves locally. **Esc** cancels the preview. **0** restores the default preview; save to keep it, or cancel to retain existing settings.
+- Hidden navigation stays available with **Tab**. Stacked review panes switch with **W**. Narrow terminals automatically avoid a permanent sidebar and split review layout.
+
+Appearance settings belong to this local CLI installation and apply across its accounts/projects; credentials and server profiles are separate. Settings live in `appearance.json` alongside the credentials file, or under `DEVDEVIAN_CONFIG_DIR`. Saving replaces the settings file atomically with private file permissions. Invalid settings fall back to defaults with a warning and remain untouched until you save a new configuration.
+
+Appearance can also be configured **offline, without logging in**:
+
+```sh
+devdevian appearance                            # print settings as JSON
+devdevian appearance --theme daylight --accent violet
+devdevian appearance --density compact --sidebar hidden
+devdevian appearance --review-layout stacked --motion reduced
+devdevian appearance --reset                    # save defaults
+```
+
+These options can be passed to `tui` or `open` for a **session-only override**, for example `devdevian tui --theme contrast`. Overrides become persistent only if you save in Appearance. Preference changes do not write to the Devdevian API or modify credentials. Current presets use fixed, tested color combinations; the settings file is validated rather than interpreted as terminal code.
+
 ## Code and discussion, together
 
 Press **V** in a review to open the code workspace. Wide terminals show the snippet alongside its discussion; narrow terminals show one pane at a time. **W** switches focus. In the code pane, arrows move between lines (left/right scroll horizontally), **Space** anchors a range and **C** opens a prefilled comment form. Remarks may cover at most 50 lines. **Enter** selects a remark covering the current line, if it is on the current page. Markers describe the current page only; **F** cycles all/open/resolved remarks and **[ / ]** page through them.

@@ -9,9 +9,8 @@ import {
   readDiff,
   selectLines,
 } from "./workspace.mjs";
-import { colors } from "./theme.mjs";
-const h = React.createElement,
-  c = { ...colors, bg: colors.panel };
+import { useTheme } from "./theme.mjs";
+const h = React.createElement;
 export function WorkspacePicker({
   root,
   width,
@@ -20,6 +19,8 @@ export function WorkspacePicker({
   onSelect,
   onCancel,
 }) {
+  const colors = useTheme(),
+    c = { ...colors, bg: colors.panel };
   const [mode, setMode] = useState(initial),
     [folder, setFolder] = useState("."),
     [hidden, setHidden] = useState(false),
@@ -265,7 +266,7 @@ export function WorkspacePicker({
       height: panelHeight,
       key: "browser",
       flexDirection: "column",
-      borderStyle: "round",
+      borderStyle: colors.frame,
       borderColor: c.purple,
       paddingX: 1,
       overflow: "hidden",
@@ -330,7 +331,7 @@ export function WorkspacePicker({
           height: panelHeight,
           key: "preview",
           flexDirection: "column",
-          borderStyle: "round",
+          borderStyle: colors.frame,
           borderColor: c.blue,
           paddingX: 1,
           overflow: "hidden",
