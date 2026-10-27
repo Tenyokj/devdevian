@@ -3,7 +3,7 @@ import os,sys,pty,fcntl,termios,struct,subprocess,select,json,signal
 master,slave=pty.openpty()
 def resize(cols,rows):
     fcntl.ioctl(master,termios.TIOCSWINSZ,struct.pack('HHHH',rows,cols,0,0))
-resize(100,32)
+resize(int(os.environ.get("DEVDEVIAN_TEST_COLUMNS","100")),int(os.environ.get("DEVDEVIAN_TEST_ROWS","32")))
 # Exercise the interactive user session even when this test runner runs in CI.
 # Ink deliberately suppresses terminal rendering in CI by default.
 terminal_env={**os.environ,"CI":"false","CONTINUOUS_INTEGRATION":"false"}

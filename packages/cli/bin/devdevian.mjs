@@ -34,6 +34,7 @@ const options = {
   revision: { type: "string" },
   "reply-id": { type: "string" },
   name: { type: "string" },
+  project: { type: "string" },
   yes: { type: "boolean" },
   json: { type: "boolean" },
   editor: { type: "boolean" },
@@ -94,6 +95,7 @@ const help = `Devdevian CLI ${version} · alpha
   devdevian review reopen POST_ID REVIEW_ID
   devdevian communities [--page 2]
 
+  --project PATH     Root directory for the live file/diff picker (default: current directory)
   --community ID     Publish to an approved private community
   --editor           Write text in $VISUAL / $EDITOR
   --json             Machine-readable output
@@ -472,7 +474,7 @@ try {
     await (await import("../lib/tui.mjs")).startTui(values);
   else if (positionals[0] === "open") {
     const args = [];
-    for (const key of ["host", "name"])
+    for (const key of ["host", "name", "project"])
       if (values[key]) args.push("--" + key, values[key]);
     if (values["no-open"]) args.push("--no-open");
     await (

@@ -1,5 +1,12 @@
 # Changelog
 
+## CLI 0.3.0-alpha.1 — Project workspace reviews
+
+- Project-root file explorer in review forms (`Ctrl+O`), with folder navigation, name filtering, hidden-file toggle, responsive code previews and line-range selection. `--project` selects the workspace for `tui` and `open`.
+- Read-only Git selection (`Ctrl+G`): staged/unstaged changes, full-file patches or individual hunks, explicit publication previews and changed-selection detection. Git helpers do not run project diff/textconv/fsmonitor commands.
+- Local autosaved drafts, isolated by server/account/project, with restore/delete controls, private file permissions, bounded retention and removal after successful publication. Source content is reread rather than copied into drafts.
+- Tests cover terminal file/hunk selection, restart/restore/publication, narrow layouts, Git staging separation, ignored/secret paths, symlinks and local draft isolation. No browser API/schema changes.
+
 ## CLI 0.2.0-alpha.1 — Live terminal workspace
 
 - Replaced the scrolling numbered menu with a responsive blue/purple workspace, arrow navigation, command/search bar, conversation tabs and paginated lists.

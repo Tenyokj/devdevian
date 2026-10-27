@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { render, Box, Text, useApp, useInput, useWindowSize } from "ink";
-import { readFile, stat } from "node:fs/promises";
+import { randomBytes } from "node:crypto";
 import { homedir, hostname } from "node:os";
-import { resolve } from "node:path";
+import { workspaceRoot, reviewSource } from "./workspace.mjs";
+import { WorkspacePicker } from "./picker.mjs";
+import { DraftStore, draftIdentity } from "./drafts.mjs";
 import { spawn } from "node:child_process";
 import { setTimeout as delay } from "node:timers/promises";
 import {
@@ -98,17 +100,21 @@ function fieldsFor(form) {
         ? [
             {
               key: "file",
-              label: "Code file",
+              label: form.source?.kind === "diff" ? "Git diff" : "Code file",
               min: 1,
               max: 1500,
-              hint: "Explicit file path; no automatic project collection.",
+              hint: "Ctrl+O file explorer · Ctrl+G Git diff · Enter browses an empty field.",
             },
-            {
-              key: "lines",
-              label: "File lines (optional)",
-              max: 30,
-              hint: "START:END; published snippet line numbers start at 1.",
-            },
+            ...(form.source?.kind === "diff"
+              ? []
+              : [
+                  {
+                    key: "lines",
+                    label: "File lines (optional)",
+                    max: 30,
+                    hint: "START:END; published snippet line numbers start at 1.",
+                  },
+                ]),
             {
               key: "review_focus",
               label: "Review focus",
@@ -283,7 +289,15 @@ function listRows(route, data, index, width) {
     let title = item.title || item.name || "",
       meta = "",
       body = "";
-    if (route.view === "inbox") {
+    if (route.view === "drafts") {
+      title = item.form.values.title || item.form.title;
+      meta = "Local draft · " + stamp(item.savedAt);
+      body =
+        item.form.values.body ||
+        item.form.values.description ||
+        item.form.values.file ||
+        "";
+    } else if (route.view === "inbox") {
       title =
         item.actor_name +
         " · " +
@@ -350,7 +364,7 @@ function listRows(route, data, index, width) {
     ];
   });
 }
-function App({ initialConfig, flags }) {
+function App({ initialConfig, flags, root }) {
   const { exit } = useApp(),
     { columns, rows } = useWindowSize();
   const [config, setConfig] = useState(initialConfig),
@@ -380,12 +394,24 @@ function App({ initialConfig, flags }) {
     [yes, setYes] = useState(false),
     [pending, setPending] = useState(false),
     [tick, setTick] = useState(0),
-    [reading, setReading] = useState(null);
+    [reading, setReading] = useState(null),
+    [picker, setPicker] = useState(null),
+    [draftSaved, setDraftSaved] = useState(false);
   const cache = useRef(new PageCache()),
     history = useRef([]),
     busy = useRef(false),
     alive = useRef(true),
-    authController = useRef(null);
+    authController = useRef(null),
+    draftQueue = useRef(Promise.resolve()),
+    draftTimer = useRef(null),
+    draftGeneration = useRef(0);
+  const drafts = useMemo(
+    () =>
+      config && user
+        ? new DraftStore({ origin: config.origin, userId: user.id, root })
+        : null,
+    [config?.origin, user?.id, root],
+  );
   const api = useMemo(
     () => (config ? client(config.origin, config.token) : null),
     [config?.origin, config?.token],
@@ -405,6 +431,7 @@ function App({ initialConfig, flags }) {
     history.current = [];
     setData(null);
     setForm(null);
+    setPicker(null);
     setPreview(null);
     setDevice(null);
     setUser(null);
@@ -462,6 +489,79 @@ function App({ initialConfig, flags }) {
     setRefresh((n) => n + 1);
     if (message) setNotice(message);
   }
+  function queueDraft(work) {
+    const result = draftQueue.current.catch(() => {}).then(work);
+    draftQueue.current = result;
+    return result;
+  }
+  async function forgetDraft(value) {
+    clearTimeout(draftTimer.current);
+    cache.current.clear();
+    if (drafts && value)
+      await queueDraft(() => drafts.remove(draftIdentity(value)));
+  }
+  async function restoreDraft(item) {
+    await task(async () => {
+      const saved = await drafts.read(item.id),
+        next = { ...saved.form, draftId: item.id };
+      if (next.kind === "publication") {
+        const [topics, communities] = await Promise.all([
+          api("/topics"),
+          api("/communities?joined=1&limit=50"),
+        ]);
+        next.topics = itemsOf(topics).map((t) => [t.id, t.name]);
+        next.audiences = [
+          ["", "Public feed · everyone"],
+          ...itemsOf(communities).map((c) => [c.id, "Private · " + c.name]),
+        ];
+        if (
+          next.values.community_id &&
+          !next.audiences.some(
+            (c) => String(c[0]) === String(next.values.community_id),
+          )
+        ) {
+          let space;
+          try {
+            space = await api(
+              "/communities/" + encodeURIComponent(next.values.community_id),
+            );
+          } catch (e) {
+            if (![403, 404].includes(e.status)) throw e;
+          }
+          if (space?.is_member)
+            next.audiences.push([space.id, "Private · " + space.name]);
+          else {
+            next.unavailableAudience = next.values.community_id;
+            next.audiences.push([
+              next.values.community_id,
+              "Unavailable private audience · choose another",
+            ]);
+          }
+        }
+      }
+      openForm(next);
+      setNotice(
+        "Restored local draft. Check the code selection before publishing.",
+      );
+    });
+  }
+  useEffect(() => {
+    const generation = ++draftGeneration.current;
+    if (!drafts || !form) return;
+    setDraftSaved(false);
+    draftTimer.current = setTimeout(() => {
+      queueDraft(() => drafts.save(form))
+        .then((id) => {
+          if (id && alive.current && generation === draftGeneration.current)
+            setDraftSaved(true);
+        })
+        .catch((e) => {
+          if (alive.current)
+            setError("Could not save local draft: " + clean(e.message));
+        });
+    }, 450);
+    return () => clearTimeout(draftTimer.current);
+  }, [drafts, form]);
   function askConfirm(title, description, action) {
     setYes(false);
     setDialog({ title, description, action });
@@ -505,7 +605,15 @@ function App({ initialConfig, flags }) {
     setLoading(!cached);
     setError("");
     if (!cached)
-      loadPage(api, route, controller.signal)
+      (route.view === "drafts"
+        ? drafts.list().then((items) => ({
+            items,
+            title: "Local drafts",
+            subtitle:
+              "Private to this account and project · Enter restore · D delete",
+          }))
+        : loadPage(api, route, controller.signal)
+      )
         .then((result) => {
           if (!active) return;
           cache.current.set(key, result);
@@ -605,7 +713,11 @@ function App({ initialConfig, flags }) {
     }
   }
   function openForm(next) {
-    setForm(next);
+    setForm({
+      ...next,
+      draftId: next.draftId || randomBytes(32).toString("hex"),
+    });
+    setDraftSaved(false);
     setField(0);
     setCursor(graphemes(next.values[fieldsFor(next)[0].key] || "").length);
     setPreview(null);
@@ -704,6 +816,13 @@ function App({ initialConfig, flags }) {
   async function prepare() {
     if (!form) return;
     await task(async () => {
+      if (
+        form.unavailableAudience &&
+        String(form.values.community_id) === String(form.unavailableAudience)
+      )
+        throw Error(
+          "Choose an available audience explicitly before publishing this draft.",
+        );
       const fields = fieldsFor(form);
       for (let i = 0; i < fields.length; i++) {
         const f = fields[i],
@@ -736,36 +855,31 @@ function App({ initialConfig, flags }) {
         };
         url = "/posts";
         if (payload.kind === "review") {
-          const filename = resolve(
-              form.values.file.replace(/^~(?=\/)/, homedir()),
-            ),
-            info = await stat(filename);
-          if (!info.isFile() || info.size > 80000)
-            throw Error(
-              "Choose a UTF-8 code file of at most 20,000 characters.",
-            );
-          let code = await readFile(filename, "utf8");
-          if (
-            code.length > 20000 ||
-            code.includes("\u0000") ||
-            code.includes("\ufffd")
-          )
-            throw Error(
-              "Choose a UTF-8 code file of at most 20,000 characters.",
-            );
-          if (form.values.lines) {
-            const match = form.values.lines.match(/^([1-9]\d*):([1-9]\d*)$/);
-            if (!match) throw Error("Use START:END for file lines.");
-            const first = Number(match[1]),
-              last = Number(match[2]),
-              lines = code.split("\n");
-            if (last < first || last > lines.length)
-              throw Error("The range is outside the selected file.");
-            code = lines.slice(first - 1, last).join("\n");
+          let source = form.source;
+          if (source?.kind !== "diff") {
+            source = {
+              kind: "file",
+              path: form.values.file.replace(/^~(?=\/)/, homedir()),
+            };
+            if (form.values.lines) {
+              const match = form.values.lines.match(/^([1-9]\d*):([1-9]\d*)$/);
+              if (!match) throw Error("Use START:END for file lines.");
+              source.start = Number(match[1]);
+              source.end = Number(match[2]);
+            }
           }
-          if (code.trim().length < 10)
-            throw Error("The selected snippet needs at least 10 characters.");
-          payload.code = code;
+          const chosen = await reviewSource(root, source);
+          payload.code = chosen.code;
+          if (chosen.kind === "diff") {
+            payload.body +=
+              "\n\nReview source: " +
+              clean(chosen.label).replace(/\n/g, " ") +
+              "\nReview line numbers refer to the published patch, including its headers.";
+            if (payload.body.length > 15000)
+              throw Error(
+                "Shorten the context to leave room for the Git diff source label.",
+              );
+          }
           payload.review_focus = form.values.review_focus;
         }
         if (payload.kind === "showcase")
@@ -823,10 +937,16 @@ function App({ initialConfig, flags }) {
         body: preview.payload,
       });
       cache.current.clear();
+      let localWarning = "";
+      try {
+        await forgetDraft(form);
+      } catch {
+        localWarning =
+          " Published successfully; the local draft could not be removed. Do not publish it again.";
+      }
       setPreview(null);
       setForm(null);
       setScroll(0);
-      setNotice("Saved. Your web account sees the same update.");
       if (preview.url === "/posts")
         navigate({ view: "post", id: response.id, tab: "overview", page: 1 });
       else if (preview.url === "/communities")
@@ -841,12 +961,17 @@ function App({ initialConfig, flags }) {
             page: 1,
           });
       }
+      setNotice("Saved. Your web account sees the same update." + localWarning);
     });
   }
   async function openSelected() {
     if (route.view === "community" && !current?.community?.is_member) return;
     const item = selected;
     if (!item) return;
+    if (route.view === "drafts") {
+      await restoreDraft(item);
+      return;
+    }
     if (route.view === "devices") {
       askConfirm("Revoke this terminal?", item.name, () =>
         task(async () => {
@@ -978,6 +1103,18 @@ function App({ initialConfig, flags }) {
     });
   }
   function deleteSelected() {
+    if (route.view === "drafts" && selected) {
+      askConfirm(
+        "Delete saved draft?",
+        "Only this local draft will be removed.",
+        () =>
+          task(async () => {
+            await queueDraft(() => drafts.remove(selected.id));
+            invalidate("Draft deleted.");
+          }),
+      );
+      return;
+    }
     const target = editable();
     if (
       !target?.feedback ||
@@ -1074,8 +1211,13 @@ function App({ initialConfig, flags }) {
     if (form) {
       askConfirm(
         "Leave this draft?",
-        "The unsent draft lives only in this terminal session.",
-        () => exit(),
+        "Save this draft locally and exit? Resume it from Local drafts in this project.",
+        () =>
+          task(async () => {
+            clearTimeout(draftTimer.current);
+            if (drafts) await queueDraft(() => drafts.save(form));
+            exit();
+          }),
       );
     } else exit();
   }
@@ -1090,6 +1232,7 @@ function App({ initialConfig, flags }) {
     );
   }
   useInput((input, keyEvent) => {
+    if (picker) return;
     if (keyEvent.ctrl && input === "c") {
       if (dialog) {
         exit();
@@ -1183,15 +1326,26 @@ function App({ initialConfig, flags }) {
       return;
     }
     if (form) {
+      if (
+        keyEvent.ctrl &&
+        ["o", "g"].includes(input) &&
+        form.kind === "publication" &&
+        form.values.kind === "review"
+      ) {
+        setPicker(input === "g" ? "changes" : "files");
+        return;
+      }
       if (keyEvent.escape) {
         askConfirm(
           "Discard this draft?",
           "Nothing has been published. Stay to keep editing.",
-          () => {
-            setForm(null);
-            setFocus("content");
-            setError("");
-          },
+          () =>
+            task(async () => {
+              await forgetDraft(form);
+              setForm(null);
+              setFocus("content");
+              setError("");
+            }),
         );
         return;
       }
@@ -1236,6 +1390,10 @@ function App({ initialConfig, flags }) {
         return;
       }
       if (keyEvent.return && !active.multiline) {
+        if (active.key === "file" && !form.values.file) {
+          setPicker("files");
+          return;
+        }
         changeField(field + 1);
         return;
       }
@@ -1248,6 +1406,7 @@ function App({ initialConfig, flags }) {
       );
       setForm((old) => ({
         ...old,
+        ...(active.key === "file" ? { source: null } : {}),
         values: { ...old.values, [active.key]: updated.value },
       }));
       setCursor(updated.cursor);
@@ -1466,6 +1625,34 @@ function App({ initialConfig, flags }) {
       h(Text, null, "Enlarge this terminal to at least 60 × 18."),
       h(Text, null, "Q or Ctrl+C exits."),
     );
+  else if (picker)
+    center = h(WorkspacePicker, {
+      root,
+      width,
+      height: bodyHeight,
+      initial: picker,
+      onCancel: () => setPicker(null),
+      onSelect: (source) => {
+        setForm((old) => ({
+          ...old,
+          source,
+          values: {
+            ...old.values,
+            file: source.path,
+            lines:
+              source.kind === "file" && source.start
+                ? source.start + ":" + source.end
+                : "",
+          },
+        }));
+        setPicker(null);
+        setNotice(
+          source.kind === "diff"
+            ? "Git changes selected. Preview before publishing."
+            : "File selected. Preview before publishing.",
+        );
+      },
+    });
   else if (phase !== "ready") {
     const lines = [
       "A place for curious developers.",
@@ -1743,7 +1930,8 @@ function App({ initialConfig, flags }) {
           )
         : h(TextLine, {
             text: form
-              ? "Tab next field · arrows choose · Ctrl+S preview"
+              ? "Tab next field · Ctrl+S preview" +
+                (draftSaved ? " · Draft saved locally" : "")
               : preview
                 ? "Scroll to review · ← → choose · Enter confirms"
                 : current?.subtitle || " ",
@@ -1810,19 +1998,21 @@ function App({ initialConfig, flags }) {
       compact && focus === "nav" ? null : pane,
     );
   }
-  const hint = reading
-    ? "↑↓ scroll · R reply · E edit · Esc close"
-    : preview
-      ? "← → choose · Enter confirm · Esc edit"
-      : form
-        ? "Tab field · Enter newline · Ctrl+S preview · Esc back"
-        : phase !== "ready"
-          ? "Enter connect / open browser · Ctrl+C exit"
-          : route.view === "feedback"
-            ? "↑↓ select · R reply · E edit · D delete · S resolve · ! report"
-            : route.view === "post"
-              ? "←→ tabs · ↑↓ scroll/select · R reply · C code remark · Space full text · Tab navigate"
-              : "↑↓ select · Enter open · Tab sections · [ ] pages · N new · / search";
+  const hint = picker
+    ? "Project files stay local until publication is confirmed"
+    : reading
+      ? "↑↓ scroll · R reply · E edit · Esc close"
+      : preview
+        ? "← → choose · Enter confirm · Esc edit"
+        : form
+          ? "Tab field · Ctrl+O files · Ctrl+G diff · Ctrl+S preview · Esc discard"
+          : phase !== "ready"
+            ? "Enter connect / open browser · Ctrl+C exit"
+            : route.view === "feedback"
+              ? "↑↓ select · R reply · E edit · D delete · S resolve · ! report"
+              : route.view === "post"
+                ? "←→ tabs · ↑↓ scroll/select · R reply · C code remark · Space full text · Tab navigate"
+                : "↑↓ select · Enter open · Tab sections · [ ] pages · N new · / search";
   return h(
     Box,
     {
@@ -1892,7 +2082,8 @@ export async function startTui(flags = {}) {
   let config = await loadConfig();
   if (flags.host && config && originOf(flags.host) !== config.origin)
     config = null;
-  const app = render(h(App, { initialConfig: config, flags }), {
+  const root = await workspaceRoot(flags.project || process.cwd());
+  const app = render(h(App, { initialConfig: config, flags, root }), {
     alternateScreen: true,
     exitOnCtrlC: false,
     patchConsole: true,
