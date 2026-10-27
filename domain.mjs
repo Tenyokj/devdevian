@@ -1,3 +1,4 @@
+import { details } from "./enhancements.mjs";
 import { notifyMentions } from "./mentions.mjs";
 import { notifyTopic } from "./subscriptions.mjs";
 import { InputError } from "./validation.mjs";
@@ -546,7 +547,15 @@ export function registerDomain(app, db, required, profile) {
       return res
         .status(400)
         .json({ error: "Choose an answer from this conversation." });
+    if (reply_id !== null && details(db, "reply", reply_id).deleted_at)
+      return res
+        .status(400)
+        .json({ error: "A deleted reply cannot be accepted as a solution." });
     transaction(db, () => {
+      if (reply_id !== null && details(db, "reply", reply_id).deleted_at)
+        throw new InputError(
+          "A deleted reply cannot be accepted as a solution.",
+        );
       db.prepare(
         "UPDATE posts SET status=?,accepted_reply_id=?,resolved_at=CASE WHEN ? IS NULL THEN NULL ELSE CURRENT_TIMESTAMP END WHERE id=?",
       ).run(reply_id === null ? "open" : "resolved", reply_id, reply_id, p.id);

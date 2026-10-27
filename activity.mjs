@@ -1,6 +1,7 @@
 import { notifyMentions } from "./mentions.mjs";
 import { notificationAllowed } from "./preferences.mjs";
-import { scopeSQL, pageRows } from "./spaces.mjs";
+import { details } from "./enhancements.mjs";
+import { scopeSQL, pageRows, canRead } from "./spaces.mjs";
 // In-app activity only. No email, push service, or external delivery.
 export function transaction(db, work) {
   db.exec("BEGIN");
@@ -266,7 +267,12 @@ export function registerActivity(app, db, required) {
     const reply = db
       .prepare("SELECT * FROM replies WHERE id=?")
       .get(req.params.id);
-    if (!reply) return res.status(404).json({ error: "Reply not found." });
+    const parentPost =
+      reply && db.prepare("SELECT * FROM posts WHERE id=?").get(reply.post_id);
+    if (!reply || !canRead(db, req.user, parentPost))
+      return res.status(404).json({ error: "Reply not found." });
+    if (details(db, "reply", reply.id).deleted_at)
+      return res.status(409).json({ error: "This reply has been deleted." });
     if (reply.user_id !== req.user.id)
       return res
         .status(403)
@@ -278,6 +284,7 @@ export function registerActivity(app, db, required) {
           "Write a reply between 2 and 10,000 characters with a valid revision.",
       });
     const changed = transaction(db, () => {
+      if (details(db, "reply", reply.id).deleted_at) return false;
       const result = db
         .prepare(
           "UPDATE replies SET body=?,updated_at=CURRENT_TIMESTAMP,revision=revision+1 WHERE id=? AND revision=?",
@@ -311,6 +318,50 @@ export function registerActivity(app, db, required) {
           "This reply changed in another tab. Close the editor and reload before trying again.",
       });
     res.json({ id: reply.id });
+  });
+  app.delete("/api/replies/:id", required, (req, res) => {
+    const reply = db
+      .prepare("SELECT * FROM replies WHERE id=?")
+      .get(req.params.id);
+    const post =
+      reply && db.prepare("SELECT * FROM posts WHERE id=?").get(reply.post_id);
+    if (!reply || !canRead(db, req.user, post))
+      return res.status(404).json({ error: "Reply not found." });
+    if (reply.user_id !== req.user.id)
+      return res
+        .status(403)
+        .json({ error: "Only the author can delete this reply." });
+    if (details(db, "reply", reply.id).deleted_at)
+      return res.json({ id: reply.id, deleted: true });
+    if (!revision(req.body.revision))
+      return res
+        .status(400)
+        .json({ error: "Provide the current reply revision." });
+    const changed = transaction(db, () => {
+      const result = db
+        .prepare(
+          "UPDATE replies SET body='[deleted by author]',updated_at=CURRENT_TIMESTAMP,revision=revision+1 WHERE id=? AND revision=?",
+        )
+        .run(reply.id, req.body.revision);
+      if (!result.changes) return false;
+      // Reuse the existing metadata store: old deployments remain schema-compatible.
+      const metadata = {
+        ...details(db, "reply", reply.id),
+        deleted_at: new Date().toISOString(),
+      };
+      db.prepare(
+        "INSERT INTO entity_details(kind,entity_id,data) VALUES(?,?,?) ON CONFLICT(kind,entity_id) DO UPDATE SET data=excluded.data",
+      ).run("reply", String(reply.id), JSON.stringify(metadata));
+      db.prepare(
+        "UPDATE posts SET accepted_reply_id=NULL,status='open',resolved_at=NULL,revision=revision+1 WHERE id=? AND accepted_reply_id=?",
+      ).run(post.id, reply.id);
+      return true;
+    });
+    if (!changed)
+      return res
+        .status(409)
+        .json({ error: "This reply changed. Refresh before deleting it." });
+    res.json({ id: reply.id, deleted: true });
   });
   app.post("/api/projects/:id/updates", required, (req, res) => {
     const project = db

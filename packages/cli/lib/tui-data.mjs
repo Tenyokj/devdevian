@@ -98,15 +98,29 @@ export async function loadPage(api, route, signal) {
     };
   }
   if (route.view === "thread") {
-    const post = await get("/posts/" + route.postId),
-      replies = await get(
-        `/posts/${route.postId}/replies?parent_id=${route.parent.id}&page=${page}`,
+    const post = await get(
+      "/posts/" + route.postId + "?reply_id=" + route.parent.id,
+    );
+    const target = post.reply_path?.at(-1);
+    let parent = post.replies?.find((r) => r.id === route.parent.id);
+    if (!parent && target) {
+      const siblings = await get(
+        `/posts/${route.postId}/replies?parent_id=${target.parent_id || ""}&page=${target.page}`,
       );
+      parent = siblings.items.find((r) => r.id === route.parent.id);
+    }
+    const replies = await get(
+      `/posts/${route.postId}/replies?parent_id=${route.parent.id}&page=${page}`,
+    );
     return {
       post,
       ...replies,
+      items: [
+        ...(parent ? [{ ...parent, entryType: "parent" }] : []),
+        ...replies.items,
+      ],
       title: "Reply thread",
-      subtitle: "Replying to " + route.parent.name,
+      subtitle: "Replying to " + (parent?.name || route.parent.name),
     };
   }
   if (route.view === "feedback") {

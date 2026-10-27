@@ -5,7 +5,7 @@ export function replyPage(db, req, postId, parent = null) {
   const result = pageRows(
     db,
     req,
-    `SELECT r.*,u.name,u.role,(SELECT COUNT(*) FROM replies children WHERE children.parent_id=r.id) children_count FROM replies r JOIN users u ON u.id=r.user_id WHERE r.post_id=? AND r.parent_id IS ? ORDER BY r.id`,
+    `SELECT r.*,u.name,u.role,json_extract(meta.data,'$.deleted_at') deleted_at,(SELECT COUNT(*) FROM replies children WHERE children.parent_id=r.id) children_count FROM replies r JOIN users u ON u.id=r.user_id LEFT JOIN entity_details meta ON meta.kind='reply' AND meta.entity_id=CAST(r.id AS TEXT) WHERE r.post_id=? AND r.parent_id IS ? ORDER BY r.id`,
     [postId, parent],
     10,
   );
@@ -13,8 +13,9 @@ export function replyPage(db, req, postId, parent = null) {
     ...result,
     items: result.items.map((r) => ({
       ...r,
+      body: r.deleted_at ? "[deleted by author]" : r.body,
       author_avatar: details(db, "user", r.user_id).avatar,
-      attachments: attachments(db, postId, r.id),
+      attachments: r.deleted_at ? [] : attachments(db, postId, r.id),
     })),
   };
 }

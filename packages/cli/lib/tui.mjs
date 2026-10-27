@@ -333,8 +333,14 @@ function listRows(route, data, index, width) {
         item.name +
         (item.entryType === "note"
           ? " · original remark"
-          : " · reply #" + item.id);
-      meta = stamp(item.created) + (item.edited_at ? " · edited" : "");
+          : item.entryType === "parent"
+            ? " · parent reply"
+            : " · reply #" + item.id);
+      meta =
+        stamp(item.created) +
+        ((item.edited_at || item.updated_at) && !item.deleted_at
+          ? " · edited"
+          : "");
       body = item.deleted_at ? "[deleted — discussion preserved]" : item.body;
     } else {
       meta = [
@@ -422,7 +428,7 @@ function App({ initialConfig, flags, root }) {
     sidebar = compact ? 0 : 25,
     bodyHeight = Math.max(1, height - 9),
     contentWidth = Math.max(1, width - sidebar - 6),
-    contentHeight = Math.max(1, bodyHeight - 5);
+    contentHeight = Math.max(1, bodyHeight - 6);
   const key = JSON.stringify(route),
     current = data?.key === key ? data : null;
   const selected = current?.items?.[index];
@@ -1035,6 +1041,11 @@ function App({ initialConfig, flags, root }) {
       navigate({ view: "feedback", postId: route.id, id: item.id, page: 1 });
       return;
     }
+    if (route.view === "thread" && item.entryType === "parent") {
+      setReading(item);
+      setScroll(0);
+      return;
+    }
     if (
       (route.view === "post" && route.tab === "replies") ||
       route.view === "thread"
@@ -1116,24 +1127,30 @@ function App({ initialConfig, flags, root }) {
       return;
     }
     const target = editable();
-    if (
-      !target?.feedback ||
-      target.row.user_id !== user.id ||
-      target.row.deleted_at
-    ) {
-      setError("Select your own line feedback or feedback reply to delete.");
+    if (!target || target.row.user_id !== user.id || target.row.deleted_at) {
+      setError(
+        "Select your own reply or code feedback in the Replies / Code feedback tab to delete.",
+      );
       return;
     }
     askConfirm(
-      "Delete your feedback?",
-      "Your text is removed. Other members’ replies are preserved.",
+      target.feedback ? "Delete your feedback?" : "Delete your reply?",
+      "Your text is removed. Other members’ replies are preserved." +
+        (!target.feedback && current.post?.accepted_reply_id === target.row.id
+          ? " Its accepted-solution mark is cleared."
+          : ""),
       () =>
         task(async () => {
           await api(target.url, {
             method: "DELETE",
             body: { revision: target.row.revision },
           });
-          invalidate("Feedback deleted; the discussion is preserved.");
+          setReading(null);
+          invalidate(
+            target.feedback
+              ? "Feedback deleted; the discussion is preserved."
+              : "Reply deleted; other members’ replies are preserved.",
+          );
         }),
     );
   }
@@ -1298,9 +1315,11 @@ function App({ initialConfig, flags, root }) {
       else if (input === "r") {
         setReading(null);
         reply();
-      } else if (input === "e") {
+      } else if (input === "e" || input === "E") {
         setReading(null);
         editSelected();
+      } else if (input === "d" || input === "D") {
+        deleteSelected();
       }
       return;
     }
@@ -1565,7 +1584,7 @@ function App({ initialConfig, flags, root }) {
       editSelected();
       return;
     }
-    if (input === "d") {
+    if (input === "d" || input === "D") {
       deleteSelected();
       return;
     }
@@ -2001,7 +2020,7 @@ function App({ initialConfig, flags, root }) {
   const hint = picker
     ? "Project files stay local until publication is confirmed"
     : reading
-      ? "↑↓ scroll · R reply · E edit · Esc close"
+      ? "↑↓ scroll · R reply · E edit · D delete · Esc close"
       : preview
         ? "← → choose · Enter confirm · Esc edit"
         : form
@@ -2011,7 +2030,7 @@ function App({ initialConfig, flags, root }) {
             : route.view === "feedback"
               ? "↑↓ select · R reply · E edit · D delete · S resolve · ! report"
               : route.view === "post"
-                ? "←→ tabs · ↑↓ scroll/select · R reply · C code remark · Space full text · Tab navigate"
+                ? "←→ tabs · ↑↓ select · R reply · E edit · D delete · Space read"
                 : "↑↓ select · Enter open · Tab sections · [ ] pages · N new · / search";
   return h(
     Box,

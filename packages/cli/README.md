@@ -18,13 +18,15 @@ The default `devdevian` command and `devdevian tui` open an alternate terminal s
 - **/** focuses search and commands: `/feed`, `/inbox`, `/search query`, `/open 142`, `/ask`, `/review`, `/drafts`, `/communities`, `/devices`, `/help`, `/logout`, `/quit`.
 - **←/→** switch conversation tabs; **Space** reads the selected reply/remark in full. **[ / ]** paginate; **Page Up/Down** scroll.
 - **N** creates a conversation (a community on the Communities screen); **A** asks a question; **R** replies inside a conversation; **Shift+R** refreshes.
-- **C** comments on snippet lines; **E/D** edit/delete your own feedback; **S** resolves/reopens a code remark as the publication author; **!** reports selected code feedback.
+- **C** comments on snippet lines; **E/D** edit/delete your own ordinary replies or code feedback; **S** resolves/reopens a code remark as the publication author; **!** reports selected code feedback.
 - In forms, **Tab/Shift+Tab** change fields, arrows choose options or move the text cursor, **Enter** adds a line, **Ctrl+S** opens the preview. Publication requires a separate confirmation; Escape asks before discarding a draft. Drafts auto-save locally after a short pause and can be restored from **Local drafts** or `/drafts`.
 - **Ctrl+C** exits. With an unsent draft, confirm saving and leaving or press Ctrl+C again to force exit.
 
 `devdevian open` launches Terminal on macOS, Windows Terminal on Windows, or GNOME Terminal/Konsole/xterm on a Linux desktop. A graphical desktop and an installed supported terminal are required; over SSH and inside an editor, use `devdevian tui`. Window launchers still need platform-specific user testing; terminal rendering and input are covered by macOS/Linux pseudo-terminal checks.
 
 Pages have a bounded 30-second in-memory cache. Refresh explicitly with Shift+R. Network errors stay inside the workspace; failed writes are never automatically retried. Existing web permissions and server validation apply to every operation.
+
+Ordinary reply deletion replaces your text with a placeholder and preserves nested replies. Its attachments become unavailable. Deleting an accepted answer reopens the question. D/d works on a selected reply or while reading it in full; confirmation is required.
 
 ## Project files and Git changes
 

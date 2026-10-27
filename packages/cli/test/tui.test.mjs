@@ -39,7 +39,24 @@ test(
   async () => {
     const directory = await mkdtemp(join(tmpdir(), "devdevian-tui-"));
     let publication = null;
-    let failed = false;
+    let failed = false,
+      deleted = 0;
+    const ownReply = {
+      id: 9,
+      user_id: 1,
+      name: "Ada",
+      body: "My ordinary reply to delete.",
+      revision: 0,
+      parent_id: null,
+    };
+    const childReply = {
+      id: 10,
+      user_id: 2,
+      name: "Grace",
+      body: "A child reply that must survive.",
+      revision: 0,
+      parent_id: 9,
+    };
     const post = {
       id: 42,
       title: "A resilient worker",
@@ -48,13 +65,31 @@ test(
       kind: "discussion",
       body:
         "Useful context for the worker.\n" + "Long content line.\n".repeat(60),
-      replies: [],
-      reply_pagination: { page: 1, pages: 1, total: 0 },
+      replies: [ownReply],
+      reply_path: [{ id: 9, parent_id: null, page: 1 }],
+      reply_pagination: { page: 1, pages: 1, total: 1 },
     };
     const server = createServer(async (req, res) => {
       const url = new URL(req.url, "http://fixture");
       let data;
-      if (req.method === "POST") {
+      if (req.method === "DELETE" && url.pathname === "/api/replies/9") {
+        let body = "";
+        for await (const c of req) body += c;
+        assert.equal(JSON.parse(body).revision, 0);
+        deleted++;
+        ownReply.body = "[deleted by author]";
+        ownReply.deleted_at = new Date().toISOString();
+        ownReply.revision++;
+        data = { id: 9, deleted: true };
+      } else if (
+        req.method === "GET" &&
+        url.pathname === "/api/posts/42/replies"
+      )
+        data = {
+          items: [childReply],
+          pagination: { page: 1, pages: 1, total: 1 },
+        };
+      else if (req.method === "POST") {
         let raw = "";
         for await (const chunk of req) raw += chunk;
         publication = JSON.parse(raw);
@@ -166,6 +201,28 @@ test(
       send("\r");
       await wait("Saved.");
       assert.equal(publication.body, "Привет, useful feedback!");
+      send("\x1b[C");
+      await wait("My ordinary reply to delete.");
+      send("\r");
+      await wait("parent reply");
+      send(" ");
+      await wait("Full text");
+      send("D");
+      await wait("Delete your reply?");
+      send("\x1b");
+      await wait("Full text");
+      assert.equal(deleted, 0);
+      send("D");
+      await wait("Delete your reply?");
+      send("\x1b[C");
+      send("\r");
+      await wait("Reply deleted;");
+      assert.equal(deleted, 1);
+      await wait("A child reply that must survive.");
+      send("\x1b[B");
+      send("d");
+      await wait("Select your own reply");
+      assert.equal(deleted, 1);
       send("/");
       send("/feed");
       send("\r");

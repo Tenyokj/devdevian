@@ -1,3 +1,4 @@
+import { details } from "./enhancements.mjs";
 import { limitValue, QuotaError } from "./limits.mjs";
 import express from "express";
 import { randomUUID } from "node:crypto";
@@ -161,7 +162,8 @@ export function registerUploads(app, db, required) {
   );
   app.get("/api/uploads/:id", async (req, res, next) => {
     const f = db.prepare("SELECT * FROM uploads WHERE id=?").get(req.params.id);
-    if (!f) return res.status(404).json({ error: "File not found." });
+    if (!f || (f.reply_id && details(db, "reply", f.reply_id).deleted_at))
+      return res.status(404).json({ error: "File not found." });
     const permitted = f.post_id
       ? canRead(
           db,

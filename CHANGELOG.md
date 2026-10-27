@@ -1,5 +1,11 @@
 # Changelog
 
+## CLI 0.3.1-alpha.1 — Ordinary reply deletion
+
+- Fixed D/d deletion for ordinary replies, including full-text reading and parent replies inside nested threads. Confirmation, author ownership and revision checks apply.
+- Added a compatible API operation that erases reply text, preserves the discussion tree, hides attached files and clears an accepted-solution mark when needed. Deleted replies cannot be edited or accepted again.
+- Reply tombstones use existing entity metadata; no schema migration is required. Browser rendering no longer offers editing/solution controls for deleted replies.
+
 ## CLI 0.3.0-alpha.1 — Project workspace reviews
 
 - Project-root file explorer in review forms (`Ctrl+O`), with folder navigation, name filtering, hidden-file toggle, responsive code previews and line-range selection. `--project` selects the workspace for `tui` and `open`.

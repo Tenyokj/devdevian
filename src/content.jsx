@@ -280,7 +280,7 @@ function ReplyRow({ r, depth }) {
         </button>
         <span>
           {dateStamp(r.created)}
-          {r.updated_at && (
+          {r.updated_at && !r.deleted_at && (
             <span className="edited-timestamp">
               Edited {dateStamp(r.updated_at)}
             </span>
@@ -310,13 +310,14 @@ function ReplyRow({ r, depth }) {
           <MessageCircle size={13} />
           Reply
         </button>
-        {user?.id === r.user_id && (
+        {!r.deleted_at && user?.id === r.user_id && (
           <button onClick={() => onEdit({ content: r, reply: true })}>
             <PenLine size={13} />
             Edit reply
           </button>
         )}
-        {user?.id === post.user_id &&
+        {!r.deleted_at &&
+          user?.id === post.user_id &&
           ["question", "review"].includes(post.kind) && (
             <button onClick={() => onSolve(r)}>
               <Check size={13} />
