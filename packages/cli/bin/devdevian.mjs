@@ -2,10 +2,9 @@
 import { fileURLToPath } from "node:url";
 import packageInfo from "../package.json" with { type: "json" };
 import { parseArgs } from "node:util";
-import { readFile, writeFile, mkdtemp, rm } from "node:fs/promises";
-import { hostname, tmpdir } from "node:os";
-import { join } from "node:path";
-import { spawn, spawnSync } from "node:child_process";
+import { readFile } from "node:fs/promises";
+import { hostname } from "node:os";
+import { spawn } from "node:child_process";
 import { createInterface } from "node:readline/promises";
 import { setTimeout as delay } from "node:timers/promises";
 import {
@@ -16,6 +15,7 @@ import {
   removeConfig,
   clean,
 } from "../lib/client.mjs";
+import { editExternal } from "../lib/external-editor.mjs";
 const version = packageInfo.version;
 const options = {
   host: { type: "string" },
@@ -111,30 +111,10 @@ async function editor(initial = "") {
   if (!process.stdin.isTTY || !process.stdout.isTTY)
     throw Error("--editor needs an interactive terminal.");
   terminal?.pause();
-  const directory = await mkdtemp(join(tmpdir(), "devdevian-editor-")),
-    file = join(directory, "message.md");
   try {
-    await writeFile(file, initial, { mode: 0o600 });
-    const command =
-      process.env.VISUAL ||
-      process.env.EDITOR ||
-      (process.platform === "win32" ? "notepad" : "vi");
-    // No shell: metacharacters in content or filenames cannot become commands.
-    const parts =
-      command
-        .match(/(?:[^\s"']+|"[^"]*"|'[^']*')+/g)
-        ?.map((p) => p.replace(/^(['"])(.*)\1$/, "$2")) || [];
-    if (!parts.length) throw Error("Set EDITOR to your text editor.");
-    const result = spawnSync(parts[0], [...parts.slice(1), file], {
-      stdio: "inherit",
-      shell: false,
-    });
-    if (result.error || result.status !== 0)
-      throw Error("The editor did not finish successfully.");
-    return await readFile(file, "utf8");
+    return await editExternal(initial);
   } finally {
     terminal?.resume();
-    await rm(directory, { recursive: true, force: true });
   }
 }
 async function boundedFile(file, max) {

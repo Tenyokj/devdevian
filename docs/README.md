@@ -9,6 +9,11 @@ Devdevian is an open-source developer forum. The hosted early release is at [dev
 - [Privacy & Security](https://devdevian.vercel.app/privacy): what is stored, visibility, cookies, providers, and deletion.
 - [Terms of Use](https://devdevian.vercel.app/terms): community conduct, content rights, and use of the hosted service.
 
+## Terminal client
+
+- [CLI guide](../packages/cli/README.md): installation, login, workspace, reviews and local drafts.
+- [CLI versions and roadmap](../packages/cli/VERSIONS.md): each npm version, compatibility notes and combined release policy.
+
 ## Building and operating
 
 - [Development](development.md): local setup, isolated demo accounts, checks, fixtures, and safe data handling.

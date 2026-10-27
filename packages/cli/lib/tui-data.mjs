@@ -21,6 +21,39 @@ export const navigation = [
   ["devices", "Connected terminals", "Manage CLI access"],
   ["help", "Help", "Keys & commands"],
 ];
+export async function notificationRoute(api, item) {
+  if (item.code_review_id)
+    return {
+      view: "feedback",
+      postId: item.post_id,
+      id: item.code_review_id,
+      page: 1,
+      targetReply: item.feedback_reply_id || null,
+    };
+  if (!item.reply_id)
+    return { view: "post", id: item.post_id, tab: "overview", page: 1 };
+  const post = await api(`/posts/${item.post_id}?reply_id=${item.reply_id}`);
+  const target = post.reply_path?.at(-1);
+  if (!target || post.reply_target_missing)
+    throw Object.assign(Error("The linked reply is no longer available."), {
+      status: 404,
+    });
+  return target.parent_id
+    ? {
+        view: "thread",
+        postId: item.post_id,
+        parent: { id: target.parent_id },
+        page: target.page,
+        targetReply: item.reply_id,
+      }
+    : {
+        view: "post",
+        id: item.post_id,
+        tab: "replies",
+        page: target.page,
+        targetReply: item.reply_id,
+      };
+}
 export async function loadPage(api, route, signal) {
   const get = (path) => api(path, { signal }),
     page = route.page || 1;
@@ -85,7 +118,13 @@ export async function loadPage(api, route, signal) {
     };
   }
   if (route.view === "post") {
-    const post = await get("/posts/" + route.id + "?reply_page=" + page);
+    const post = await get(
+      "/posts/" +
+        route.id +
+        (route.targetReply
+          ? "?reply_id=" + route.targetReply
+          : "?reply_page=" + page),
+    );
     let items = post.replies,
       pagination = post.reply_pagination;
     let snippet_hash;
@@ -194,6 +233,8 @@ export function contentLines(route, data) {
       "E / D            Edit / delete your own feedback or reply",
       "O                Open this conversation in your browser",
       "/                Focus the command / search bar",
+      "Ctrl+E           Edit a multiline field in VISUAL / EDITOR",
+      "Ctrl+L           Save a draft and reconnect an expired session",
       "Ctrl+S           Preview the current form",
       "Ctrl+O / Ctrl+G  Select a code file / Git diff in a review form",
       "/drafts          Restore locally saved drafts for this account/project",

@@ -1,5 +1,12 @@
 # Changelog
 
+## CLI 0.4.1-alpha.1 — Everyday writing and navigation
+
+- External-editor handoff for multiline fields, with private local drafts and terminal restoration.
+- Exact reply notification targets, stable back navigation, lightweight Markdown and basic fenced-code highlighting.
+- Actionable connection/HTTP errors and draft-preserving reconnect controls.
+- Added [CLI version history](packages/cli/VERSIONS.md), separating per-package changes from combined GitHub releases. Planned CLI 0.5.0 covers themes and interface customization.
+
 ## CLI 0.4.0-alpha.1 — Review workspace and live Inbox
 
 - Code and paginated remarks side by side, compact focus switching, selectable line ranges, horizontal code scrolling and all/open/resolved filters. Older remarks display the preserved quote.

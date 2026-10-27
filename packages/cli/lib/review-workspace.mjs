@@ -1,6 +1,7 @@
 import React from "react";
 import { Box, Text } from "ink";
 import { clip, graphemes } from "./tui-model.mjs";
+import { syntaxSpans } from "./rich-text.mjs";
 import { colors as c } from "./theme.mjs";
 const h = React.createElement;
 export function codeRange(line, anchor = null) {
@@ -96,6 +97,10 @@ export function ReviewWorkspace({
             number >= selectedNote.start_line &&
             number <= selectedNote.end_line);
       const text = lines[n];
+      const rendered = clip(
+        `${marked ? "●" : " "}${String(number).padStart(4)}  ${graphemes(text.replaceAll("\t", "  ")).slice(horizontal).join("")}`,
+        codeWidth,
+      );
       return h(
         Text,
         {
@@ -107,10 +112,11 @@ export function ReviewWorkspace({
               ? c.red
               : c.text,
         },
-        clip(
-          `${marked ? "●" : " "}${String(number).padStart(4)}  ${graphemes(text.replaceAll("\t", "  ")).slice(horizontal).join("")}`,
-          codeWidth,
-        ),
+        ...(text.startsWith("+") || text.startsWith("-")
+          ? [rendered]
+          : syntaxSpans(rendered).map((span, j) =>
+              h(Text, { key: j, color: span.color }, span.text),
+            )),
       );
     }),
   );

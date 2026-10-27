@@ -29,11 +29,15 @@ import {
   loadPage,
   contentLines,
   assertSnippet,
+  notificationRoute,
 } from "./tui-data.mjs";
 import { basename } from "node:path";
 import { colors } from "./theme.mjs";
 import { liveLoop, anchoredIndex } from "./live.mjs";
 import { contextActions } from "./context-actions.mjs";
+import { editExternal } from "./external-editor.mjs";
+import { markdownRows } from "./rich-text.mjs";
+import { problemMessage } from "./problems.mjs";
 import { ReviewWorkspace, codeRange } from "./review-workspace.mjs";
 const h = React.createElement;
 const itemsOf = (value) => (Array.isArray(value) ? value : value?.items || []);
@@ -194,13 +198,30 @@ function FrameRows({ rows, width, height, offset = 0 }) {
     Box,
     { flexDirection: "column", height, overflow: "hidden" },
     ...rows.slice(offset, offset + height).map((row, i) =>
-      h(TextLine, {
-        key: i,
-        text: typeof row === "string" ? row : row.text,
-        width,
-        color: row.color || colors.text,
-        bold: row.bold || false,
-      }),
+      row.spans
+        ? h(
+            Text,
+            {
+              key: i,
+              color: row.color || colors.text,
+              bold: row.bold,
+              wrap: "truncate",
+            },
+            ...row.spans.map((span, n) =>
+              h(
+                Text,
+                { key: n, color: span.color, bold: span.bold || row.bold },
+                span.text,
+              ),
+            ),
+          )
+        : h(TextLine, {
+            key: i,
+            text: typeof row === "string" ? row : row.text,
+            width,
+            color: row.color || colors.text,
+            bold: row.bold || false,
+          }),
     ),
   );
 }
@@ -371,8 +392,47 @@ function listRows(route, data, index, width) {
     ];
   });
 }
+function documentRows(route, data, width) {
+  if (route.view !== "post" || (route.tab && route.tab !== "overview"))
+    return contentLines(route, data).flatMap((line) => wrap(line, width));
+  const post = data?.post;
+  if (!post) return [];
+  const rows = markdownRows(post.body || "", width);
+  if (post.review_focus)
+    rows.push(
+      { text: "" },
+      { text: "REVIEW FOCUS", color: colors.purple, bold: true },
+      ...markdownRows(post.review_focus, width),
+    );
+  if (post.code) {
+    // Pick a fence longer than any backtick run in the snippet.
+    const fence = "`".repeat(
+      Math.max(
+        3,
+        ...(post.code.match(/`+/g) || []).map((run) => run.length + 1),
+      ),
+    );
+    rows.push(
+      { text: "" },
+      ...markdownRows(fence + "\n" + post.code + "\n" + fence, width),
+    );
+  }
+  if (post.links?.length)
+    rows.push(
+      { text: "LINKS", bold: true },
+      ...post.links.flatMap((link) =>
+        wrap(link.label + " · " + link.url, width),
+      ),
+    );
+  if (post.archived_at || post.locked_at)
+    rows.push({
+      text: "Replies are paused for this conversation.",
+      color: colors.muted,
+    });
+  return rows;
+}
 function App({ initialConfig, flags, root }) {
-  const { exit } = useApp(),
+  const { exit, suspendTerminal } = useApp(),
     { columns, rows } = useWindowSize();
   const [config, setConfig] = useState(initialConfig),
     [phase, setPhase] = useState(
@@ -417,6 +477,8 @@ function App({ initialConfig, flags, root }) {
     notificationGeneration = useRef(0);
   const cache = useRef(new PageCache()),
     history = useRef([]),
+    restoreSelection = useRef(null),
+    seenSnippet = useRef(null),
     busy = useRef(false),
     alive = useRef(true),
     authController = useRef(null),
@@ -522,9 +584,18 @@ function App({ initialConfig, flags, root }) {
     if (current?.unread_count !== undefined) setUnread(current.unread_count);
   }, [current]);
   useEffect(() => {
-    setReviewLine(0);
-    setReviewAnchor(null);
-    setReviewHorizontal(0);
+    const post = current?.post;
+    if (!post?.code) return;
+    if (
+      seenSnippet.current?.id === post.id &&
+      seenSnippet.current.code !== post.code
+    ) {
+      setReviewLine(0);
+      setReviewAnchor(null);
+      setReviewHorizontal(0);
+    } else
+      setReviewLine((line) => Math.min(line, post.code.split("\n").length - 1));
+    seenSnippet.current = { id: post.id, code: post.code };
   }, [current?.post?.id, current?.post?.code]);
   const resetAccount = () => {
     cache.current.clear();
@@ -535,24 +606,55 @@ function App({ initialConfig, flags, root }) {
     setPreview(null);
     setDevice(null);
     setUser(null);
+    setReading(null);
+    setActionIndex(null);
+    setUnread(0);
+    setLiveStatus("");
+    notificationGeneration.current++;
     setRoute({ view: "feed", page: 1 });
     setError("");
   };
   function fail(e) {
     if (!alive.current) return;
-    if (e.status === 401) {
+    if (e.status === 401 && form) {
+      setLive(false);
+      setError(problemMessage(e));
+    } else if (e.status === 401) {
       resetAccount();
       setPhase("auth");
       setConfig(null);
       setError(
         "Your session expired or was revoked. Press Enter to reconnect.",
       );
-    } else setError(clean(e.message));
+    } else setError(problemMessage(e));
   }
   function navigate(next, { replace = false } = {}) {
-    if (!replace) history.current.push({ route, index, scroll });
+    if (!replace)
+      history.current.push({
+        route,
+        index,
+        scroll,
+        selectedId: selected?.id,
+        entryType: selected?.entryType,
+        reviewFocus,
+        reviewLine,
+        reviewAnchor,
+        reviewHorizontal,
+      });
+    restoreSelection.current = {
+      key: JSON.stringify(next),
+      selectedId: next.targetReply,
+      entryType:
+        next.view === "feedback" && next.targetReply
+          ? "feedbackReply"
+          : undefined,
+      index: 0,
+    };
     if (history.current.length > 30) history.current.shift();
     setReading(null);
+    setReviewLine(0);
+    setReviewAnchor(null);
+    setReviewHorizontal(0);
     if (next.view === "feedback") setReviewFocus("notes");
     setRoute(next);
     setIndex(0);
@@ -564,6 +666,15 @@ function App({ initialConfig, flags, root }) {
   function back() {
     const previous = history.current.pop();
     if (previous) {
+      restoreSelection.current = {
+        ...previous,
+        key: JSON.stringify(previous.route),
+      };
+      setReading(null);
+      setReviewFocus(previous.reviewFocus);
+      setReviewLine(previous.reviewLine);
+      setReviewAnchor(previous.reviewAnchor);
+      setReviewHorizontal(previous.reviewHorizontal);
       setRoute(previous.route);
       setIndex(previous.index);
       setScroll(previous.scroll);
@@ -704,6 +815,23 @@ function App({ initialConfig, flags, root }) {
       cached = cache.current.get(key);
     setData(cached ? { ...cached, key } : null);
     setLoading(!cached);
+    if (cached && restoreSelection.current?.key === key) {
+      const saved = restoreSelection.current;
+      const found = cached.items?.findIndex(
+        (item) =>
+          item.id === saved.selectedId &&
+          (saved.entryType === undefined || item.entryType === saved.entryType),
+      );
+      setIndex(
+        found >= 0
+          ? found
+          : Math.min(
+              saved.index || 0,
+              Math.max(0, (cached.items?.length || 0) - 1),
+            ),
+      );
+      restoreSelection.current = null;
+    }
     setError("");
     if (!cached)
       (route.view === "drafts"
@@ -719,9 +847,27 @@ function App({ initialConfig, flags, root }) {
           if (!active) return;
           cache.current.set(key, result);
           setData({ ...result, key });
-          setIndex((i) =>
-            Math.min(i, Math.max(0, (result.items?.length || 0) - 1)),
-          );
+          const saved = restoreSelection.current;
+          if (saved?.key === key) {
+            const found = result.items?.findIndex(
+              (item) =>
+                item.id === saved.selectedId &&
+                (saved.entryType === undefined ||
+                  item.entryType === saved.entryType),
+            );
+            setIndex(
+              found >= 0
+                ? found
+                : Math.min(
+                    saved.index || 0,
+                    Math.max(0, (result.items?.length || 0) - 1),
+                  ),
+            );
+            restoreSelection.current = null;
+          } else
+            setIndex((i) =>
+              Math.min(i, Math.max(0, (result.items?.length || 0) - 1)),
+            );
         })
         .catch((e) => {
           if (active) fail(e);
@@ -888,6 +1034,46 @@ function App({ initialConfig, flags, root }) {
         : `/posts/${p.id}/replies`,
       parentId: thread ? route.parent.id : null,
       values: { body: "" },
+    });
+  }
+  async function externalEdit() {
+    const descriptor = fieldsFor(form)[field];
+    if (!descriptor?.multiline) {
+      setNotice("Ctrl+E opens the editor for a multiline text field.");
+      return;
+    }
+    const original = form;
+    await task(async () => {
+      clearTimeout(draftTimer.current);
+      await queueDraft(() => drafts.save(original));
+      let value;
+      await suspendTerminal(async () => {
+        value = await editExternal(original.values[descriptor.key] || "", {
+          max: descriptor.max,
+        });
+      });
+      const updated = {
+        ...original,
+        values: { ...original.values, [descriptor.key]: value },
+      };
+      setForm(updated);
+      setCursor(graphemes(value).length);
+      await queueDraft(() => drafts.save(updated));
+      setDraftSaved(true);
+      setNotice("Text returned from editor. Preview before publishing.");
+    });
+  }
+  async function reconnect() {
+    await task(async () => {
+      clearTimeout(draftTimer.current);
+      draftGeneration.current++;
+      if (form && drafts) await queueDraft(() => drafts.save(form));
+      resetAccount();
+      setConfig(null);
+      setPhase("auth");
+      setNotice(
+        "Draft saved locally. Enter reconnects; restore it from Local drafts after signing in.",
+      );
     });
   }
   async function lineFeedback() {
@@ -1138,21 +1324,7 @@ function App({ initialConfig, flags, root }) {
           setNotice("Event opened in your browser.");
           return;
         }
-        if (item.code_review_id)
-          navigate({
-            view: "feedback",
-            postId: item.post_id,
-            id: item.code_review_id,
-            page: 1,
-            targetReply: item.feedback_reply_id || null,
-          });
-        else
-          navigate({
-            view: "post",
-            id: item.post_id,
-            tab: item.reply_id ? "replies" : "overview",
-            page: 1,
-          });
+        navigate(await notificationRoute(api, item));
       });
       return;
     }
@@ -1486,6 +1658,10 @@ function App({ initialConfig, flags, root }) {
       return;
     }
     if (busy.current) return;
+    if (keyEvent.ctrl && input === "l") {
+      reconnect();
+      return;
+    }
     if (actionIndex !== null) {
       if (keyEvent.escape || input === "x" || input === "X")
         setActionIndex(null);
@@ -1496,7 +1672,7 @@ function App({ initialConfig, flags, root }) {
       return;
     }
     if (reading) {
-      const lines = wrap(
+      const lines = markdownRows(
           reading.deleted_at
             ? "[deleted — discussion preserved]"
             : reading.body || "",
@@ -1549,6 +1725,10 @@ function App({ initialConfig, flags, root }) {
       return;
     }
     if (form) {
+      if (keyEvent.ctrl && input === "e") {
+        externalEdit();
+        return;
+      }
       if (
         keyEvent.ctrl &&
         ["o", "g"].includes(input) &&
@@ -1774,9 +1954,8 @@ function App({ initialConfig, flags, root }) {
       if (prose) {
         const maximum = Math.max(
           0,
-          contentLines(route, current || {}).flatMap((line) =>
-            wrap(line, contentWidth),
-          ).length - contentHeight,
+          documentRows(route, current || {}, contentWidth).length -
+            contentHeight,
         );
         const amount =
           keyEvent.pageUp || keyEvent.pageDown
@@ -2018,7 +2197,7 @@ function App({ initialConfig, flags, root }) {
   } else {
     let body;
     if (reading) {
-      const lines = wrap(
+      const lines = markdownRows(
         reading.deleted_at
           ? "[deleted — discussion preserved]"
           : reading.body || "",
@@ -2147,10 +2326,23 @@ function App({ initialConfig, flags, root }) {
         horizontal: reviewHorizontal,
         rows: (w) => listRows(route, current, index, w),
       });
+    else if (error && !current)
+      body = h(FrameRows, {
+        rows: [
+          { text: "Could not open this view", bold: true, color: colors.red },
+          "",
+          ...wrap(error, contentWidth),
+          "",
+          ...wrap(
+            "Shift+R retries this view · Esc goes back · Ctrl+L reconnects",
+            contentWidth,
+          ),
+        ],
+        width: contentWidth,
+        height: contentHeight,
+      });
     else {
-      const lines = contentLines(route, current || {}).flatMap((line) =>
-        wrap(line, contentWidth),
-      );
+      const lines = documentRows(route, current || {}, contentWidth);
       if (lines.length)
         body = h(FrameRows, {
           rows: lines,
@@ -2278,7 +2470,7 @@ function App({ initialConfig, flags, root }) {
           )
         : h(TextLine, {
             text: form
-              ? "Tab next field · Ctrl+S preview" +
+              ? "Tab next field · Ctrl+E editor · Ctrl+S preview" +
                 (draftSaved ? " · Draft saved locally" : "")
               : preview
                 ? "Scroll to review · ← → choose · Enter confirms"
@@ -2365,7 +2557,7 @@ function App({ initialConfig, flags, root }) {
             : preview
               ? "← → choose · Enter confirm · Esc edit"
               : form
-                ? "Tab field · Ctrl+O files · Ctrl+G diff · Ctrl+S preview · Esc discard"
+                ? "Tab field · Ctrl+E editor · Ctrl+O files · Ctrl+G diff · Ctrl+S preview"
                 : phase !== "ready"
                   ? "Enter connect / open browser · Ctrl+C exit"
                   : route.view === "feedback"

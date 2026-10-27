@@ -110,8 +110,13 @@ export function client(origin, token = null) {
       });
     } catch (error) {
       if (signal?.aborted) throw error;
-      throw Error(
-        "Could not reach Devdevian. Check your connection and server address.",
+      throw Object.assign(
+        Error(
+          error.name === "TimeoutError"
+            ? "Connection timed out. Check your connection and server address."
+            : "Could not reach Devdevian. Check your connection and server address.",
+        ),
+        { code: error.name === "TimeoutError" ? "TIMEOUT" : "NETWORK" },
       );
     }
     const chunks = [];
@@ -127,8 +132,11 @@ export function client(origin, token = null) {
     try {
       data = JSON.parse(text);
     } catch {
-      throw Error(
-        `Devdevian returned an unexpected response (HTTP ${response.status}). Try again later.`,
+      throw Object.assign(
+        Error(
+          `Devdevian returned an unexpected response (HTTP ${response.status}). Try again later.`,
+        ),
+        { status: response.status },
       );
     }
     if (!response.ok) {

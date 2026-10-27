@@ -10,6 +10,8 @@ devdevian open     # a separate terminal window
 
 Login opens a browser. Compare the code shown in the terminal, sign in to Devdevian, then authorize the terminal. Google, GitHub and email login happen on the website; no provider credentials are collected by this package. Use `--no-open` to open the printed address yourself, including when connecting over SSH.
 
+Version-by-version changes and the customization roadmap: [CLI version history](VERSIONS.md).
+
 ## Live workspace
 
 The default `devdevian` command and `devdevian tui` open an alternate terminal screen. Navigation, conversations, inline forms, previews and search update in that screen; exiting restores your normal terminal. The blue and purple layout adapts to the terminal size, with compact navigation below 90 columns. Minimum size: 60 columns × 18 rows.
@@ -19,6 +21,7 @@ The default `devdevian` command and `devdevian tui` open an alternate terminal s
 - **←/→** switch conversation tabs; **Space** reads the selected reply/remark in full. **[ / ]** paginate; **Page Up/Down** scroll.
 - **N** creates a conversation (a community on the Communities screen); **A** asks a question; **R** replies inside a conversation; **Shift+R** refreshes.
 - **C** comments on snippet lines; **E/D** edit/delete your own ordinary replies or code feedback; **S** resolves/reopens a code remark or accepts/removes a reply as the solution (question/review author only); **!** reports selected code feedback.
+- **Ctrl+E** opens the current multiline field in `$VISUAL` / `$EDITOR` (use `code --wait` for VS Code). Closing the editor restores the form; publishing still requires preview and confirmation. **Ctrl+L** saves an active draft and returns to sign-in.
 - In forms, **Tab/Shift+Tab** change fields, arrows choose options or move the text cursor, **Enter** adds a line, **Ctrl+S** opens the preview. Publication requires a separate confirmation; Escape asks before discarding a draft. Drafts auto-save locally after a short pause and can be restored from **Local drafts** or `/drafts`.
 - **Ctrl+C** exits. With an unsent draft, confirm saving and leaving or press Ctrl+C again to force exit.
 
