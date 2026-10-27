@@ -28,6 +28,7 @@ import { registerSpaces, installAccess, canRead } from "./spaces.mjs";
 import { registerUploads } from "./uploads.mjs";
 import { registerReplies } from "./replies.mjs";
 import express from "express";
+import { registerCatalog } from "./catalog-api.mjs";
 import { registerEventManagement } from "./event-management.mjs";
 import { registerModeration } from "./moderation.mjs";
 import { registerActivity } from "./activity.mjs";
@@ -483,6 +484,7 @@ export async function createApp({ migrationOnly = false } = {}) {
     registerSubscriptions(app, db, required);
     registerModeration(app, db, required);
     registerEventManagement(app, db, required);
+    registerCatalog(app, db, required);
     registerReplies(app, db);
     registerCodeReviews(app, db, required);
     registerFeedback(app, db, required);

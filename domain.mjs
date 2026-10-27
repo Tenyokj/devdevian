@@ -601,6 +601,11 @@ export function registerDomain(app, db, required, profile) {
       const q = "%" + String(req.query.q).slice(0, 200) + "%";
       params.push(q, q, q);
     }
+    for (const key of ["topic", "stage"])
+      if (req.query[key]) {
+        where += ` AND pr.${key}=?`;
+        params.push(String(req.query[key]).slice(0, 100));
+      }
     if (req.query.author) {
       where += " AND pr.user_id=?";
       params.push(
@@ -613,7 +618,11 @@ export function registerDomain(app, db, required, profile) {
       pageRows(
         db,
         req,
-        projectsSelect + where + " ORDER BY pr.id DESC",
+        projectsSelect +
+          where +
+          (req.query.order === "oldest"
+            ? " ORDER BY pr.id ASC"
+            : " ORDER BY pr.id DESC"),
         params,
       ),
     );

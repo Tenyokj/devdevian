@@ -1,5 +1,12 @@
 # Changelog
 
+## CLI 0.6.0-alpha.1 — Projects and Events
+
+- Interactive catalogs, search, filters, pagination and full detail pages for Projects and Events.
+- Create/edit owned projects and events with workspace images, project teams/links, explicit publication previews and local drafts.
+- Event attendance, organizer cancellation/restoration and safe calendar export. Viewer/organizer timezone display and server-controlled meeting links.
+- Compatible API detail routes, revision-protected project edits and idempotent attendance. No database migration or reset. See [CLI version history](packages/cli/VERSIONS.md).
+
 ## CLI 0.5.1-alpha.1 — Meet Devi
 
 - Terminal-native Devi mascot with English startup/sign-in greetings, compact artwork and useful empty-state prompts.

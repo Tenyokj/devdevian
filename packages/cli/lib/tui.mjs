@@ -48,6 +48,18 @@ import { editExternal } from "./external-editor.mjs";
 import { markdownRows } from "./rich-text.mjs";
 import { problemMessage } from "./problems.mjs";
 import { ReviewWorkspace, codeRange } from "./review-workspace.mjs";
+import {
+  catalogFields,
+  initialCatalog,
+  catalogDocument,
+  prepareCatalog,
+  publishCatalog,
+  saveCalendar,
+  validateFilter,
+  localTime,
+  viewerZone,
+  webURL,
+} from "./catalog.mjs";
 const h = React.createElement;
 const itemsOf = (value) => (Array.isArray(value) ? value : value?.items || []);
 const stamp = (value) => {
@@ -74,6 +86,8 @@ const labelOf = (route) =>
     community: "Community",
     feedback: "Code feedback",
     thread: "Reply thread",
+    project: "Project",
+    event: "Event",
   }[route.view] ||
   "Workspace";
 function openBrowser(url) {
@@ -92,6 +106,8 @@ function openBrowser(url) {
   child.unref();
 }
 function fieldsFor(form) {
+  if (["catalog", "catalogFilter", "calendar"].includes(form.kind))
+    return catalogFields(form);
   if (form.kind === "appearance") return appearanceFields;
   if (form.kind === "publication")
     return [
@@ -331,7 +347,15 @@ function listRows(route, data, index, width, colors, density = "comfortable") {
     let title = item.title || item.name || "",
       meta = "",
       body = "";
-    if (route.view === "drafts") {
+    if (route.view === "projects") {
+      title = item.name;
+      meta = `${item.stage} · #${item.topic} · ${item.founder_name}`;
+      body = item.tagline || item.description;
+    } else if (route.view === "events") {
+      title = (item.cancelled_at ? "[Cancelled] " : "") + item.title;
+      meta = `${stamp(item.start_at)} · ${item.organizer_name}`;
+      body = item.description;
+    } else if (route.view === "drafts") {
       title = item.form.values.title || item.form.title;
       meta = "Local draft · " + stamp(item.savedAt);
       body =
@@ -423,6 +447,8 @@ function listRows(route, data, index, width, colors, density = "comfortable") {
   });
 }
 function documentRows(route, data, width, colors) {
+  if (route.view === "project" || route.view === "event")
+    return markdownRows(catalogDocument(route, data), width, colors);
   if (route.view !== "post" || (route.tab && route.tab !== "overview"))
     return contentLines(route, data).flatMap((line) => wrap(line, width));
   const post = data?.post;
@@ -804,6 +830,20 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       await queueDraft(() => drafts.remove(draftIdentity(value)));
   }
   async function restoreDraft(item) {
+    if (
+      item.form.kind === "catalog" &&
+      item.form.catalogProgress?.completedId
+    ) {
+      navigate({
+        view: item.form.entity,
+        id: item.form.catalogProgress.completedId,
+        page: 1,
+      });
+      setNotice(
+        "This draft was already published. Opened the existing publication.",
+      );
+      return;
+    }
     await task(async () => {
       const saved = await drafts.read(item.id),
         next = { ...saved.form, draftId: item.id };
@@ -842,6 +882,8 @@ function App({ initialConfig, flags, root, initialAppearance }) {
           }
         }
       }
+      if (next.kind === "catalog")
+        next.topics = itemsOf(await api("/topics")).map((t) => [t.id, t.name]);
       openForm(next);
       setNotice(
         "Restored local draft. Check the code selection before publishing.",
@@ -1059,6 +1101,128 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       setCommandCursor(0);
     }
   }
+  async function composeCatalog(entity, editing = false) {
+    await task(async () => {
+      const row = editing ? await api(`/${entity}s/${route.id}`) : {};
+      if (editing && row.user_id !== user.id)
+        throw Error("Only the owner can edit this publication.");
+      const topics = itemsOf(await api("/topics")).map((t) => [t.id, t.name]);
+      const values = initialCatalog(entity, row);
+      if (!topics.some(([id]) => id === values.topic))
+        values.topic = topics[0]?.[0] || "web";
+      openForm({
+        kind: "catalog",
+        entity,
+        entityId: row.id,
+        revision: row.revision,
+        existing: row,
+        title: (editing ? "Edit your " : "Create a ") + entity,
+        topics,
+        values,
+      });
+    });
+  }
+  async function catalogFilter() {
+    await task(async () => {
+      const entity = route.view === "projects" ? "project" : "event";
+      const topics = itemsOf(await api("/topics")).map((t) => [t.id, t.name]);
+      openForm({
+        kind: "catalogFilter",
+        entity,
+        title: "Filter " + route.view,
+        topics,
+        values: {
+          query: route.query || "",
+          topic: route.topic || "",
+          stage: route.stage || "",
+          author: route.author || "",
+          status: route.status || "",
+          date: route.date || "",
+          timezone: route.timezone || viewerZone(),
+          mine: route.mine || "",
+          order: route.order || (entity === "project" ? "newest" : "earliest"),
+        },
+      });
+    });
+  }
+  function catalogAction(id) {
+    const row = current?.project || current?.event;
+    if (!row) return;
+    if (id === "edit") {
+      composeCatalog(route.view, true);
+      return;
+    }
+    if (id === "conversation") {
+      navigate({ view: "post", id: row.post_id, tab: "overview", page: 1 });
+      return;
+    }
+    if (id === "calendar") {
+      openForm({
+        kind: "calendar",
+        eventId: row.id,
+        title: "Export calendar",
+        values: { path: `devdevian-event-${row.id}.ics` },
+      });
+      return;
+    }
+    if (id === "attend") {
+      const attending = !row.viewer_attending;
+      askConfirm(
+        attending ? "Attend this event?" : "Leave this event?",
+        row.title,
+        () =>
+          task(async () => {
+            await api(`/events/${row.id}/attendance`, {
+              method: "PUT",
+              body: { attending },
+            });
+            invalidate(
+              attending
+                ? "You're attending. Your browser account sees the same update."
+                : "You left the event.",
+            );
+          }),
+      );
+      return;
+    }
+    if (id === "lifecycle") {
+      if (row.user_id !== user.id) {
+        setError("Only the organizer can manage this event.");
+        return;
+      }
+      const action = row.cancelled_at ? "restore" : "cancel";
+      askConfirm(
+        action === "cancel" ? "Cancel your event?" : "Restore your event?",
+        "Attendees will receive the event update.",
+        () =>
+          task(async () => {
+            await api(`/events/${row.id}/lifecycle`, {
+              method: "POST",
+              body: { action, revision: row.revision },
+            });
+            invalidate("Event updated.");
+          }),
+      );
+      return;
+    }
+    const target =
+      id === "website"
+        ? row.url
+        : id === "source"
+          ? row.repo
+          : id === "meeting"
+            ? row.url
+            : config.origin +
+              (route.view === "project"
+                ? "/app#post/" + row.post_id
+                : "/app#events/" + row.id);
+    try {
+      openBrowser(webURL(target));
+      setNotice("Opened in your browser.");
+    } catch (error) {
+      setError(error.message);
+    }
+  }
   function openAppearance() {
     openForm({
       kind: "appearance",
@@ -1234,6 +1398,28 @@ function App({ initialConfig, flags, root, initialAppearance }) {
   }
   async function prepare() {
     if (!form) return;
+    if (form.kind === "catalogFilter") {
+      await task(async () => {
+        const values = validateFilter(form.values);
+        setForm(null);
+        navigate({ view: form.entity + "s", ...values, page: 1 });
+      });
+      return;
+    }
+    if (form.kind === "calendar") {
+      await task(async () => {
+        const path = await saveCalendar(
+          api,
+          root,
+          form.eventId,
+          form.values.path,
+        );
+        setForm(null);
+        setFocus("content");
+        setNotice("Calendar saved: " + clean(path));
+      });
+      return;
+    }
     if (form.kind === "appearance") {
       await task(async () => {
         const saved = await saveAppearance(form.values);
@@ -1270,6 +1456,23 @@ function App({ initialConfig, flags, root, initialAppearance }) {
           throw Error("Enter a positive conversation ID.");
         setForm(null);
         navigate({ view: "post", id, tab: "overview", page: 1 });
+        return;
+      }
+      if (form.kind === "catalog") {
+        if (form.catalogProgress?.uncertain)
+          throw Error(
+            "Publication outcome is unknown. Check your projects/events before creating another copy. Keep this draft for reference.",
+          );
+        const plan = await prepareCatalog(api, root, form);
+        setPreview({
+          catalog: plan,
+          payload: plan.payload,
+          title: form.title,
+          method: form.entityId ? "PATCH" : "POST",
+          url: `/${form.entity}s`,
+        });
+        setScroll(0);
+        setYes(false);
         return;
       }
       let payload,
@@ -1363,10 +1566,22 @@ function App({ initialConfig, flags, root, initialAppearance }) {
   async function publish() {
     if (!preview) return;
     await task(async () => {
-      const response = await api(preview.url, {
-        method: preview.method,
-        body: preview.payload,
-      });
+      let working = form;
+      const response = preview.catalog
+        ? await publishCatalog(
+            api,
+            preview.catalog,
+            form.catalogProgress,
+            async (progress) => {
+              working = { ...working, catalogProgress: progress };
+              setForm(working);
+              await queueDraft(() => drafts.save(working));
+            },
+          )
+        : await api(preview.url, {
+            method: preview.method,
+            body: preview.payload,
+          });
       cache.current.clear();
       let localWarning = "";
       try {
@@ -1378,7 +1593,9 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       setPreview(null);
       setForm(null);
       setScroll(0);
-      if (preview.url === "/posts")
+      if (preview.catalog)
+        navigate({ view: form.entity, id: response.id, page: 1 });
+      else if (preview.url === "/posts")
         navigate({ view: "post", id: response.id, tab: "overview", page: 1 });
       else if (preview.url === "/communities")
         navigate({ view: "community", id: response.id, page: 1 });
@@ -1396,6 +1613,11 @@ function App({ initialConfig, flags, root, initialAppearance }) {
     });
   }
   async function openSelected() {
+    if (route.view === "projects" || route.view === "events") {
+      if (selected)
+        navigate({ view: route.view.slice(0, -1), id: selected.id, page: 1 });
+      return;
+    }
     if (route.view === "community" && !current?.community?.is_member) return;
     const item = selected;
     if (!item) return;
@@ -1636,6 +1858,10 @@ function App({ initialConfig, flags, root, initialAppearance }) {
   }
   function runAction(id) {
     setActionIndex(null);
+    if (id?.startsWith("catalog-")) {
+      catalogAction(id.slice(8));
+      return;
+    }
     if (id === "read") {
       if (current?.post) {
         setReading(selected);
@@ -1694,6 +1920,10 @@ function App({ initialConfig, flags, root, initialAppearance }) {
         );
         return;
       }
+      if (parsed.command === "project" || parsed.command === "event") {
+        navigate({ view: parsed.command, id: parsed.arg, page: 1 });
+        return;
+      }
       if (parsed.command === "appearance") {
         openAppearance();
         return;
@@ -1711,14 +1941,16 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       navigate({
         view: parsed.command,
         page: 1,
-        ...(parsed.command === "search" ? { query: parsed.arg } : {}),
+        ...(["search", "projects", "events"].includes(parsed.command)
+          ? { query: parsed.arg }
+          : {}),
       });
     } catch (e) {
       setError(e.message);
     }
   }
   function askQuit() {
-    if (form?.kind === "appearance") {
+    if (["appearance", "catalogFilter", "calendar"].includes(form?.kind)) {
       exit();
       return;
     }
@@ -1865,6 +2097,22 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       return;
     }
     if (form) {
+      if (keyEvent.ctrl && input === "o" && form.kind === "catalog") {
+        const active = fieldsFor(form)[field];
+        if (["logo", "banner", "screenshots"].includes(active?.key)) {
+          setPicker({ mediaKey: active.key });
+          return;
+        }
+      }
+      if (
+        ["catalogFilter", "calendar"].includes(form.kind) &&
+        keyEvent.escape
+      ) {
+        setForm(null);
+        setFocus("content");
+        setError("");
+        return;
+      }
       if (form.kind === "appearance" && keyEvent.escape) {
         setForm(null);
         setFocus("content");
@@ -1944,6 +2192,14 @@ function App({ initialConfig, flags, root, initialAppearance }) {
         return;
       }
       if (keyEvent.return && !active.multiline) {
+        if (
+          form.kind === "catalog" &&
+          ["logo", "banner", "screenshots"].includes(active.key) &&
+          !form.values[active.key]
+        ) {
+          setPicker({ mediaKey: active.key });
+          return;
+        }
         if (active.key === "file" && !form.values.file) {
           setPicker("files");
           return;
@@ -2030,6 +2286,17 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       return;
     }
     if (
+      (input === "f" || input === "F") &&
+      ["projects", "events"].includes(route.view)
+    ) {
+      catalogFilter();
+      return;
+    }
+    if (input === "j" && route.view === "event") {
+      catalogAction("attend");
+      return;
+    }
+    if (
       reviewing &&
       (input === "f" || input === "F") &&
       route.view === "post"
@@ -2094,7 +2361,8 @@ function App({ initialConfig, flags, root, initialAppearance }) {
     const prose =
       route.view === "help" ||
       (route.view === "post" && (!route.tab || route.tab === "overview")) ||
-      (route.view === "community" && !current?.community?.is_member);
+      (route.view === "community" && !current?.community?.is_member) ||
+      ["project", "event"].includes(route.view);
     if (
       keyEvent.upArrow ||
       keyEvent.downArrow ||
@@ -2166,6 +2434,10 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       return;
     }
     if (input === "n") {
+      if (["projects", "events"].includes(route.view)) {
+        composeCatalog(route.view.slice(0, -1));
+        return;
+      }
       if (route.view === "communities")
         openForm({
           kind: "community",
@@ -2194,6 +2466,10 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       return;
     }
     if (input === "e" || input === "E") {
+      if (["project", "event"].includes(route.view)) {
+        composeCatalog(route.view, true);
+        return;
+      }
       editSelected();
       return;
     }
@@ -2250,9 +2526,33 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       root,
       width,
       height: bodyHeight,
-      initial: picker,
+      initial: picker.mediaKey ? "files" : picker,
+      media: !!picker.mediaKey,
       onCancel: () => setPicker(null),
       onSelect: (source) => {
+        if (picker.mediaKey) {
+          const key = picker.mediaKey;
+          setForm((old) => ({
+            ...old,
+            values: {
+              ...old.values,
+              [key]:
+                key === "screenshots"
+                  ? [
+                      old.values[key] === "-" ? "" : old.values[key],
+                      source.path,
+                    ]
+                      .filter(Boolean)
+                      .join("\n")
+                  : source.path,
+            },
+          }));
+          setPicker(null);
+          setNotice(
+            "Image selected locally. It is uploaded only after confirmation.",
+          );
+          return;
+        }
         setForm((old) => ({
           ...old,
           source,
@@ -2416,8 +2716,29 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       const raw = [
         "AUDIENCE · " + audience,
         "",
-        ...(payload.title ? [payload.title, ""] : []),
+        ...(payload.title || payload.name
+          ? [payload.title || payload.name, ""]
+          : []),
         payload.body || payload.reason || payload.description || "",
+        ...(preview.catalog
+          ? [
+              "",
+              ...Object.entries(payload)
+                .filter(([key]) => !["description", "details"].includes(key))
+                .map(([key, value]) => `${key}: ${value}`),
+              "",
+              "DETAILS",
+              JSON.stringify(payload.details, null, 2),
+              "",
+              "IMAGES TO UPLOAD",
+              ...(preview.catalog.files.length
+                ? preview.catalog.files.map(
+                    (file) =>
+                      `${file.path} · ${file.mime} · ${file.size} bytes`,
+                  )
+                : ["No new images"]),
+            ]
+          : []),
         ...(payload.code ? ["", "CODE TO PUBLISH", payload.code] : []),
         ...(payload.review_focus
           ? ["", "REVIEW FOCUS", payload.review_focus]
@@ -2776,27 +3097,31 @@ function App({ initialConfig, flags, root, initialAppearance }) {
     );
   }
   const hint =
-    form?.kind === "appearance"
-      ? "← → choose · Tab next · Ctrl+S save · Esc cancel · 0 default preview"
-      : actionIndex !== null
-        ? "Actions are scoped to the selected item · Esc closes"
-        : reviewing && !form && !preview && !reading
-          ? "W code / discussion · Space select · C comment · X actions · F filter"
-          : picker
-            ? "Project files stay local until publication is confirmed"
-            : reading
-              ? "↑↓ scroll · R reply · E edit · D delete · Esc close"
-              : preview
-                ? "← → choose · Enter confirm · Esc edit"
-                : form
-                  ? "Tab field · Ctrl+E editor · Ctrl+O files · Ctrl+G diff · Ctrl+S preview"
-                  : phase !== "ready"
-                    ? "Enter connect / open browser · Ctrl+C exit"
-                    : route.view === "feedback"
-                      ? "↑↓ select · R reply · E edit · D delete · S resolve · ! report"
-                      : route.view === "post"
-                        ? "←→ tabs · ↑↓ select · R reply · E edit · D delete · Space read"
-                        : "↑↓ select · Enter open · Tab sections · [ ] pages · N new · / search";
+    ["projects", "events"].includes(route.view) && !form && !preview && !picker
+      ? "↑↓ select · Enter open · F filters · N new · [ ] pages · / search"
+      : ["project", "event"].includes(route.view) && !form && !preview
+        ? "↑↓ scroll · X actions · E edit your publication · Esc back"
+        : form?.kind === "appearance"
+          ? "← → choose · Tab next · Ctrl+S save · Esc cancel · 0 default preview"
+          : actionIndex !== null
+            ? "Actions are scoped to the selected item · Esc closes"
+            : reviewing && !form && !preview && !reading
+              ? "W code / discussion · Space select · C comment · X actions · F filter"
+              : picker
+                ? "Project files stay local until publication is confirmed"
+                : reading
+                  ? "↑↓ scroll · R reply · E edit · D delete · Esc close"
+                  : preview
+                    ? "← → choose · Enter confirm · Esc edit"
+                    : form
+                      ? "Tab field · Ctrl+E editor · Ctrl+O files · Ctrl+G diff · Ctrl+S preview"
+                      : phase !== "ready"
+                        ? "Enter connect / open browser · Ctrl+C exit"
+                        : route.view === "feedback"
+                          ? "↑↓ select · R reply · E edit · D delete · S resolve · ! report"
+                          : route.view === "post"
+                            ? "←→ tabs · ↑↓ select · R reply · E edit · D delete · Space read"
+                            : "↑↓ select · Enter open · Tab sections · [ ] pages · N new · / search";
   return h(
     ThemeContext.Provider,
     { value: colors },

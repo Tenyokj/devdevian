@@ -1,3 +1,4 @@
+import { loadCatalog, isCatalog } from "./catalog.mjs";
 import { createHash } from "node:crypto";
 export function assertSnippet(code, hash) {
   if (
@@ -17,6 +18,8 @@ export const navigation = [
   ["review", "Request code review", "Another pair of eyes"],
   ["drafts", "Local drafts", "Resume your writing"],
   ["communities", "Communities", "Your private spaces"],
+  ["projects", "Projects", "Build in the open"],
+  ["events", "Events", "Meet, learn and build"],
   ["search", "Search", "Find a conversation"],
   ["devices", "Connected terminals", "Manage CLI access"],
   ["appearance", "Appearance", "Themes & layout"],
@@ -56,6 +59,7 @@ export async function notificationRoute(api, item) {
       };
 }
 export async function loadPage(api, route, signal) {
+  if (isCatalog(route)) return loadCatalog(api, route, signal);
   const get = (path) => api(path, { signal }),
     page = route.page || 1;
   if (route.view === "feed")
@@ -226,7 +230,10 @@ export function contentLines(route, data) {
       "R                Reply in a conversation; refresh a list",
       "V / W            Open review workspace / switch code and discussion",
       "Space / C        Select a line range / comment on selected code",
-      "F                Filter remarks: all, open, resolved",
+      "F                Filter remarks or the Projects / Events catalog",
+      "N / E            Create / edit your project or event in its section",
+      "J                Join / leave an event (confirmation required)",
+      "X in catalogs    Links, project conversation, calendar and event management",
       "X / ?            Context actions (edit, delete, solution, live updates)",
       "Live updates     45s active / 3min idle; pause in X actions or --no-live",
       "C                Add feedback on code lines",
@@ -238,12 +245,13 @@ export function contentLines(route, data) {
       "Ctrl+L           Save a draft and reconnect an expired session",
       "Ctrl+S           Preview the current form",
       "Ctrl+O / Ctrl+G  Select a code file / Git diff in a review form",
+      "Ctrl+O           Pick a workspace image on logo/banner/screenshot fields",
       "/drafts          Restore locally saved drafts for this account/project",
       "/appearance      Preview and save local themes and layout",
       "Ctrl+C           Exit and restore the original terminal",
       "",
       "Commands: /feed  /inbox  /search words  /open 142",
-      "          /ask  /review  /communities  /devices  /logout  /quit",
+      "          /ask  /review  /communities  /projects  /events  /devices  /logout  /quit",
       "",
       "Text fields: arrows move the caret; Home/End move within a line.",
       "Multiline fields: Enter adds a line; Tab changes field.",

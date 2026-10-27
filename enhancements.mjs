@@ -7,6 +7,7 @@ import {
 import { randomUUID } from "node:crypto";
 import { pageRows, scopeSQL, memberOf } from "./spaces.mjs";
 import { normalizeName, literalPattern } from "./search-sql.mjs";
+export const validatedDetails = Symbol("validated entity details");
 export { normalizeName } from "./search-sql.mjs";
 export function manages(db, user, id) {
   if (Array.isArray(user?.validator_communities))
@@ -544,10 +545,12 @@ export function registerEnhancements(app, db, required, seed) {
         "/communities": "community",
         "/developer-profile": "user",
       }[path] ||
-      (/^\/(events|posts)\/\d+$/.test(path) && req.method === "PATCH"
+      (/^\/(events|posts|projects)\/\d+$/.test(path) && req.method === "PATCH"
         ? path.startsWith("/events")
           ? "event"
-          : "post"
+          : path.startsWith("/projects")
+            ? "project"
+            : "post"
         : null);
     if (
       path === "/developer-profile" &&
@@ -567,16 +570,17 @@ export function registerEnhancements(app, db, required, seed) {
           createKind,
           createKind === "user"
             ? req.user.id
-            : path.match(/^\/events\/(\d+)$/)?.[1] || "",
+            : path.match(/^\/(?:events|projects)\/(\d+)$/)?.[1] || "",
         );
       } catch (e) {
         if (!(e instanceof InputError)) throw e;
         return res.status(400).json({ error: e.message });
       }
     }
+    if (pending) req[validatedDetails] = pending;
     res.json = (value) => {
       if (res.statusCode >= 400) return json(value);
-      if (pending) {
+      if (pending && !res.locals.detailsSaved) {
         const id = createKind === "user" ? req.user.id : value?.id;
         if (id)
           db.prepare("INSERT OR REPLACE INTO entity_details VALUES(?,?,?)").run(

@@ -1,3 +1,4 @@
+import { readImage } from "./catalog.mjs";
 import React, { useState, useEffect, useRef } from "react";
 import { Box, Text, useInput } from "ink";
 import { basename, dirname } from "node:path";
@@ -16,6 +17,7 @@ export function WorkspacePicker({
   width,
   height,
   initial = "files",
+  media = false,
   onSelect,
   onCancel,
 }) {
@@ -113,13 +115,23 @@ export function WorkspacePicker({
     try {
       const data =
         mode === "files"
-          ? await readCodeFile(root, item.path)
+          ? media
+            ? await readImage(root, item.path)
+            : await readCodeFile(root, item.path)
           : await readDiff(root, item.path, {
               staged,
               signal: controller.signal,
             });
       if (!alive.current) return;
-      setSelected({ ...data, kind: mode === "files" ? "file" : "diff" });
+      setSelected(
+        media
+          ? {
+              path: data.path,
+              kind: "image",
+              code: `${data.name}\n${data.mime} · ${data.size} bytes\nThis file is uploaded only after publication confirmation.`,
+            }
+          : { ...data, kind: mode === "files" ? "file" : "diff" },
+      );
       setLine(0);
       setAnchor(null);
       setHunk(-1);
@@ -133,6 +145,10 @@ export function WorkspacePicker({
   }
   function accept() {
     try {
+      if (selected.kind === "image") {
+        onSelect({ kind: "image", path: selected.path });
+        return;
+      }
       if (selected.kind === "file") {
         const start = anchor === null ? null : Math.min(anchor, line) + 1,
           end = anchor === null ? null : Math.max(anchor, line) + 1;
@@ -229,7 +245,7 @@ export function WorkspacePicker({
       setSearching(true);
       return;
     }
-    if (input === "g") {
+    if (input === "g" && !media) {
       setMode((v) => (v === "files" ? "changes" : "files"));
       clearSearch();
       return;
@@ -338,15 +354,17 @@ export function WorkspacePicker({
         },
         row(selected.path, c.purple, "code-title"),
         row(
-          selected.kind === "diff"
-            ? (staged ? "Staged" : "Unstaged") +
+          selected.kind === "image"
+            ? "Image selected · Enter use"
+            : selected.kind === "diff"
+              ? (staged ? "Staged" : "Unstaged") +
                 " · " +
                 (hunk < 0
                   ? "All hunks"
                   : `Hunk ${hunk + 1}/${selected.hunks.length}`)
-            : anchor === null
-              ? "Whole file · Space selects a range"
-              : `Selected lines ${from + 1}–${to + 1}`,
+              : anchor === null
+                ? "Whole file · Space selects a range"
+                : `Selected lines ${from + 1}–${to + 1}`,
           c.blue,
           "code-mode",
         ),
@@ -403,10 +421,14 @@ export function WorkspacePicker({
       clip(
         error ||
           (selected
-            ? selected.kind === "file"
-              ? "↑↓ move · Space start/reset range · Enter use · Esc files"
-              : "[ ] all / individual hunks · Enter use · Esc changes"
-            : "G files / git diff · T staged / unstaged · H hidden · / filter · Esc cancel"),
+            ? selected.kind === "image"
+              ? "Enter select image · Esc files"
+              : selected.kind === "file"
+                ? "↑↓ move · Space start/reset range · Enter use · Esc files"
+                : "[ ] all / individual hunks · Enter use · Esc changes"
+            : media
+              ? "Enter preview image · H hidden · / filter · Esc cancel"
+              : "G files / git diff · T staged / unstaged · H hidden · / filter · Esc cancel"),
         width,
       ),
     ),

@@ -90,7 +90,10 @@ export async function removeConfig() {
 }
 export function client(origin, token = null) {
   origin = originOf(origin);
-  return async (path, { method = "GET", body, signal } = {}) => {
+  return async (
+    path,
+    { method = "GET", body, signal, raw, filename, responseType = "json" } = {},
+  ) => {
     if (!path.startsWith("/") || path.startsWith("//"))
       throw Error("Invalid API path.");
     let response;
@@ -99,11 +102,18 @@ export function client(origin, token = null) {
         method,
         redirect: "error",
         headers: {
-          Accept: "application/json",
+          Accept:
+            responseType === "text" ? "text/calendar" : "application/json",
+          ...(raw
+            ? {
+                "Content-Type": "application/octet-stream",
+                "X-Filename": encodeURIComponent(filename || "image"),
+              }
+            : {}),
           ...(body ? { "Content-Type": "application/json" } : {}),
           ...(token ? { Authorization: "Bearer " + token } : {}),
         },
-        body: body ? JSON.stringify(body) : undefined,
+        body: raw || (body ? JSON.stringify(body) : undefined),
         signal: signal
           ? AbortSignal.any([signal, AbortSignal.timeout(20000)])
           : AbortSignal.timeout(20000),
@@ -128,6 +138,7 @@ export function client(origin, token = null) {
       chunks.push(chunk);
     }
     const text = Buffer.concat(chunks).toString("utf8");
+    if (responseType === "text" && response.ok) return text;
     let data;
     try {
       data = JSON.parse(text);

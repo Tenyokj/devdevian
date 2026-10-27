@@ -17,7 +17,7 @@ Version-by-version changes and the customization roadmap: [CLI version history](
 The default `devdevian` command and `devdevian tui` open an alternate terminal screen. Navigation, conversations, inline forms, previews and search update in that screen; exiting restores your normal terminal. The blue and purple layout adapts to the terminal size, with compact navigation below 90 columns. Minimum size: 60 columns × 18 rows.
 
 - **Tab** switches between navigation, content and the command bar. **↑/↓** select; **Enter** opens; **Esc** goes back.
-- **/** focuses search and commands: `/feed`, `/inbox`, `/search query`, `/open 142`, `/ask`, `/review`, `/drafts`, `/communities`, `/devices`, `/help`, `/logout`, `/quit`.
+- **/** focuses search and commands: `/feed`, `/inbox`, `/search query`, `/open 142`, `/ask`, `/review`, `/drafts`, `/communities`, `/projects`, `/project 7`, `/events`, `/event 9`, `/devices`, `/help`, `/logout`, `/quit`.
 - **←/→** switch conversation tabs; **Space** reads the selected reply/remark in full. **[ / ]** paginate; **Page Up/Down** scroll.
 - **N** creates a conversation (a community on the Communities screen); **A** asks a question; **R** replies inside a conversation; **Shift+R** refreshes.
 - **C** comments on snippet lines; **E/D** edit/delete your own ordinary replies or code feedback; **S** resolves/reopens a code remark or accepts/removes a reply as the solution (question/review author only); **!** reports selected code feedback.
@@ -30,6 +30,18 @@ The default `devdevian` command and `devdevian tui` open an alternate terminal s
 Pages have a bounded 30-second in-memory cache. Refresh explicitly with Shift+R. Network errors stay inside the workspace; failed writes are never automatically retried. Existing web permissions and server validation apply to every operation.
 
 Ordinary reply deletion replaces your text with a placeholder and preserves nested replies. Its attachments become unavailable. Deleting an accepted answer reopens the question. D/d works on a selected reply or while reading it in full; confirmation is required.
+
+## Projects and Events
+
+Open **Projects** or **Events** from navigation, or use `/projects search words` and `/events search words`. **Enter** opens details; **[ / ]** paginate. **F** opens searchable filters: topic, project stage/owner/order, or event date, viewer timezone, upcoming/past and participation/order. **N** creates the current kind; **E** edits your own detail page. **X** lists available actions.
+
+Projects include description, requested feedback, technology text, stage, links and team roles. Add team members as `@username | Role`, one per line. The project conversation opens in the existing discussion workspace. Event details show both your time and the organizer's timezone; **J** joins/leaves after confirmation. The meeting link follows server permissions. Organizers can edit, cancel and restore their events from **X**.
+
+On logo/banner/screenshot fields, **Ctrl+O** opens the workspace file explorer. Choose PNG, JPEG, WebP or GIF files up to 4 MiB each, up to ten screenshots and 20 MiB total. Images stay local until you confirm the publication preview. Blank image fields preserve existing images when editing; `-` removes them. Screenshots with new paths replace the existing set. Images render in the browser; the terminal displays their presence rather than inline graphics.
+
+Calendar export from **X** writes a new `.ics` file inside the open workspace and never overwrites an existing file. Import that file into your calendar application yourself.
+
+Forms autosave locally. Successful upload IDs are retained if validation fails; edits require the latest server revision. If a publication response is lost, the CLI preserves the draft and asks you to check My projects / Hosting or attending before trying another copy. It does not automatically retry an uncertain write. Upload quotas and public visibility are the same as the website. These catalog operations are currently interactive TUI features, not separate script subcommands.
 
 ## Meet Devi
 
@@ -142,6 +154,6 @@ For local development use `devdevian login --host http://127.0.0.1:4173`. Remote
 
 ## Alpha scope
 
-This alpha covers login/logout, inbox, paginated feeds and search, discussions and replies, questions, code review creation, line feedback and feedback threads/status, and community discovery, creation and private publication. Profile/media editing, events administration and moderation remain available in the browser. There is no offline mode or automatic GitHub repository synchronization.
+This alpha covers login/logout, inbox, paginated feeds and search, discussions and replies, questions, code review creation, line feedback and feedback threads/status, and community discovery, creation and private publication. Project/event creation, editing, media uploads and participation are available in the TUI. Profile editing and moderation remain available in the browser. There is no offline mode or automatic GitHub repository synchronization.
 
 Source, contributions and issue reporting: [Tenyokj/devdevian](https://github.com/Tenyokj/devdevian). Report security issues through the repository's [security policy](https://github.com/Tenyokj/devdevian/blob/main/SECURITY.md), not a public issue containing private data. Licensed GPL-3.0-only.

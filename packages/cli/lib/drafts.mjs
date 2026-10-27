@@ -56,9 +56,14 @@ export class DraftStore {
       record.id !== id ||
       Date.now() - record.savedAt > TTL ||
       record.savedAt > Date.now() + 60000 ||
-      !["publication", "reply", "line", "edit", "community"].includes(
-        record.form?.kind,
-      ) ||
+      ![
+        "publication",
+        "reply",
+        "line",
+        "edit",
+        "community",
+        "catalog",
+      ].includes(record.form?.kind) ||
       !record.form?.values ||
       typeof record.form.values !== "object" ||
       Array.isArray(record.form.values)
@@ -82,7 +87,9 @@ export class DraftStore {
   }
   async save(form) {
     if (
-      ["open", "report"].includes(form.kind) ||
+      ["open", "report", "catalogFilter", "calendar", "appearance"].includes(
+        form.kind,
+      ) ||
       !["title", "body", "name", "description", "file", "review_focus"].some(
         (key) => String(form.values[key] || "").trim(),
       )

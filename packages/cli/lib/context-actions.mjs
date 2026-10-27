@@ -1,6 +1,7 @@
+import { catalogActions } from "./catalog.mjs";
 // Visibility is a convenience; the API remains the permission authority.
 export function contextActions({ route, data, selected, user, live }) {
-  const actions = [],
+  const actions = catalogActions(route, data, user),
     post = data?.post;
   const add = (id, label) => actions.push({ id, label });
   const feedback =

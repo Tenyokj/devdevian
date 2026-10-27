@@ -130,11 +130,13 @@ export function parseCommand(text) {
       "devices",
       "drafts",
       "appearance",
+      "projects",
+      "events",
     ].includes(cmd)
   )
     return { command: cmd, arg };
   if (
-    cmd === "open" &&
+    ["open", "project", "event"].includes(cmd) &&
     /^[1-9]\d*$/.test(arg) &&
     Number.isSafeInteger(Number(arg))
   )

@@ -6,7 +6,16 @@ Every published npm artifact has a unique immutable version. We record each vers
 
 ## Current milestone
 
-**0.5.0 focuses on themes, interface customization and local appearance preferences.** Projects and Events parity remains a separate future milestone.
+**0.6.0 brings Projects and Events into the terminal**, using the same hosted data and permissions as the browser.
+
+## 0.6.0-alpha.1 — Projects and Events
+
+- Added paginated catalogs, text search and filter forms. Projects filter by topic, stage, owner and order; Events by topic, calendar date with viewer timezone, upcoming/past, participation and order.
+- Project detail pages include requested feedback, technologies, links and team roles, with access to the existing conversation. Create/edit forms support logos and screenshots through the workspace image picker.
+- Event details show viewer and organizer times. Create/edit events with a banner, join/leave with confirmation, export a new workspace `.ics` file, and cancel/restore owned events. Meeting URLs follow server access rules.
+- Publication previews happen before uploads. Local drafts retain successful upload IDs; uncertain publication results are not automatically replayed. Existing image/storage quotas and workspace path protections apply.
+- Added authenticated API project editing with revision checks and atomic showcase/metadata updates, detail reads and idempotent desired-state event attendance. No schema migration or production-data reset. Deploy the compatible API before using the new terminal workflows.
+- Regression coverage includes browser/CLI shared data, ownership and stale edits, image validation, meeting-link privacy, cancelled-event participation, safe calendar export, interrupted publication handling, and terminal navigation/forms/media selection at desktop and compact sizes.
 
 ## 0.5.1-alpha.1 — Meet Devi
 
