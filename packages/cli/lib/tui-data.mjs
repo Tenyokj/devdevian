@@ -1,3 +1,14 @@
+import { createHash } from "node:crypto";
+export function assertSnippet(code, hash) {
+  if (
+    createHash("sha256")
+      .update(code || "")
+      .digest("hex") !== hash
+  )
+    throw Error(
+      "Code changed while loading. Press Shift+R to refresh before reviewing.",
+    );
+}
 export const navigation = [
   ["inbox", "Inbox", "Replies & mentions"],
   ["feed", "Public feed", "Developer commons"],
@@ -77,15 +88,23 @@ export async function loadPage(api, route, signal) {
     const post = await get("/posts/" + route.id + "?reply_page=" + page);
     let items = post.replies,
       pagination = post.reply_pagination;
+    let snippet_hash;
     if (route.tab === "feedback") {
       const feedback = await get(
-        "/posts/" + route.id + "/code-reviews?page=" + page,
+        "/posts/" +
+          route.id +
+          "/code-reviews?page=" +
+          page +
+          (route.status ? "&status=" + route.status : ""),
       );
+      assertSnippet(post.code, feedback.snippet_hash);
+      snippet_hash = feedback.snippet_hash;
       items = feedback.items;
       pagination = feedback.pagination;
     }
     return {
       post,
+      snippet_hash,
       items,
       pagination,
       title: post.title,
@@ -128,6 +147,7 @@ export async function loadPage(api, route, signal) {
       get("/posts/" + route.postId),
       get(`/posts/${route.postId}/code-reviews?target_id=${route.id}`),
     ]);
+    assertSnippet(post.code, notes.snippet_hash);
     const note = notes.items.find((item) => item.id === Number(route.id));
     if (!note) throw Error("This feedback is no longer available.");
     const replies = await get(
@@ -136,6 +156,7 @@ export async function loadPage(api, route, signal) {
     return {
       post,
       note,
+      snippet_hash: notes.snippet_hash,
       items: [
         { ...note, entryType: "note" },
         ...replies.items.map((item) => ({
@@ -163,6 +184,11 @@ export function contentLines(route, data) {
       "Page Up / Down   Scroll a conversation or list",
       "N / A            New conversation / ask a question",
       "R                Reply in a conversation; refresh a list",
+      "V / W            Open review workspace / switch code and discussion",
+      "Space / C        Select a line range / comment on selected code",
+      "F                Filter remarks: all, open, resolved",
+      "X / ?            Context actions (edit, delete, solution, live updates)",
+      "Live updates     45s active / 3min idle; pause in X actions or --no-live",
       "C                Add feedback on code lines",
       "S                Resolve / reopen selected code feedback",
       "E / D            Edit / delete your own feedback or reply",

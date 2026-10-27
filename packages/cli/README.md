@@ -18,7 +18,7 @@ The default `devdevian` command and `devdevian tui` open an alternate terminal s
 - **/** focuses search and commands: `/feed`, `/inbox`, `/search query`, `/open 142`, `/ask`, `/review`, `/drafts`, `/communities`, `/devices`, `/help`, `/logout`, `/quit`.
 - **←/→** switch conversation tabs; **Space** reads the selected reply/remark in full. **[ / ]** paginate; **Page Up/Down** scroll.
 - **N** creates a conversation (a community on the Communities screen); **A** asks a question; **R** replies inside a conversation; **Shift+R** refreshes.
-- **C** comments on snippet lines; **E/D** edit/delete your own ordinary replies or code feedback; **S** resolves/reopens a code remark as the publication author; **!** reports selected code feedback.
+- **C** comments on snippet lines; **E/D** edit/delete your own ordinary replies or code feedback; **S** resolves/reopens a code remark or accepts/removes a reply as the solution (question/review author only); **!** reports selected code feedback.
 - In forms, **Tab/Shift+Tab** change fields, arrows choose options or move the text cursor, **Enter** adds a line, **Ctrl+S** opens the preview. Publication requires a separate confirmation; Escape asks before discarding a draft. Drafts auto-save locally after a short pause and can be restored from **Local drafts** or `/drafts`.
 - **Ctrl+C** exits. With an unsent draft, confirm saving and leaving or press Ctrl+C again to force exit.
 
@@ -27,6 +27,20 @@ The default `devdevian` command and `devdevian tui` open an alternate terminal s
 Pages have a bounded 30-second in-memory cache. Refresh explicitly with Shift+R. Network errors stay inside the workspace; failed writes are never automatically retried. Existing web permissions and server validation apply to every operation.
 
 Ordinary reply deletion replaces your text with a placeholder and preserves nested replies. Its attachments become unavailable. Deleting an accepted answer reopens the question. D/d works on a selected reply or while reading it in full; confirmation is required.
+
+## Code and discussion, together
+
+Press **V** in a review to open the code workspace. Wide terminals show the snippet alongside its discussion; narrow terminals show one pane at a time. **W** switches focus. In the code pane, arrows move between lines (left/right scroll horizontally), **Space** anchors a range and **C** opens a prefilled comment form. Remarks may cover at most 50 lines. **Enter** selects a remark covering the current line, if it is on the current page. Markers describe the current page only; **F** cycles all/open/resolved remarks and **[ / ]** page through them.
+
+Selecting a remark highlights its range. A remark on an earlier snippet shows its **saved quote**, not unrelated current lines. Switch to current code with **W** before adding a new remark. Git patch line numbers still include patch headers.
+
+**X** or **?** opens a keyboard action menu for the selected item. It shows edits/deletion for your own content, resolve/reopen for review authors and accepted solutions for question/review authors. Deletion and accepting/removing a solution require confirmation. Feedback reports go to the existing moderation queue. The server checks permissions independently.
+
+## Inbox and live updates
+
+The header shows unread notifications. Live reads run every **45 seconds**, slowing to **3 minutes** after two minutes without input; failures back off up to five minutes. An expired/revoked session pauses updates. Pause/resume from **X → Pause/Resume live updates**, or start with `devdevian tui --no-live`.
+
+Inbox and open discussion views refresh without moving a selected item that still exists. While you type, use a picker, read full text or confirm an action, background reads update only the unread count; they do not replace the view or draft. Polling never marks notifications as read. **X → Mark received notifications as read** affects only notifications through the last loaded boundary; newer arrivals remain unread. Shift+R refreshes manually.
 
 ## Project files and Git changes
 

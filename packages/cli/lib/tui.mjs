@@ -24,20 +24,18 @@ import {
   parseCommand,
   PageCache,
 } from "./tui-model.mjs";
-import { navigation, loadPage, contentLines } from "./tui-data.mjs";
+import {
+  navigation,
+  loadPage,
+  contentLines,
+  assertSnippet,
+} from "./tui-data.mjs";
+import { basename } from "node:path";
+import { colors } from "./theme.mjs";
+import { liveLoop, anchoredIndex } from "./live.mjs";
+import { contextActions } from "./context-actions.mjs";
+import { ReviewWorkspace, codeRange } from "./review-workspace.mjs";
 const h = React.createElement;
-const colors = {
-  bg: "#0d1222",
-  panel: "#12192b",
-  line: "#354266",
-  muted: "#8190af",
-  text: "#e0e7ff",
-  blue: "#79b8ff",
-  purple: "#b29aff",
-  green: "#70d6b0",
-  red: "#ff9baf",
-  selected: "#29345b",
-};
 const itemsOf = (value) => (Array.isArray(value) ? value : value?.items || []);
 const stamp = (value) => {
   const date = new Date(
@@ -335,7 +333,10 @@ function listRows(route, data, index, width) {
           ? " · original remark"
           : item.entryType === "parent"
             ? " · parent reply"
-            : " · reply #" + item.id);
+            : " · reply #" + item.id) +
+        (data.post?.accepted_reply_id === item.id
+          ? " · accepted solution"
+          : "");
       meta =
         stamp(item.created) +
         ((item.edited_at || item.updated_at) && !item.deleted_at
@@ -355,7 +356,7 @@ function listRows(route, data, index, width) {
     const selected = i === index;
     return [
       {
-        text: (selected ? "› " : "  ") + clip(title, width - 3),
+        text: (selected ? "▸ " : "  ") + clip(title, width - 3),
         color: selected ? colors.blue : colors.text,
         bold: selected,
         selected,
@@ -366,7 +367,7 @@ function listRows(route, data, index, width) {
         color: selected ? colors.text : colors.muted,
         selected,
       },
-      "",
+      { text: "  " + "─".repeat(Math.max(0, width - 4)), color: colors.line },
     ];
   });
 }
@@ -402,7 +403,18 @@ function App({ initialConfig, flags, root }) {
     [tick, setTick] = useState(0),
     [reading, setReading] = useState(null),
     [picker, setPicker] = useState(null),
-    [draftSaved, setDraftSaved] = useState(false);
+    [draftSaved, setDraftSaved] = useState(false),
+    [actionIndex, setActionIndex] = useState(null),
+    [reviewFocus, setReviewFocus] = useState("notes"),
+    [reviewLine, setReviewLine] = useState(0),
+    [reviewAnchor, setReviewAnchor] = useState(null),
+    [reviewHorizontal, setReviewHorizontal] = useState(0),
+    [live, setLive] = useState(!flags["no-live"]),
+    [unread, setUnread] = useState(0),
+    [liveStatus, setLiveStatus] = useState("");
+  const activity = useRef(Date.now()),
+    liveView = useRef(null),
+    notificationGeneration = useRef(0);
   const cache = useRef(new PageCache()),
     history = useRef([]),
     busy = useRef(false),
@@ -432,6 +444,88 @@ function App({ initialConfig, flags, root }) {
   const key = JSON.stringify(route),
     current = data?.key === key ? data : null;
   const selected = current?.items?.[index];
+  const reviewing =
+    !!current?.post?.code &&
+    (route.view === "feedback" ||
+      (route.view === "post" && route.tab === "feedback"));
+  const actions = contextActions({
+    route,
+    data: current,
+    selected,
+    user,
+    live,
+  });
+  liveView.current = {
+    route,
+    key,
+    current,
+    index,
+    blocked: !!(
+      form ||
+      preview ||
+      picker ||
+      dialog ||
+      reading ||
+      actionIndex !== null ||
+      loading ||
+      pending ||
+      focus === "prompt"
+    ),
+  };
+  useEffect(() => {
+    if (phase !== "ready" || !api || !live) return;
+    return liveLoop(
+      async (signal) => {
+        const generation = notificationGeneration.current;
+        const count = await api("/notifications?limit=1", { signal });
+        if (signal.aborted || generation !== notificationGeneration.current)
+          return;
+        setUnread(count.unread_count || 0);
+        const before = liveView.current;
+        if (
+          before.blocked ||
+          !["inbox", "post", "feedback", "thread"].includes(before.route.view)
+        ) {
+          setLiveStatus("");
+          return;
+        }
+        const next = await loadPage(api, before.route, signal);
+        const after = liveView.current;
+        if (
+          signal.aborted ||
+          after.key !== before.key ||
+          after.current !== before.current ||
+          after.blocked
+        )
+          return;
+        cache.current.set(before.key, next);
+        setIndex(
+          anchoredIndex(after.current?.items, next.items || [], after.index),
+        );
+        setData({ ...next, key: before.key });
+        setLiveStatus("");
+      },
+      {
+        activity: () => activity.current,
+        onError: (e) => {
+          setLiveStatus(
+            e.status === 401 || e.status === 403
+              ? "Live updates paused: sign in again. Local draft preserved."
+              : "Live updates delayed · automatic retry",
+          );
+          if (e.status === 401 || e.status === 403) setLive(false);
+        },
+      },
+    );
+  }, [api, phase, live]);
+  useEffect(() => {
+    if (current?.unread_count !== undefined) setUnread(current.unread_count);
+  }, [current]);
+  useEffect(() => {
+    setReviewLine(0);
+    setReviewAnchor(null);
+    setReviewHorizontal(0);
+  }, [current?.post?.id, current?.post?.code]);
   const resetAccount = () => {
     cache.current.clear();
     history.current = [];
@@ -459,6 +553,7 @@ function App({ initialConfig, flags, root }) {
     if (!replace) history.current.push({ route, index, scroll });
     if (history.current.length > 30) history.current.shift();
     setReading(null);
+    if (next.view === "feedback") setReviewFocus("notes");
     setRoute(next);
     setIndex(0);
     setScroll(0);
@@ -805,8 +900,25 @@ function App({ initialConfig, flags, root }) {
       setError("Replies are paused.");
       return;
     }
+    const note = route.view === "feedback" ? current.note : selected;
+    const range = reviewing
+      ? reviewFocus === "notes" && note?.start_line
+        ? { start: note.start_line, end: note.end_line }
+        : codeRange(reviewLine, reviewAnchor)
+      : { start: 1, end: 1 };
+    if (reviewing && reviewFocus === "notes" && note?.outdated) {
+      setError(
+        "This remark belongs to an earlier snippet. W switches to current code before adding a new remark.",
+      );
+      return;
+    }
+    if (range.end - range.start >= 50) {
+      setError("Select at most 50 code lines for a remark.");
+      return;
+    }
     await task(async () => {
       const notes = await api(`/posts/${p.id}/code-reviews`);
+      assertSnippet(p.code, notes.snippet_hash);
       openForm({
         kind: "line",
         title: "Comment on code lines",
@@ -815,7 +927,11 @@ function App({ initialConfig, flags, root }) {
         postId: p.id,
         snippetHash: notes.snippet_hash,
         lineCount: p.code.split("\n").length,
-        values: { start_line: "1", end_line: "1", body: "" },
+        values: {
+          start_line: String(range.start),
+          end_line: String(range.end),
+          body: "",
+        },
       });
     });
   }
@@ -1006,11 +1122,14 @@ function App({ initialConfig, flags, root }) {
     }
     if (route.view === "inbox") {
       await task(async () => {
-        if (!item.read_at)
+        if (!item.read_at) {
+          notificationGeneration.current++;
           await api("/notifications/" + item.id + "/read", {
             method: "PATCH",
             body: {},
           });
+          setUnread((v) => Math.max(0, v - 1));
+        }
         cache.current.clear();
         if (item.event_id) {
           openBrowser(
@@ -1176,6 +1295,81 @@ function App({ initialConfig, flags, root }) {
       invalidate(note.resolved ? "Feedback reopened." : "Feedback resolved.");
     });
   }
+  function acceptSolution() {
+    const post = current?.post;
+    if (
+      !selected ||
+      selected.deleted_at ||
+      !post ||
+      post.user_id !== user.id ||
+      !["question", "review"].includes(post.kind) ||
+      !(route.view === "thread" || route.tab === "replies")
+    )
+      return;
+    const accepted = post.accepted_reply_id === selected.id;
+    askConfirm(
+      accepted
+        ? "Remove accepted solution?"
+        : "Accept this reply as the solution?",
+      "This changes the solution shown to everyone in the conversation.",
+      () =>
+        task(async () => {
+          await api(`/posts/${post.id}/solution`, {
+            method: "PATCH",
+            body: { reply_id: accepted ? null : selected.id },
+          });
+          invalidate(accepted ? "Solution removed." : "Solution accepted.");
+        }),
+    );
+  }
+  function reportSelected() {
+    const target = editable();
+    if (!target?.feedback || target.row.deleted_at) {
+      setError("Select an existing code remark or feedback reply to report.");
+      return;
+    }
+    const noteId = route.view === "feedback" ? route.id : target.row.id;
+    openForm({
+      kind: "report",
+      feedback: true,
+      title: "Report selected feedback",
+      url: `/posts/${current.post.id}/code-reviews/${noteId}/report`,
+      replyId: target.row.entryType === "feedbackReply" ? target.row.id : 0,
+      audience: "Assigned moderation team",
+      values: { reason: "" },
+    });
+  }
+  function runAction(id) {
+    setActionIndex(null);
+    if (id === "read") {
+      if (current?.post) {
+        setReading(selected);
+        setScroll(0);
+      } else openSelected();
+    } else if (id === "reply") reply();
+    else if (id === "comment") lineFeedback();
+    else if (id === "edit") editSelected();
+    else if (id === "delete") deleteSelected();
+    else if (id === "resolve") resolveSelected();
+    else if (id === "solution") acceptSolution();
+    else if (id === "report") reportSelected();
+    else if (id === "browser")
+      openBrowser(config.origin + "/app#post/" + current.post.id);
+    else if (id === "sync") invalidate("Updated.");
+    else if (id === "live") {
+      setLive((v) => !v);
+      setLiveStatus("");
+    } else if (id === "read-all")
+      task(async () => {
+        notificationGeneration.current++;
+        await api("/notifications/read-all", {
+          method: "PATCH",
+          body: { through_id: current.latest_id },
+        });
+        setUnread(0);
+        invalidate("Received notifications marked as read.");
+      });
+  }
   async function runCommand() {
     const value = command.trim();
     if (!value) return;
@@ -1249,6 +1443,7 @@ function App({ initialConfig, flags, root }) {
     );
   }
   useInput((input, keyEvent) => {
+    activity.current = Date.now();
     if (picker) return;
     if (keyEvent.ctrl && input === "c") {
       if (dialog) {
@@ -1291,6 +1486,15 @@ function App({ initialConfig, flags, root }) {
       return;
     }
     if (busy.current) return;
+    if (actionIndex !== null) {
+      if (keyEvent.escape || input === "x" || input === "X")
+        setActionIndex(null);
+      else if (keyEvent.upArrow) setActionIndex((v) => Math.max(0, v - 1));
+      else if (keyEvent.downArrow)
+        setActionIndex((v) => Math.min(actions.length - 1, v + 1));
+      else if (keyEvent.return) runAction(actions[actionIndex]?.id);
+      return;
+    }
     if (reading) {
       const lines = wrap(
           reading.deleted_at
@@ -1478,6 +1682,80 @@ function App({ initialConfig, flags, root }) {
       else if (keyEvent.rightArrow) setFocus("content");
       return;
     }
+    if (input === "x" || input === "X" || input === "?") {
+      setActionIndex(0);
+      return;
+    }
+    if ((input === "v" || input === "V") && current?.post?.code) {
+      navigate({ view: "post", id: current.post.id, tab: "feedback", page: 1 });
+      return;
+    }
+    if (reviewing && (input === "w" || input === "W")) {
+      setReviewFocus((v) => (v === "code" ? "notes" : "code"));
+      return;
+    }
+    if (
+      reviewing &&
+      (input === "f" || input === "F") &&
+      route.view === "post"
+    ) {
+      const filters = [undefined, "open", "resolved"];
+      navigate(
+        {
+          ...route,
+          status: filters[(filters.indexOf(route.status) + 1) % filters.length],
+          page: 1,
+        },
+        { replace: true },
+      );
+      return;
+    }
+    if (reviewing && reviewFocus === "code") {
+      if (
+        keyEvent.upArrow ||
+        keyEvent.downArrow ||
+        keyEvent.pageUp ||
+        keyEvent.pageDown
+      ) {
+        const delta =
+          (keyEvent.upArrow || keyEvent.pageUp ? -1 : 1) *
+          (keyEvent.pageUp || keyEvent.pageDown
+            ? Math.max(1, contentHeight - 2)
+            : 1);
+        setReviewLine((v) =>
+          Math.max(
+            0,
+            Math.min(current.post.code.split("\n").length - 1, v + delta),
+          ),
+        );
+        return;
+      }
+      if (keyEvent.leftArrow || keyEvent.rightArrow) {
+        setReviewHorizontal((v) =>
+          Math.max(0, v + (keyEvent.leftArrow ? -8 : 8)),
+        );
+        return;
+      }
+      if (input === " ") {
+        setReviewAnchor((v) => (v === null ? reviewLine : null));
+        return;
+      }
+      if (keyEvent.return) {
+        const i = current.items.findIndex(
+          (n) =>
+            !n.outdated &&
+            !n.deleted_at &&
+            reviewLine + 1 >= n.start_line &&
+            reviewLine + 1 <= n.end_line,
+        );
+        if (i >= 0) {
+          setIndex(i);
+          setReviewFocus("notes");
+        } else
+          setNotice("No remark on this line on the current page. C adds one.");
+        return;
+      }
+    }
     const prose =
       route.view === "help" ||
       (route.view === "post" && (!route.tab || route.tab === "overview")) ||
@@ -1572,15 +1850,16 @@ function App({ initialConfig, flags, root }) {
       invalidate("Updated.");
       return;
     }
-    if (input === "c") {
+    if (input === "c" || input === "C") {
       lineFeedback();
       return;
     }
-    if (input === "s") {
-      resolveSelected();
+    if (input === "s" || input === "S") {
+      if (route.view === "thread" || route.tab === "replies") acceptSolution();
+      else resolveSelected();
       return;
     }
-    if (input === "e") {
+    if (input === "e" || input === "E") {
       editSelected();
       return;
     }
@@ -1609,25 +1888,12 @@ function App({ initialConfig, flags, root }) {
       return;
     }
     if (input === "!" && ["feedback", "post"].includes(route.view)) {
-      const target = editable();
-      if (!target?.feedback || target.row.deleted_at) {
-        setError("Select an existing code remark or feedback reply to report.");
-        return;
-      }
-      const noteId = route.view === "feedback" ? route.id : target.row.id;
-      openForm({
-        kind: "report",
-        feedback: true,
-        title: "Report selected feedback",
-        url: `/posts/${current.post.id}/code-reviews/${noteId}/report`,
-        replyId: target.row.entryType === "feedbackReply" ? target.row.id : 0,
-        audience: "Assigned moderation team",
-        values: { reason: "" },
-      });
+      reportSelected();
     }
   });
   const status =
     error ||
+    liveStatus ||
     notice ||
     (pending
       ? "Saving…"
@@ -1826,6 +2092,61 @@ function App({ initialConfig, flags, root }) {
         { color: colors.muted },
         "Opening " + labelOf(route).toLowerCase() + " " + spin,
       );
+    else if (actionIndex !== null) {
+      const first = Math.max(
+        0,
+        actionIndex - Math.max(1, contentHeight - 2) + 1,
+      );
+      body = h(
+        Box,
+        { height: contentHeight, flexDirection: "column", overflow: "hidden" },
+        h(
+          Text,
+          { bold: true, color: colors.blue },
+          "Actions · ↑↓ choose · Enter run · Esc close",
+        ),
+        contentHeight >= 4
+          ? h(
+              Text,
+              { color: colors.muted },
+              "Available for this selection and your role",
+            )
+          : null,
+        ...actions
+          .slice(
+            first,
+            first + Math.max(1, contentHeight - (contentHeight >= 4 ? 2 : 1)),
+          )
+          .map((action, i) =>
+            h(
+              Text,
+              {
+                key: action.id,
+                color: i + first === actionIndex ? colors.blue : colors.text,
+                backgroundColor:
+                  i + first === actionIndex ? colors.selected : undefined,
+              },
+              clip(
+                (i + first === actionIndex ? "› " : "  ") + action.label,
+                contentWidth,
+              ),
+            ),
+          ),
+      );
+    } else if (reviewing)
+      body = h(ReviewWorkspace, {
+        post: current.post,
+        note: route.view === "feedback" ? current.note : null,
+        items: current.items || [],
+        index,
+        width: contentWidth,
+        height: contentHeight,
+        focus: reviewFocus,
+        line: reviewLine,
+        anchor: reviewAnchor,
+        horizontal: reviewHorizontal,
+        rows: (w) => listRows(route, current, index, w),
+      });
     else {
       const lines = contentLines(route, current || {}).flatMap((line) =>
         wrap(line, contentWidth),
@@ -1941,11 +2262,19 @@ function App({ initialConfig, flags, root }) {
                       ? colors.blue
                       : colors.muted,
                   bold: (route.tab || "overview") === id,
+                  backgroundColor:
+                    (route.tab || "overview") === id
+                      ? colors.selected
+                      : undefined,
                 },
                 " " + label + " ",
               ),
             ),
-            h(Text, { color: colors.muted }, "  ← →"),
+            h(
+              Text,
+              { color: colors.muted },
+              reviewing ? "  W focus · F " + (route.status || "all") : "  ← →",
+            ),
           )
         : h(TextLine, {
             text: form
@@ -1981,7 +2310,7 @@ function App({ initialConfig, flags, root }) {
               paddingX: 1,
               overflow: "hidden",
             },
-            h(Text, { color: colors.muted }, "WORKSPACE"),
+            h(Text, { color: colors.purple, bold: true }, "YOUR SPACE"),
             h(Text, null, " "),
             ...navigation
               .slice(
@@ -2005,9 +2334,16 @@ function App({ initialConfig, flags, root }) {
                     backgroundColor: selected ? colors.selected : undefined,
                     wrap: "truncate",
                   },
-                  (selected ? "› " : "  ") + label,
+                  (selected ? "› " : route.view === id ? "● " : "  ") +
+                    label +
+                    (id === "inbox" && unread ? " · " + unread : ""),
                 );
               }),
+            h(
+              Text,
+              { color: colors.muted, dimColor: true },
+              "  Tab sections · / find",
+            ),
           )
         : null;
     center = h(
@@ -2017,21 +2353,26 @@ function App({ initialConfig, flags, root }) {
       compact && focus === "nav" ? null : pane,
     );
   }
-  const hint = picker
-    ? "Project files stay local until publication is confirmed"
-    : reading
-      ? "↑↓ scroll · R reply · E edit · D delete · Esc close"
-      : preview
-        ? "← → choose · Enter confirm · Esc edit"
-        : form
-          ? "Tab field · Ctrl+O files · Ctrl+G diff · Ctrl+S preview · Esc discard"
-          : phase !== "ready"
-            ? "Enter connect / open browser · Ctrl+C exit"
-            : route.view === "feedback"
-              ? "↑↓ select · R reply · E edit · D delete · S resolve · ! report"
-              : route.view === "post"
-                ? "←→ tabs · ↑↓ select · R reply · E edit · D delete · Space read"
-                : "↑↓ select · Enter open · Tab sections · [ ] pages · N new · / search";
+  const hint =
+    actionIndex !== null
+      ? "Actions are scoped to the selected item · Esc closes"
+      : reviewing && !form && !preview && !reading
+        ? "W code / discussion · Space select · C comment · X actions · F filter"
+        : picker
+          ? "Project files stay local until publication is confirmed"
+          : reading
+            ? "↑↓ scroll · R reply · E edit · D delete · Esc close"
+            : preview
+              ? "← → choose · Enter confirm · Esc edit"
+              : form
+                ? "Tab field · Ctrl+O files · Ctrl+G diff · Ctrl+S preview · Esc discard"
+                : phase !== "ready"
+                  ? "Enter connect / open browser · Ctrl+C exit"
+                  : route.view === "feedback"
+                    ? "↑↓ select · R reply · E edit · D delete · S resolve · ! report"
+                    : route.view === "post"
+                      ? "←→ tabs · ↑↓ select · R reply · E edit · D delete · Space read"
+                      : "↑↓ select · Enter open · Tab sections · [ ] pages · N new · / search";
   return h(
     Box,
     {
@@ -2054,12 +2395,22 @@ function App({ initialConfig, flags, root }) {
       h(
         Text,
         { color: colors.purple, bold: true },
-        clip("◈ DEVDEVIAN  /  TERMINAL WORKSPACE", Math.max(10, width - 28)),
+        clip("◈ DEVDEVIAN  ·  " + basename(root), Math.max(10, width - 36)),
       ),
       h(
         Text,
         { color: colors.blue },
-        clip(user ? "@" + user.username : "CLI · ALPHA", 24),
+        clip(
+          user
+            ? "@" +
+                user.username +
+                " · " +
+                unread +
+                " unread · " +
+                (live ? "● Live" : "○ Paused")
+            : "CLI · ALPHA",
+          32,
+        ),
       ),
     ),
     center,
@@ -2087,7 +2438,10 @@ function App({ initialConfig, flags, root }) {
         : h(
             Text,
             { color: colors.muted },
-            clip("Search or /command     ·     Press / to type", width - 6),
+            clip(
+              "Search or /command     ·     Press / to type · X actions",
+              width - 6,
+            ),
           ),
     ),
     h(TextLine, { text: hint, width, color: colors.muted }),

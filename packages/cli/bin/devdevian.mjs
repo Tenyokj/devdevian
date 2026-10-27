@@ -39,6 +39,7 @@ const options = {
   json: { type: "boolean" },
   editor: { type: "boolean" },
   "no-open": { type: "boolean" },
+  "no-live": { type: "boolean" },
   help: { type: "boolean", short: "h" },
   version: { type: "boolean", short: "v" },
 };
@@ -95,6 +96,7 @@ const help = `Devdevian CLI ${version} · alpha
   devdevian review reopen POST_ID REVIEW_ID
   devdevian communities [--page 2]
 
+  --no-live          Disable background reads in the live workspace
   --project PATH     Root directory for the live file/diff picker (default: current directory)
   --community ID     Publish to an approved private community
   --editor           Write text in $VISUAL / $EDITOR
@@ -477,6 +479,7 @@ try {
     for (const key of ["host", "name", "project"])
       if (values[key]) args.push("--" + key, values[key]);
     if (values["no-open"]) args.push("--no-open");
+    if (values["no-live"]) args.push("--no-live");
     await (
       await import("../lib/window.mjs")
     ).openWindow({ entry: fileURLToPath(import.meta.url), args });

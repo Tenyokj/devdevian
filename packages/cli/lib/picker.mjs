@@ -9,17 +9,9 @@ import {
   readDiff,
   selectLines,
 } from "./workspace.mjs";
+import { colors } from "./theme.mjs";
 const h = React.createElement,
-  c = {
-    text: "#e0e7ff",
-    muted: "#8190af",
-    blue: "#79b8ff",
-    purple: "#b29aff",
-    green: "#70d6b0",
-    red: "#ff9baf",
-    bg: "#12192b",
-    selected: "#29345b",
-  };
+  c = { ...colors, bg: colors.panel };
 export function WorkspacePicker({
   root,
   width,

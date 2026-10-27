@@ -1,5 +1,13 @@
 # Changelog
 
+## CLI 0.4.0-alpha.1 — Review workspace and live Inbox
+
+- Code and paginated remarks side by side, compact focus switching, selectable line ranges, horizontal code scrolling and all/open/resolved filters. Older remarks display the preserved quote.
+- Context actions respect authorship: edit/delete, resolve/reopen, reports and accepted solutions with confirmation. Existing API validation remains authoritative.
+- Unread count and serial live reads with idle slowdown, failure backoff, cancellation and pause controls; background updates preserve selection and protect active forms.
+- Refined shared blue/purple styling, quieter rounded panels, selected tabs, separated conversation cards, project identity and clearer keyboard hints.
+- Uses existing API and schema; no database migration or production data reset.
+
 ## CLI 0.3.1-alpha.1 — Ordinary reply deletion
 
 - Fixed D/d deletion for ordinary replies, including full-text reading and parent replies inside nested threads. Confirmation, author ownership and revision checks apply.
