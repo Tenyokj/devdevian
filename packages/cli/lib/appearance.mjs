@@ -72,6 +72,14 @@ export const appearanceFields = [
       ["reduced", "Reduced · static indicators"],
     ],
   },
+  {
+    key: "welcome",
+    label: "Devi greeting",
+    options: [
+      ["on", "Show Devi"],
+      ["off", "Hide Devi"],
+    ],
+  },
 ];
 export const defaultAppearance = Object.freeze(
   Object.fromEntries(

@@ -8,6 +8,15 @@ Every published npm artifact has a unique immutable version. We record each vers
 
 **0.5.0 focuses on themes, interface customization and local appearance preferences.** Projects and Events parity remains a separate future milestone.
 
+## 0.5.1-alpha.1 — Meet Devi
+
+- Added a terminal-native ASCII mascot based on the ghost/laptop/orbit logo, with full and compact drawings and English greetings: “Devi missed you.” and “Devi saved you a seat.”
+- Startup follows the actual session check and first page request, with no minimum duration or artificial progress. Connection errors stop the loading state and offer an existing-session retry.
+- Supported empty sections show a still Devi and a contextual next step. Sign-in codes, addresses and controls take priority on small screens.
+- Subtle motion blinks only during active startup or browser approval; Reduced motion is static. Appearance includes a persistent welcome on/off option, also available to offline commands and session-only launch flags.
+- Script/JSON commands remain banner-free. No additional image dependency, API change, schema migration or production-data change. Existing preferences default the new setting to on.
+- Checked delayed/failing startup, retry, animation/static/off modes, English captions, first-page handoff, empty Inbox, script output and 60×18 device approval in unit and pseudo-terminal regressions.
+
 ## 0.5.0-alpha.1 — Make the terminal yours
 
 **Changes**

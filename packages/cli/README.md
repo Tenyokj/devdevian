@@ -31,12 +31,25 @@ Pages have a bounded 30-second in-memory cache. Refresh explicitly with Shift+R.
 
 Ordinary reply deletion replaces your text with a placeholder and preserves nested replies. Its attachments become unavailable. Deleting an accepted answer reopens the question. D/d works on a selected reply or while reading it in full; confirmation is required.
 
+## Meet Devi
+
+Devi is the Devdevian mascot: a small ghost with a laptop and an orbit. The terminal uses colored ASCII art, so it needs no image protocol or image downloads. A compact drawing is used when space is limited; authentication codes, addresses and controls take priority over decoration.
+
+- **“Devi missed you.”** appears while checking your saved session and loading the first page. It disappears as soon as the page is ready; there is no minimum splash duration or fake progress bar.
+- **“Devi saved you a seat.”** welcomes you to browser-approved sign-in. Sign-in instructions stay visible in small terminals.
+- Empty feed, Inbox, communities, local drafts and search views show a still mascot with a relevant next step. Errors remain error states; they do not become a happy empty view.
+- Subtle mode animates a blink only during startup work or pending browser approval. **Reduced motion** keeps the drawing static. Disable it entirely in **Appearance → Devi greeting**, with `devdevian appearance --welcome off`, or just for one launch with `devdevian tui --welcome off`.
+- A failed session check offers **R / Enter** to retry the existing session. **Ctrl+C** exits during loading. Script commands and `--json` output never print the mascot.
+
+All mascot captions are in English. Welcome preferences are local and compatible with existing 0.5.0 configuration files.
+
 ## Themes and layout
 
 Open **Appearance** in navigation, type `/appearance`, or press **,** from a reading/list screen. Use arrows to choose options and Tab to move between them. The entire interface previews each change, including code colors, the file picker and navigation. Wide terminals include a sample card next to the controls.
 
 - **Midnight** preserves the original blue/purple design; **Nebula** uses a deeper violet surface; **Daylight** is light; **Contrast** emphasizes readable foregrounds.
 - Choose a **blue, violet, cyan or rose accent**, comfortable/compact lists, automatic/hidden sidebar, automatic/stacked review panels, rounded/straight frames and subtle/reduced loading indicators.
+- **Devi greeting** shows/hides the terminal mascot on startup, sign-in and supported empty sections. Reduced motion keeps Devi still.
 - **Ctrl+S** saves locally. **Esc** cancels the preview. **0** restores the default preview; save to keep it, or cancel to retain existing settings.
 - Hidden navigation stays available with **Tab**. Stacked review panes switch with **W**. Narrow terminals automatically avoid a permanent sidebar and split review layout.
 

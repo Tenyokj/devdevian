@@ -1,5 +1,11 @@
 # Changelog
 
+## CLI 0.5.1-alpha.1 — Meet Devi
+
+- Terminal-native Devi mascot with English startup/sign-in greetings, compact artwork and useful empty-state prompts.
+- Real session/page loading, blink animation with Reduced motion support, local welcome toggle and credential-preserving retry after connection errors.
+- Authentication instructions retain priority on small screens. Script/JSON output remains banner-free; no API/schema change.
+
 ## CLI 0.5.0-alpha.1 — Themes and interface customization
 
 - Added a live Appearance workspace, four themes, four accents and explicit local save/cancel/reset controls.

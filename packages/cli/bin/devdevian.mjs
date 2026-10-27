@@ -120,6 +120,7 @@ const help = `Devdevian CLI ${version} · alpha
   --review-layout MODE  auto | stacked
   --frame STYLE      round | single
   --motion MODE      subtle | reduced
+  --welcome MODE     on | off (Devi greeting)
   --no-live          Disable background reads in the live workspace
   --project PATH     Root directory for the live file/diff picker (default: current directory)
   --community ID     Publish to an approved private community

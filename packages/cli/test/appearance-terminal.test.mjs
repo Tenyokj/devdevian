@@ -163,6 +163,7 @@ test(
         reviewLayout: "stacked",
         frame: "single",
         motion: "reduced",
+        welcome: "on",
       });
       assert.ok(!screen().includes("YOUR SPACE"));
       assert.ok(screen().includes("┌"));

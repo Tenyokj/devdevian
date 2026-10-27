@@ -3,6 +3,7 @@ import { render, Box, Text, useApp, useInput, useWindowSize } from "ink";
 import { randomBytes } from "node:crypto";
 import { homedir, hostname } from "node:os";
 import { workspaceRoot, reviewSource } from "./workspace.mjs";
+import { DeviPanel } from "./devi.mjs";
 import { WorkspacePicker } from "./picker.mjs";
 import { DraftStore, draftIdentity } from "./drafts.mjs";
 import { spawn } from "node:child_process";
@@ -523,7 +524,8 @@ function App({ initialConfig, flags, root, initialAppearance }) {
     ),
     [user, setUser] = useState(null),
     [device, setDevice] = useState(null),
-    [authVersion, setAuthVersion] = useState(0);
+    [authVersion, setAuthVersion] = useState(0),
+    [booting, setBooting] = useState(true);
   const [route, setRoute] = useState({ view: "feed", page: 1 }),
     [data, setData] = useState(null),
     [loading, setLoading] = useState(false),
@@ -693,6 +695,7 @@ function App({ initialConfig, flags, root, initialAppearance }) {
     setPreview(null);
     setDevice(null);
     setUser(null);
+    setBooting(true);
     setReading(null);
     setActionIndex(null);
     setUnread(0);
@@ -716,6 +719,7 @@ function App({ initialConfig, flags, root, initialAppearance }) {
     } else setError(problemMessage(e));
   }
   function navigate(next, { replace = false } = {}) {
+    setBooting(false);
     if (!replace)
       history.current.push({
         route,
@@ -898,7 +902,7 @@ function App({ initialConfig, flags, root, initialAppearance }) {
         if (!controller.signal.aborted) fail(e);
       });
     return () => controller.abort();
-  }, [phase, api]);
+  }, [phase, api, authVersion]);
   useEffect(() => {
     if (phase !== "ready" || !api || form || route.view === "help") return;
     let active = true;
@@ -964,7 +968,10 @@ function App({ initialConfig, flags, root, initialAppearance }) {
           if (active) fail(e);
         })
         .finally(() => {
-          if (active) setLoading(false);
+          if (active) {
+            setLoading(false);
+            setBooting(false);
+          }
         });
     return () => {
       active = false;
@@ -996,6 +1003,7 @@ function App({ initialConfig, flags, root, initialAppearance }) {
           if (controller.signal.aborted) return;
           resetAccount();
           setConfig(saved);
+          setBooting(true);
           setPhase("checking");
           setNotice("Terminal connected.");
           return;
@@ -1062,6 +1070,7 @@ function App({ initialConfig, flags, root, initialAppearance }) {
     );
   }
   function openForm(next) {
+    setBooting(false);
     setForm({
       ...next,
       draftId: next.draftId || randomBytes(32).toString("hex"),
@@ -1772,6 +1781,14 @@ function App({ initialConfig, flags, root, initialAppearance }) {
         setDevice(null);
         return;
       }
+      if (phase === "checking") {
+        if (input === "q") exit();
+        else if (error && (keyEvent.return || input === "r" || input === "R")) {
+          setError("");
+          setAuthVersion((v) => v + 1);
+        }
+        return;
+      }
       if (input === "q") exit();
       else if (keyEvent.return && !busy.current) {
         if (phase === "pending" && device) openBrowser(device.verification_uri);
@@ -2257,44 +2274,82 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       },
     });
   else if (phase !== "ready") {
-    const lines = [
-      "A place for curious developers.",
-      "Your conversations, without leaving the terminal.",
-      "",
-      ...(phase === "pending" && device
+    const statusLines =
+      phase === "pending" && device
         ? [
             "Confirm this code: " + device.user_code,
-            "Waiting for your approval " + spin,
             device.verification_uri,
-            "Enter reopens the browser · Esc cancels",
+            "Waiting for your approval...",
           ]
         : phase === "checking"
-          ? ["Opening your workspace " + spin]
+          ? error
+            ? ["Connection could not be completed.", error]
+            : ["Connecting to Devdevian..."]
           : [
               "Sign in with your existing Devdevian account.",
-              "",
-              "Enter connects this terminal through your browser.",
               "Google, GitHub and email sign-in stay on the website.",
-              "",
-              "Q exits.",
-            ]),
-    ];
+            ];
+    const footer =
+      phase === "pending"
+        ? ["Enter reopens the browser · Esc cancels"]
+        : phase === "checking"
+          ? [error ? "R or Enter retries · Ctrl+C exits" : "Ctrl+C exits"]
+          : [
+              "Enter connects this terminal through your browser.",
+              "Q or Ctrl+C exits.",
+            ];
     center = h(
       Box,
       {
         borderStyle: colors.frame,
         borderColor: colors.purple,
         flexDirection: "column",
-        paddingX: 2,
-        paddingY: 1,
+        paddingX: 1,
         height: bodyHeight,
         overflow: "hidden",
       },
-      h(Text, { bold: true, color: colors.purple }, "YOUR DEVELOPER SPACE"),
-      h(FrameRows, {
-        rows: lines.flatMap((line) => wrap(line, width - 8)),
-        width: width - 8,
-        height: Math.max(1, bodyHeight - 5),
+      h(DeviPanel, {
+        width: Math.max(1, width - 4),
+        height: Math.max(1, bodyHeight - 2),
+        message:
+          effectiveAppearance.welcome === "off"
+            ? ""
+            : phase === "checking"
+              ? "Devi missed you."
+              : "Devi saved you a seat.",
+        status: statusLines,
+        footer,
+        show: effectiveAppearance.welcome === "on",
+        animate: phase !== "auth" && !error,
+        motion: effectiveAppearance.motion,
+      }),
+    );
+  } else if (
+    booting &&
+    !current &&
+    effectiveAppearance.welcome === "on" &&
+    !error &&
+    !dialog &&
+    !form &&
+    !picker
+  ) {
+    center = h(
+      Box,
+      {
+        borderStyle: colors.frame,
+        borderColor: colors.purple,
+        paddingX: 1,
+        height: bodyHeight,
+        overflow: "hidden",
+      },
+      h(DeviPanel, {
+        width: Math.max(1, width - 4),
+        height: Math.max(1, bodyHeight - 2),
+        message: "Devi missed you.",
+        status: ["Loading your " + labelOf(route).toLowerCase() + "..."],
+        footer: ["Ctrl+C exits"],
+        motion: effectiveAppearance.motion,
+        animate: true,
       }),
     );
   } else if (dialog) {
@@ -2405,7 +2460,7 @@ function App({ initialConfig, flags, root, initialAppearance }) {
         width: contentWidth,
         height: contentHeight,
       });
-    else if (loading && !current)
+    else if ((loading || booting) && !current)
       body = h(
         Text,
         { color: colors.muted },
@@ -2500,30 +2555,49 @@ function App({ initialConfig, flags, root, initialAppearance }) {
           height: contentHeight,
           offset: Math.min(scroll, Math.max(0, lines.length - contentHeight)),
         });
-      else if (!current?.items?.length)
-        body = h(
-          Box,
-          { flexDirection: "column", paddingTop: 1 },
-          h(
-            Text,
-            { color: colors.text },
-            route.view === "search"
-              ? "Find your next useful conversation."
-              : error
-                ? "Could not open this view."
-                : "Nothing here yet.",
-          ),
-          h(
-            Text,
-            { color: colors.muted },
-            error
-              ? "Press Shift+R to retry."
-              : route.view === "feed"
-                ? "N starts a conversation. A asks a question."
-                : "Use / to search or Tab to explore another section.",
-          ),
-        );
-      else {
+      else if (!current?.items?.length) {
+        const messages = {
+          inbox: [
+            "You're all caught up.",
+            "Replies, mentions and review updates will appear here.",
+          ],
+          drafts: [
+            "No local drafts yet.",
+            "Start writing to save a private draft on this device.",
+          ],
+          communities: [
+            "Find your people.",
+            "Use / to search or N to create a private community.",
+          ],
+          feed: [
+            "Nothing here yet.",
+            "N starts a conversation. A asks a question.",
+          ],
+          search: route.query
+            ? [
+                "No conversations matched your search.",
+                "Try fewer words or a different phrase.",
+              ]
+            : [
+                "Find your next useful conversation.",
+                "Press / and type /search followed by your query.",
+              ],
+        };
+        const message = messages[route.view] || [
+          "Nothing here yet.",
+          "Use / to search or Tab to explore another section.",
+        ];
+        body = h(DeviPanel, {
+          width: contentWidth,
+          height: contentHeight,
+          message: message[0],
+          status: [message[1]],
+          show:
+            effectiveAppearance.welcome === "on" &&
+            Object.hasOwn(messages, route.view),
+          motion: effectiveAppearance.motion,
+        });
+      } else {
         const visible = Math.max(1, Math.floor(contentHeight / stride)),
           first = Math.max(0, index - visible + 1),
           rows = listRows(
