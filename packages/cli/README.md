@@ -59,6 +59,14 @@ Calendar export from **X** writes a new `.ics` file inside the open workspace an
 
 Forms autosave locally. Successful upload IDs are retained if validation fails; edits require the latest server revision. If a publication response is lost, the CLI preserves the draft and asks you to check My projects / Hosting or attending before trying another copy. It does not automatically retry an uncertain write. Upload quotas and public visibility are the same as the website. These catalog operations are currently interactive TUI features, not separate script subcommands.
 
+## Quick actions and focused work
+
+Press **Ctrl+K** outside a form or command input, or run **/actions**, to search actions, sections and creation flows. Recent views stay in memory for the current account/session; the palette offers up to eight. Type `project 7`, `event 9` or `open 142` for an explicit ID, or choose the forum-search result for a text query. Typing stays local; actions run only after Enter. Destructive actions retain their separate confirmation. **Esc** returns to the previous view without moving your selection.
+
+Conversation, Project and Event forms show one step at a time. **Ctrl+N** validates the current step and moves forward; **Ctrl+P** returns to the previous step. **Tab** still moves through all fields and crosses steps. **Ctrl+S** checks every required field and opens the full publication preview; a missing value returns you to its step. Step changes preserve text, image paths, code selections and locally saved drafts. No upload or publication happens just by advancing a step.
+
+In full-text reading (**Space** on a reply or remark), **/** opens local text search. **Enter** locates a matching rendered line; **n / Shift+N** cycles forward/backward. **Home / End** jumps to the start/end. **Esc** returns to the underlying view, and reopening the same unchanged item restores your place. This is bounded session memory, not cross-device or permanent reading history. In text fields and the command bar, **Ctrl+K** continues to delete to the end of the line.
+
 ## Meet Devi
 
 Devi is the Devdevian mascot: a small ghost with a laptop and an orbit. The terminal uses colored ASCII art, so it needs no image protocol or image downloads. A compact drawing is used when space is limited; authentication codes, addresses and controls take priority over decoration.
@@ -158,7 +166,7 @@ Commands are examples; replace IDs, file paths and topic IDs with your own. Run 
 
 A selected file is read only when explicitly named. Before publication, the client previews the payload and audience and asks for confirmation. Use `--community ID` for an approved private community, `--json` for machine-readable API output and `--yes` to explicitly publish without a prompt. Noninteractive publishing requires the relevant text flags and `--yes`. No repository discovery or background file collection runs.
 
-`--editor` uses `$VISUAL`, then `$EDITOR`, then `vi` (`notepad` on Windows). The editor is launched without a shell. File, body and API limits also apply in the terminal. This client uses ordinary HTTPS API calls, not a direct database connection, and sends no background polling traffic when idle. Device login polls every five seconds for at most ten minutes.
+`--editor` uses `$VISUAL`, then `$EDITOR`, then `vi` (`notepad` on Windows). The editor is launched without a shell. File, body and API limits also apply in the terminal. This client uses ordinary HTTPS API calls, not a direct database connection, and performs no background polling in script commands. The live workspace polls at bounded active/idle intervals unless paused or launched with `--no-live`. Device login polls every five seconds for at most ten minutes.
 
 ## Connected devices and credentials
 

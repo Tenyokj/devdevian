@@ -1,5 +1,12 @@
 # Changelog
 
+## CLI 0.7.0-alpha.1 — Everyday terminal flow
+
+- Searchable quick actions with scoped operations, navigation, creation, recent views and explicit search/open choices.
+- Focused steps for conversations, Projects and Events; per-step validation, preserved drafts/selections and full publication preview.
+- Session reading positions, full-text line search, Home/End controls and clearer reply-thread context.
+- Verified in real terminal sessions and against an isolated shared browser API. No API/schema migration or new dependency.
+
 ## CLI 0.6.1-alpha.1 — Terminal-first introduction
 
 - Large, selectively colored terminal help with plain/narrow/NO_COLOR fallbacks and Projects/Events workspace hints.

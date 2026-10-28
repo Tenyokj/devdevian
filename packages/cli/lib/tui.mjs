@@ -43,6 +43,14 @@ import {
   appearanceFlags,
 } from "./appearance.mjs";
 import { liveLoop, anchoredIndex } from "./live.mjs";
+import { paletteItems } from "./palette.mjs";
+import {
+  formSteps,
+  stepAt,
+  readingMatches,
+  nextReadingMatch,
+  ReadingMemory,
+} from "./workflow.mjs";
 import { contextActions } from "./context-actions.mjs";
 import { editExternal } from "./external-editor.mjs";
 import { markdownRows } from "./rich-text.mjs";
@@ -106,8 +114,13 @@ function openBrowser(url) {
   child.unref();
 }
 function fieldsFor(form) {
-  if (["catalog", "catalogFilter", "calendar"].includes(form.kind))
-    return catalogFields(form);
+  if (["catalog", "catalogFilter", "calendar"].includes(form.kind)) {
+    const fields = catalogFields(form),
+      steps = formSteps(form, fields);
+    return steps.length
+      ? steps.flatMap((step) => step.indexes.map((i) => fields[i]))
+      : fields;
+  }
   if (form.kind === "appearance") return appearanceFields;
   if (form.kind === "publication")
     return [
@@ -280,8 +293,12 @@ function FormView({ form, active, cursor, width, height }) {
   const colors = useTheme();
   const fields = fieldsFor(form),
     rows = [];
-  let selectedLine = 0;
+  const steps = formSteps(form, fields),
+    stepIndex = stepAt(steps, active, fields.length),
+    step = steps[stepIndex];
+  let selectedLine = rows.length;
   fields.forEach((field, index) => {
+    if (step && !step.indexes.includes(index)) return;
     if (index === active) selectedLine = rows.length;
     rows.push({
       text: (index === active ? "› " : "  ") + field.label,
@@ -311,7 +328,10 @@ function FormView({ form, active, cursor, width, height }) {
             )
           : 0;
       const visible = field.multiline
-          ? Math.min(4, Math.max(2, text.length))
+          ? Math.min(
+              index === active ? Math.max(1, Math.min(12, height - 3)) : 3,
+              Math.max(2, text.length),
+            )
           : 1,
         start = index === active ? Math.max(0, caretLine - visible + 1) : 0;
       rows.push(
@@ -326,15 +346,20 @@ function FormView({ form, active, cursor, width, height }) {
     rows.push("");
   });
   if (active === fields.length) selectedLine = rows.length;
-  rows.push({
-    text:
-      (active === fields.length ? "› " : "  ") +
-      (form.kind === "appearance"
-        ? "Save appearance  [Ctrl+S]"
-        : "Preview publication  [Ctrl+S]"),
-    color: colors.blue,
-    bold: true,
-  });
+  if (!step || stepIndex === steps.length - 1)
+    rows.push({
+      text:
+        (active === fields.length ? "› " : "  ") +
+        (form.kind === "appearance"
+          ? "Save appearance  [Ctrl+S]"
+          : form.kind === "catalogFilter"
+            ? "Apply filters  [Ctrl+S]"
+            : form.kind === "calendar"
+              ? "Export calendar  [Ctrl+S]"
+              : "Preview publication  [Ctrl+S]"),
+      color: colors.blue,
+      bold: true,
+    });
   const offset = Math.max(
     0,
     Math.min(selectedLine - (height >= 4 ? 1 : 0), rows.length - height),
@@ -576,6 +601,12 @@ function App({ initialConfig, flags, root, initialAppearance }) {
     [picker, setPicker] = useState(null),
     [draftSaved, setDraftSaved] = useState(false),
     [actionIndex, setActionIndex] = useState(null),
+    [palette, setPalette] = useState(null),
+    [readerFind, setReaderFind] = useState({
+      query: "",
+      cursor: 0,
+      editing: false,
+    }),
     [reviewFocus, setReviewFocus] = useState("notes"),
     [reviewLine, setReviewLine] = useState(0),
     [reviewAnchor, setReviewAnchor] = useState(null),
@@ -583,6 +614,8 @@ function App({ initialConfig, flags, root, initialAppearance }) {
     [live, setLive] = useState(!flags["no-live"]),
     [unread, setUnread] = useState(0),
     [liveStatus, setLiveStatus] = useState("");
+  const readingMemory = useRef(new ReadingMemory()),
+    readingReturn = useRef(0);
   const activity = useRef(Date.now()),
     liveView = useRef(null),
     notificationGeneration = useRef(0);
@@ -609,7 +642,10 @@ function App({ initialConfig, flags, root, initialAppearance }) {
   );
   const effectiveAppearance =
     form?.kind === "appearance" ? normalizeAppearance(form.values) : appearance;
-  const colors = themeFor(effectiveAppearance),
+  const colors = useMemo(
+      () => themeFor(effectiveAppearance),
+      [effectiveAppearance],
+    ),
     stride = effectiveAppearance.density === "compact" ? 3 : 4;
   const width = Math.max(1, columns),
     height = Math.max(1, rows - 1),
@@ -644,6 +680,7 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       dialog ||
       reading ||
       actionIndex !== null ||
+      palette ||
       loading ||
       pending ||
       focus === "prompt"
@@ -715,6 +752,9 @@ function App({ initialConfig, flags, root, initialAppearance }) {
   const resetAccount = () => {
     cache.current.clear();
     history.current = [];
+    readingMemory.current.clear();
+    setPalette(null);
+    setReaderFind({ query: "", cursor: 0, editing: false });
     setData(null);
     setForm(null);
     setPicker(null);
@@ -749,6 +789,7 @@ function App({ initialConfig, flags, root, initialAppearance }) {
     if (!replace)
       history.current.push({
         route,
+        label: current?.title || labelOf(route),
         index,
         scroll,
         selectedId: selected?.id,
@@ -798,6 +839,123 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       setFocus("content");
       setError("");
     } else setFocus("nav");
+  }
+  function readerKey(item) {
+    const kind =
+      item.entryType === "feedbackReply"
+        ? "feedbackReply"
+        : item.entryType === "note" ||
+            route.view === "feedback" ||
+            route.tab === "feedback"
+          ? "feedback"
+          : "reply";
+    return `${config?.origin}:${user?.id}:${current?.post?.id}:${kind}:${item.id}:${item.revision || ""}`;
+  }
+  const readerRows = useMemo(
+    () =>
+      reading
+        ? markdownRows(
+            reading.deleted_at
+              ? "[deleted — discussion preserved]"
+              : reading.body || "",
+            contentWidth,
+            colors,
+          )
+        : [],
+    [reading, contentWidth, colors],
+  );
+  const readerHeight = Math.max(1, contentHeight - 2);
+  const readerHits = readingMatches(readerRows, readerFind.query);
+  useEffect(() => {
+    if (reading)
+      readingMemory.current.save(
+        readerKey(reading),
+        Math.min(scroll, Math.max(0, readerRows.length - readerHeight)),
+        readerRows,
+      );
+  }, [reading, scroll, readerRows, readerHeight]);
+  function readItem(item) {
+    if (!reading) readingReturn.current = scroll;
+    const lines = markdownRows(
+      item.deleted_at ? "[deleted — discussion preserved]" : item.body || "",
+      contentWidth,
+      colors,
+    );
+    setScroll(
+      readingMemory.current.restore(readerKey(item), lines, readerHeight),
+    );
+    setReaderFind({ query: "", cursor: 0, editing: false });
+    setReading(item);
+  }
+  function closeReading() {
+    setReading(null);
+    setScroll(readingReturn.current);
+    setReaderFind({ query: "", cursor: 0, editing: false });
+  }
+  function moveStep(direction) {
+    const fields = fieldsFor(form),
+      steps = formSteps(form, fields),
+      currentStep = stepAt(steps, field, fields.length);
+    const next = currentStep + direction;
+    if (direction > 0)
+      for (const i of steps[currentStep]?.indexes || []) {
+        const f = fields[i],
+          value = form.values[f.key] || "";
+        if (f.min && value.trim().length < f.min) {
+          setField(i);
+          setCursor(graphemes(value).length);
+          setError(f.label + " needs at least " + f.min + " characters.");
+          return;
+        }
+      }
+    if (next >= steps.length) {
+      prepare();
+      return;
+    }
+    if (next < 0) return;
+    setField(steps[next].indexes[0]);
+    setCursor(
+      graphemes(form.values[fields[steps[next].indexes[0]].key] || "").length,
+    );
+    setError("");
+  }
+  const activeSteps = form ? formSteps(form, fieldsFor(form)) : [],
+    activeStep = form ? stepAt(activeSteps, field, fieldsFor(form).length) : 0;
+  const quickItems = palette
+    ? paletteItems({
+        query: palette.query,
+        actions,
+        history: history.current,
+        route,
+      })
+    : [];
+  function chooseQuick(item) {
+    if (!item) return;
+    setPalette(null);
+    if (item.route) {
+      navigate(item.route);
+      return;
+    }
+    if (item.id.startsWith("action:")) {
+      runAction(item.id.slice(7));
+      return;
+    }
+    if (item.id.startsWith("nav:")) {
+      chooseNav(Number(item.id.slice(4)));
+      return;
+    }
+    if (item.id.startsWith("create:")) {
+      const kind = item.id.slice(7);
+      if (["project", "event"].includes(kind)) composeCatalog(kind);
+      else composePublication(kind);
+      return;
+    }
+    if (item.id === "command") {
+      runCommand(item.command);
+      return;
+    }
+    if (item.id === "search")
+      navigate({ view: "search", query: item.query, page: 1 });
   }
   async function task(work) {
     if (busy.current) return;
@@ -1678,8 +1836,7 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       return;
     }
     if (route.view === "thread" && item.entryType === "parent") {
-      setReading(item);
-      setScroll(0);
+      readItem(item);
       return;
     }
     if (
@@ -1695,8 +1852,7 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       return;
     }
     if (route.view === "feedback") {
-      setReading(item);
-      setScroll(0);
+      readItem(item);
       return;
     }
     navigate({
@@ -1864,8 +2020,7 @@ function App({ initialConfig, flags, root, initialAppearance }) {
     }
     if (id === "read") {
       if (current?.post) {
-        setReading(selected);
-        setScroll(0);
+        readItem(selected);
       } else openSelected();
     } else if (id === "reply") reply();
     else if (id === "comment") lineFeedback();
@@ -1891,8 +2046,8 @@ function App({ initialConfig, flags, root, initialAppearance }) {
         invalidate("Received notifications marked as read.");
       });
   }
-  async function runCommand() {
-    const value = command.trim();
+  async function runCommand(override) {
+    const value = (override ?? command).trim();
     if (!value) return;
     setCommand("");
     setCommandCursor(0);
@@ -1922,6 +2077,10 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       }
       if (parsed.command === "project" || parsed.command === "event") {
         navigate({ view: parsed.command, id: parsed.arg, page: 1 });
+        return;
+      }
+      if (parsed.command === "actions") {
+        setPalette({ query: "", cursor: 0, index: 0 });
         return;
       }
       if (parsed.command === "appearance") {
@@ -2033,6 +2192,45 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       reconnect();
       return;
     }
+    if (palette) {
+      if (keyEvent.escape) {
+        setPalette(null);
+        return;
+      }
+      if (keyEvent.upArrow || keyEvent.downArrow) {
+        setPalette((old) => ({
+          ...old,
+          index: Math.max(
+            0,
+            Math.min(
+              quickItems.length - 1,
+              old.index + (keyEvent.downArrow ? 1 : -1),
+            ),
+          ),
+        }));
+        return;
+      }
+      if (keyEvent.return) {
+        chooseQuick(quickItems[palette.index]);
+        return;
+      }
+      const updated = editText(palette.query, palette.cursor, input, keyEvent, {
+        max: 120,
+      });
+      setPalette({ query: updated.value, cursor: updated.cursor, index: 0 });
+      return;
+    }
+    if (
+      keyEvent.ctrl &&
+      input === "k" &&
+      !form &&
+      !preview &&
+      focus !== "prompt"
+    ) {
+      setActionIndex(null);
+      setPalette({ query: "", cursor: 0, index: 0 });
+      return;
+    }
     if (actionIndex !== null) {
       if (keyEvent.escape || input === "x" || input === "X")
         setActionIndex(null);
@@ -2043,36 +2241,65 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       return;
     }
     if (reading) {
-      const lines = markdownRows(
-          reading.deleted_at
-            ? "[deleted — discussion preserved]"
-            : reading.body || "",
-          contentWidth,
-          colors,
-        ),
-        maximum = Math.max(0, lines.length - contentHeight);
+      const maximum = Math.max(0, readerRows.length - readerHeight);
+      if (readerFind.editing) {
+        if (keyEvent.escape) {
+          setReaderFind((old) => ({ ...old, editing: false }));
+          return;
+        }
+        if (keyEvent.return) {
+          setReaderFind((old) => ({ ...old, editing: false }));
+          if (readerHits.length)
+            setScroll(readerHits.find((n) => n >= scroll) ?? readerHits[0]);
+          return;
+        }
+        const updated = editText(
+          readerFind.query,
+          readerFind.cursor,
+          input,
+          keyEvent,
+          { max: 120 },
+        );
+        setReaderFind({
+          query: updated.value,
+          cursor: updated.cursor,
+          editing: true,
+        });
+        return;
+      }
+      if (input === "/") {
+        setReaderFind((old) => ({ ...old, editing: true }));
+        return;
+      }
+      if ((input === "n" || input === "N") && readerFind.query) {
+        setScroll(nextReadingMatch(readerHits, scroll, input === "n" ? 1 : -1));
+        return;
+      }
       if (keyEvent.escape || keyEvent.return || input === " ") {
-        setReading(null);
+        closeReading();
+        return;
+      }
+      if (keyEvent.home) {
         setScroll(0);
         return;
       }
+      if (keyEvent.end) {
+        setScroll(maximum);
+        return;
+      }
       if (keyEvent.upArrow || keyEvent.pageUp)
-        setScroll((v) =>
-          Math.max(0, v - (keyEvent.pageUp ? contentHeight : 1)),
-        );
+        setScroll((v) => Math.max(0, v - (keyEvent.pageUp ? readerHeight : 1)));
       else if (keyEvent.downArrow || keyEvent.pageDown)
         setScroll((v) =>
-          Math.min(maximum, v + (keyEvent.pageDown ? contentHeight : 1)),
+          Math.min(maximum, v + (keyEvent.pageDown ? readerHeight : 1)),
         );
       else if (input === "r") {
-        setReading(null);
+        closeReading();
         reply();
       } else if (input === "e" || input === "E") {
-        setReading(null);
+        closeReading();
         editSelected();
-      } else if (input === "d" || input === "D") {
-        deleteSelected();
-      }
+      } else if (input === "d" || input === "D") deleteSelected();
       return;
     }
     if (preview) {
@@ -2122,6 +2349,14 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       if (form.kind === "appearance" && input === "0") {
         setForm((old) => ({ ...old, values: { ...defaultAppearance } }));
         setNotice("Default preview restored. Ctrl+S saves; Esc cancels.");
+        return;
+      }
+      if (
+        keyEvent.ctrl &&
+        ["n", "p"].includes(input) &&
+        formSteps(form, fieldsFor(form)).length
+      ) {
+        moveStep(input === "n" ? 1 : -1);
         return;
       }
       if (keyEvent.ctrl && input === "e") {
@@ -2409,8 +2644,7 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       selected &&
       ["post", "thread", "feedback"].includes(route.view)
     ) {
-      setReading(selected);
-      setScroll(0);
+      readItem(selected);
       return;
     }
     if (keyEvent.return) {
@@ -2509,7 +2743,7 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       ? "Saving…"
       : loading
         ? "Loading…"
-        : "Shared account · shared conversations · same permissions");
+        : "Ctrl+K quick actions · Shared account · same permissions");
   const spin =
     effectiveAppearance.motion === "reduced" ? "·" : ["◐", "◓", "◑", "◒"][tick];
   let center;
@@ -2652,6 +2886,60 @@ function App({ initialConfig, flags, root, initialAppearance }) {
         animate: true,
       }),
     );
+  } else if (palette) {
+    const count = Math.max(1, bodyHeight - 5),
+      first = Math.max(0, palette.index - count + 1);
+    center = h(
+      Box,
+      {
+        borderStyle: colors.frame,
+        borderColor: colors.purple,
+        backgroundColor: colors.panel,
+        flexDirection: "column",
+        paddingX: 1,
+        height: bodyHeight,
+        overflow: "hidden",
+      },
+      h(TextLine, {
+        text: "QUICK ACTIONS · type to filter",
+        width: width - 6,
+        color: colors.purple,
+        bold: true,
+      }),
+      h(InputText, {
+        value: palette.query,
+        cursor: palette.cursor,
+        width: width - 6,
+      }),
+      h(
+        Box,
+        { flexDirection: "column", height: count, overflow: "hidden" },
+        ...quickItems.slice(first, first + count).map((item, i) =>
+          h(
+            Text,
+            {
+              key: item.id,
+              wrap: "truncate",
+              color: first + i === palette.index ? colors.blue : colors.text,
+              backgroundColor:
+                first + i === palette.index ? colors.selected : undefined,
+            },
+            clip(
+              (first + i === palette.index ? "› " : "  ") +
+                item.label +
+                " · " +
+                item.group,
+              width - 6,
+            ),
+          ),
+        ),
+      ),
+      h(TextLine, {
+        text: "↑↓ choose · Enter open · Esc return · No action runs while typing",
+        width: width - 6,
+        color: colors.muted,
+      }),
+    );
   } else if (dialog) {
     center = h(
       Box,
@@ -2691,19 +2979,41 @@ function App({ initialConfig, flags, root, initialAppearance }) {
   } else {
     let body;
     if (reading) {
-      const lines = markdownRows(
-        reading.deleted_at
-          ? "[deleted — discussion preserved]"
-          : reading.body || "",
-        contentWidth,
-        colors,
+      const position = Math.min(
+        scroll,
+        Math.max(0, readerRows.length - readerHeight),
       );
-      body = h(FrameRows, {
-        rows: lines,
-        width: contentWidth,
-        height: contentHeight,
-        offset: Math.min(scroll, Math.max(0, lines.length - contentHeight)),
-      });
+      const matches = new Set(readerHits);
+      body = h(
+        Box,
+        { flexDirection: "column", height: contentHeight, overflow: "hidden" },
+        readerFind.editing
+          ? h(InputText, {
+              value: readerFind.query,
+              cursor: readerFind.cursor,
+              width: contentWidth,
+            })
+          : h(TextLine, {
+              text: readerFind.query
+                ? `Find: ${readerFind.query} · ${readerHits.length} matching lines · n next / N previous`
+                : `Reply #${reading.id} · ${stamp(reading.created)} · / find in text`,
+              width: contentWidth,
+              color: colors.muted,
+            }),
+        h(FrameRows, {
+          rows: readerRows.map((row, i) =>
+            matches.has(i) ? { ...row, bold: true, color: colors.blue } : row,
+          ),
+          width: contentWidth,
+          height: readerHeight,
+          offset: position,
+        }),
+        h(TextLine, {
+          text: `Lines ${Math.min(position + 1, readerRows.length)}–${Math.min(position + readerHeight, readerRows.length)} of ${readerRows.length} · Home / End · Esc returns`,
+          width: contentWidth,
+          color: colors.muted,
+        }),
+      );
     } else if (preview) {
       const payload = preview.payload,
         audience =
@@ -3021,7 +3331,9 @@ function App({ initialConfig, flags, root, initialAppearance }) {
             text: form
               ? (form.kind === "appearance"
                   ? "Local preferences · Preview now · Ctrl+S save · Esc cancel"
-                  : "Tab next field · Ctrl+E editor · Ctrl+S preview") +
+                  : (activeSteps.length
+                      ? `Step ${activeStep + 1}/${activeSteps.length} · ${activeSteps[activeStep].label} · `
+                      : "") + "Tab field · Ctrl+N/P steps · Ctrl+S preview") +
                 (draftSaved ? " · Draft saved locally" : "")
               : preview
                 ? "Scroll to review · ← → choose · Enter confirms"
@@ -3096,8 +3408,12 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       compact && focus === "nav" ? null : pane,
     );
   }
-  const hint =
-    ["projects", "events"].includes(route.view) && !form && !preview && !picker
+  const hint = palette
+    ? "Type to filter · ↑↓ choose · Enter open · Esc return"
+    : ["projects", "events"].includes(route.view) &&
+        !form &&
+        !preview &&
+        !picker
       ? "↑↓ select · Enter open · F filters · N new · [ ] pages · / search"
       : ["project", "event"].includes(route.view) && !form && !preview
         ? "↑↓ scroll · X actions · E edit your publication · Esc back"
@@ -3110,11 +3426,13 @@ function App({ initialConfig, flags, root, initialAppearance }) {
               : picker
                 ? "Project files stay local until publication is confirmed"
                 : reading
-                  ? "↑↓ scroll · R reply · E edit · D delete · Esc close"
+                  ? readerFind.editing
+                    ? "Find in this text · Enter locate · Esc finish search"
+                    : "↑↓ scroll · / find · n/N match · Home/End · Esc return"
                   : preview
                     ? "← → choose · Enter confirm · Esc edit"
                     : form
-                      ? "Tab field · Ctrl+E editor · Ctrl+O files · Ctrl+G diff · Ctrl+S preview"
+                      ? "Tab field · Ctrl+N/P steps · Ctrl+E editor · Ctrl+S preview"
                       : phase !== "ready"
                         ? "Enter connect / open browser · Ctrl+C exit"
                         : route.view === "feedback"

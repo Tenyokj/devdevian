@@ -6,7 +6,15 @@ Every published npm artifact has a unique immutable version. We record each vers
 
 ## Current milestone
 
-**0.6.0 brings Projects and Events into the terminal**, using the same hosted data and permissions as the browser.
+**0.7.0 focuses on everyday terminal use**: discoverable quick actions, staged forms and resumable reading.
+
+## 0.7.0-alpha.1 — Everyday flow
+
+- Added a searchable quick-action workspace via `Ctrl+K` or `/actions`: scoped actions, navigation, creation, up to eight recent views, explicit ID opening and a regular forum-search fallback. Typing performs no requests or mutations; existing server permissions and confirmation dialogs still apply.
+- Conversation, Project and Event forms show one step at a time. `Ctrl+N` validates the current step and advances; `Ctrl+P` goes back. `Tab` continues to traverse fields across steps. `Ctrl+S` validates the complete form and opens the existing explicit publication preview. All draft values and file selections survive step changes.
+- Full reply/remark reading remembers positions within the current terminal session, restores the underlying view on close, and offers literal rendered-line search (`/`, `n`/`N`) plus Home/End and line-position indicators. Thread headings identify the parent reply and conversation. Reading memory is bounded and cleared on account reset.
+- Quick actions pause live reads while open. Text editing retains `Ctrl+K` for deleting to the end of the line. Compact terminal layout, themes, external editor and draft workflows remain supported.
+- No API/schema change, production-data reset or new dependency. Real pseudo-terminal checks cover staged publication into an isolated API visible to another browser account, reader search/return, scoped actions, and 60×18 navigation.
 
 ## 0.6.1-alpha.1 — A clearer first impression
 

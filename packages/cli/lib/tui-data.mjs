@@ -183,7 +183,13 @@ export async function loadPage(api, route, signal) {
         ...replies.items,
       ],
       title: "Reply thread",
-      subtitle: "Replying to " + (parent?.name || route.parent.name),
+      subtitle:
+        "Reply #" +
+        route.parent.id +
+        " · " +
+        (parent?.name || route.parent.name) +
+        " · " +
+        post.title,
     };
   }
   if (route.view === "feedback") {
@@ -220,6 +226,7 @@ export function contentLines(route, data) {
     return [
       "A developer workspace, in your terminal.",
       "",
+      "Ctrl+K / /actions Search quick actions, sections and recent views",
       "Tab              Switch navigation / content / command bar",
       "↑ ↓              Select a section, conversation or reply",
       "Enter            Open the selected item",
@@ -243,7 +250,9 @@ export function contentLines(route, data) {
       "/                Focus the command / search bar",
       "Ctrl+E           Edit a multiline field in VISUAL / EDITOR",
       "Ctrl+L           Save a draft and reconnect an expired session",
-      "Ctrl+S           Preview the current form",
+      "Ctrl+N / Ctrl+P  Next / previous step in conversation/project/event forms",
+      "Ctrl+S           Validate all steps and preview the current form",
+      "Full text        / finds text; n/N cycles; Home/End; Esc remembers position",
       "Ctrl+O / Ctrl+G  Select a code file / Git diff in a review form",
       "Ctrl+O           Pick a workspace image on logo/banner/screenshot fields",
       "/drafts          Restore locally saved drafts for this account/project",

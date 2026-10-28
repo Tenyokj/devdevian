@@ -115,7 +115,10 @@ const help = `Devdevian CLI ${version} · alpha
   devdevian communities [--page 2]
 
   Inside the workspace: /projects, /project ID, /events, /event ID
-  N creates · F filters · E edits your publication · X opens actions
+  Ctrl+K or /actions opens quick actions; type to filter
+  Ctrl+N / Ctrl+P moves between form steps; Ctrl+S validates and previews
+  Full reply text: / find, n/N matches, Home/End, Esc remembers your place
+  N creates · F filters · E edits your publication · X opens context actions
 
   --theme NAME       midnight | nebula | daylight | contrast
   --accent NAME      blue | violet | cyan | rose
