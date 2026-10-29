@@ -138,7 +138,7 @@ test(
     );
     child.stdout.on("data", (chunk) => {
       raw += chunk;
-      term.write(chunk.toString());
+      term.write(chunk);
     });
     child.stderr.on("data", (chunk) => {
       raw += chunk;

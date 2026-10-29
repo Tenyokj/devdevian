@@ -44,7 +44,7 @@ function terminal({ root, config }) {
   );
   child.stdout.on("data", (c) => {
     raw += c;
-    term.write(c.toString());
+    term.write(c);
   });
   child.stderr.on("data", (c) => (raw += c));
   child.on("exit", () => (closed = true));

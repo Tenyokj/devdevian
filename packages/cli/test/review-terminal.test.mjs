@@ -143,7 +143,7 @@ test(
     );
     child.stdout.on("data", (c) => {
       raw += c;
-      term.write(c.toString());
+      term.write(c);
     });
     child.stderr.on("data", (c) => {
       raw += c;

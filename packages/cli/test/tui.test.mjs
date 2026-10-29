@@ -150,7 +150,7 @@ test(
     );
     child.stdout.on("data", (chunk) => {
       raw += chunk;
-      term.write(chunk.toString());
+      term.write(chunk);
     });
     child.stderr.on("data", (chunk) => {
       raw += chunk;
@@ -335,7 +335,7 @@ test(
     );
     child.stdout.on("data", (c) => {
       raw += c;
-      term.write(c.toString());
+      term.write(c);
     });
     child.on("exit", () => (closed = true));
     const screen = () =>
