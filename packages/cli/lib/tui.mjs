@@ -59,6 +59,7 @@ import {
 import { contextActions } from "./context-actions.mjs";
 import { editExternal } from "./external-editor.mjs";
 import { markdownRows } from "./rich-text.mjs";
+import { githubReader, pullRequestRef } from "./github-reader.mjs";
 import { githubContextLines } from "./github-context.mjs";
 import { conversationLinks } from "./conversation-links.mjs";
 import { problemMessage } from "./problems.mjs";
@@ -101,6 +102,7 @@ const labelOf = (route) =>
     community: "Community",
     feedback: "Code feedback",
     thread: "Reply thread",
+    pr: "GitHub pull request",
     project: "Project",
     event: "Event",
   }[route.view] ||
@@ -1072,6 +1074,7 @@ function App({ initialConfig, flags, root, initialAppearance }) {
     }
   }
   function invalidate(message) {
+    if (route.view === "pr") githubReader.clear();
     cache.current.clear();
     setRefresh((n) => n + 1);
     if (message) setNotice(message);
@@ -1343,6 +1346,12 @@ function App({ initialConfig, flags, root, initialAppearance }) {
   async function chooseNav(i) {
     const name = navigation[i]?.[0];
     setNavIndex(i);
+    if (name === "github-pr") {
+      setFocus("prompt");
+      setCommand("/pr ");
+      setCommandCursor(4);
+      return;
+    }
     if (name === "appearance") return openAppearance();
     if (name === "ask" || name === "review")
       return composePublication(name === "review" ? "review" : "question");
@@ -2137,7 +2146,14 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       if (current?.post) {
         readItem(selected);
       } else openSelected();
-    } else if (id === "reply") reply();
+    } else if (id === "github-pr")
+      navigate({
+        view: "pr",
+        url: pullRequestRef(current.post.github_context.pull_request).url,
+        page: 1,
+      });
+    else if (id === "pr-browser") openBrowser(current.pull.url);
+    else if (id === "reply") reply();
     else if (id === "comment") lineFeedback();
     else if (id === "edit") editSelected();
     else if (id === "delete") deleteSelected();
@@ -2188,6 +2204,10 @@ function App({ initialConfig, flags, root, initialAppearance }) {
               setPhase("auth");
             }),
         );
+        return;
+      }
+      if (parsed.command === "pr") {
+        navigate({ view: "pr", url: pullRequestRef(parsed.arg).url, page: 1 });
         return;
       }
       if (parsed.command === "project" || parsed.command === "event") {
@@ -2760,6 +2780,7 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       }
     }
     const prose =
+      route.view === "pr" ||
       route.view === "help" ||
       (route.view === "post" && (!route.tab || route.tab === "overview")) ||
       (route.view === "community" && !current?.community?.is_member) ||
@@ -3588,42 +3609,45 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       compact && focus === "nav" ? null : pane,
     );
   }
-  const hint = palette
-    ? "Type to filter · ↑↓ choose · Enter open · Esc return"
-    : ["projects", "events"].includes(route.view) &&
-        !form &&
-        !preview &&
-        !picker
-      ? "↑↓ select · Enter open · F filters · N new · [ ] pages · / search"
-      : ["project", "event"].includes(route.view) && !form && !preview
-        ? "↑↓ scroll · X actions · E edit your publication · Esc back"
-        : form?.kind === "appearance"
-          ? "← → choose · Tab next · Ctrl+S save · Esc cancel · 0 default preview"
-          : actionIndex !== null
-            ? "Actions are scoped to the selected item · Esc closes"
-            : reviewing && !form && !preview && !reading
-              ? "W code / discussion · Space select · C comment · X actions · F filter"
-              : picker
-                ? "Project files stay local until publication is confirmed"
-                : reading
-                  ? readerFind.editing
-                    ? "Find in this text · Enter locate · Esc finish search"
-                    : "↑↓ scroll · / find · n/N match · Home/End · Esc return"
-                  : preview
-                    ? "← → choose · Enter confirm · Esc edit"
-                    : form
-                      ? formNav
-                        ? `${stepControls(activeSteps, activeStep).find((control) => control.id === formNav)?.label || "Next"} · Enter select · Tab fields · Ctrl+S preview`
-                        : fieldsFor(form)[field]?.multiline
-                          ? "Enter new line · Tab next field · Ctrl+N next step · Ctrl+S preview"
-                          : "Enter/Tab next field · Ctrl+N/P steps · Ctrl+S preview"
-                      : phase !== "ready"
-                        ? "Enter connect / open browser · Ctrl+C exit"
-                        : route.view === "feedback"
-                          ? "↑↓ select · R reply · E edit · D delete · S resolve · ! report"
-                          : route.view === "post"
-                            ? "←→ tabs · ↑↓ select · R reply · E edit · D delete · Space read"
-                            : "↑↓ select · Enter open · Tab sections · [ ] pages · N new · / search";
+  const hint =
+    route.view === "pr" && !form && !reading && !palette
+      ? "↑↓ scroll · [ ] file pages · X actions · Shift+R refresh · Esc back"
+      : palette
+        ? "Type to filter · ↑↓ choose · Enter open · Esc return"
+        : ["projects", "events"].includes(route.view) &&
+            !form &&
+            !preview &&
+            !picker
+          ? "↑↓ select · Enter open · F filters · N new · [ ] pages · / search"
+          : ["project", "event"].includes(route.view) && !form && !preview
+            ? "↑↓ scroll · X actions · E edit your publication · Esc back"
+            : form?.kind === "appearance"
+              ? "← → choose · Tab next · Ctrl+S save · Esc cancel · 0 default preview"
+              : actionIndex !== null
+                ? "Actions are scoped to the selected item · Esc closes"
+                : reviewing && !form && !preview && !reading
+                  ? "W code / discussion · Space select · C comment · X actions · F filter"
+                  : picker
+                    ? "Project files stay local until publication is confirmed"
+                    : reading
+                      ? readerFind.editing
+                        ? "Find in this text · Enter locate · Esc finish search"
+                        : "↑↓ scroll · / find · n/N match · Home/End · Esc return"
+                      : preview
+                        ? "← → choose · Enter confirm · Esc edit"
+                        : form
+                          ? formNav
+                            ? `${stepControls(activeSteps, activeStep).find((control) => control.id === formNav)?.label || "Next"} · Enter select · Tab fields · Ctrl+S preview`
+                            : fieldsFor(form)[field]?.multiline
+                              ? "Enter new line · Tab next field · Ctrl+N next step · Ctrl+S preview"
+                              : "Enter/Tab next field · Ctrl+N/P steps · Ctrl+S preview"
+                          : phase !== "ready"
+                            ? "Enter connect / open browser · Ctrl+C exit"
+                            : route.view === "feedback"
+                              ? "↑↓ select · R reply · E edit · D delete · S resolve · ! report"
+                              : route.view === "post"
+                                ? "←→ tabs · ↑↓ select · R reply · E edit · D delete · Space read"
+                                : "↑↓ select · Enter open · Tab sections · [ ] pages · N new · / search";
   return h(
     ThemeContext.Provider,
     { value: colors },

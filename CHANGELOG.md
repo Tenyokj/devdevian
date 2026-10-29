@@ -1,5 +1,11 @@
 # Changelog
 
+## CLI 0.9.0-alpha.1 — Public GitHub PR reading
+
+- Inspect a linked or explicitly entered public PR in the terminal: status, author, branches, description and paginated changed files.
+- GET-only direct GitHub reads without credentials or forum mutations; bounded short cache, request limits and quota cooldown.
+- Script/JSON command supports public reads without a forum login. No database migration, private PR authorization or comment synchronization.
+
 ## CLI 0.8.0-alpha.1 — GitHub source context
 
 - Opt-in local GitHub repository/branch/base-commit context for selected review files and diffs; optional matching PR URL, explicit preview and preserved drafts.

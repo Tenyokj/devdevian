@@ -45,6 +45,9 @@ export function contextActions({ route, data, selected, user, live }) {
   }
   if (feedback && selected && !selected.deleted_at)
     add("report", "Report selected feedback…");
+  if (post?.github_context?.pull_request)
+    add("github-pr", "Read linked GitHub PR");
+  if (route.view === "pr" && data?.pull) add("pr-browser", "Open PR on GitHub");
   if (post) add("browser", "Open conversation in browser");
   if (route.view === "inbox" && data?.unread_count > 0)
     add("read-all", "Mark received notifications as read");

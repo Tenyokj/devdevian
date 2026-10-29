@@ -23,6 +23,7 @@ import {
   loadAppearance,
   saveAppearance,
 } from "../lib/appearance.mjs";
+import { githubReader, pullRequestLines } from "../lib/github-reader.mjs";
 import { readGitHubContext, workspaceRoot } from "../lib/workspace.mjs";
 import { githubContextLines } from "../lib/github-context.mjs";
 import { conversationLinks } from "../lib/conversation-links.mjs";
@@ -118,6 +119,7 @@ const help = `Devdevian CLI ${version} · alpha
   devdevian review resolve POST_ID REVIEW_ID
   devdevian review reopen POST_ID REVIEW_ID
   devdevian communities [--page 2]
+  devdevian github pr https://github.com/owner/repo/pull/42 [--page 2]
 
   Inside the workspace: /projects, /project ID, /events, /event ID
   Ctrl+K or /actions opens quick actions; type to filter
@@ -291,6 +293,14 @@ async function execute(args, flags) {
     return;
   }
   const command = args[0];
+  if (command === "github" && args[1] === "pr") {
+    const data = await githubReader.load(args[2], {
+      page: positive(flags.page || "1", "Page"),
+    });
+    if (flags.json) process.stdout.write(JSON.stringify(data) + "\n");
+    else out(data.title + "\n\n" + pullRequestLines(data).join("\n"));
+    return;
+  }
   if (command === "appearance") {
     const loaded = await loadAppearance(),
       updates = appearanceFlags(flags);

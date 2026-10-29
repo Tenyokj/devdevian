@@ -79,6 +79,12 @@ Code reviews have an optional **GitHub** step after Content. Change **GitHub con
 
 The command equivalent is `devdevian review create --file src/retry.ts --title "Review retries" --topic web --body-file question.md --focus "Timeout handling" --github-context --pr https://github.com/owner/repo/pull/42`. The PR is optional. Context is opt-in, reads local Git only and needs a GitHub `origin` and existing HEAD. No new OAuth setup is required. See the [full guide](https://github.com/Tenyokj/devdevian/blob/main/docs/github-context.md).
 
+## Read a public GitHub PR
+
+Choose **GitHub PR** from navigation, type `/pr https://github.com/owner/repo/pull/42`, or use **X → Read linked GitHub PR** from a conversation. The read-only view shows status, title, author, head/base branches, description and paginated changed files. **[ / ]** switch file pages, **Shift+R** refreshes, and **Esc** returns to the forum.
+
+The command `devdevian github pr https://github.com/owner/repo/pull/42 --page 1 --json` works without a forum login. Public reads go directly to GitHub without credentials; results are briefly cached in memory and are not posted to Devdevian. Private PRs, full patch inspection and GitHub comments are outside this stage. See [public PR reader](https://github.com/Tenyokj/devdevian/blob/main/docs/github-pr-reader.md) for limits and error handling.
+
 ## Meet Devi
 
 Devi is the Devdevian mascot: a small ghost with a laptop and an orbit. The terminal uses colored ASCII art, so it needs no image protocol or image downloads. A compact drawing is used when space is limited; authentication codes, addresses and controls take priority over decoration.

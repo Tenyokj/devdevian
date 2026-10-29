@@ -54,6 +54,13 @@ export function paletteItems({
       label: "Open " + q,
       group: "Command",
     });
+  if (/^pr https:\/\/github\.com\//i.test(q))
+    result.unshift({
+      id: "command",
+      command: "/pr " + q.replace(/^pr\s+/i, ""),
+      label: "Read public GitHub PR",
+      group: "Command",
+    });
   if (q)
     result.push({
       id: "search",

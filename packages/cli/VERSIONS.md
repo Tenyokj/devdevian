@@ -6,7 +6,14 @@ Every published npm artifact has a unique immutable version. We record each vers
 
 ## Current milestone
 
-**0.8.0 begins GitHub integration** with opt-in local source context and manually linked pull requests, shared by the CLI and browser.
+**0.9.0 adds public PR reading** to the local GitHub source context introduced in 0.8.0.
+
+## 0.9.0-alpha.1 — Read public pull requests
+
+- Public PR reader via `/pr URL`, navigation, scoped linked-PR actions and `devdevian github pr URL [--page N] [--json]`. Shows status, author, branches, commit, description and 20 changed files per page; explicit refresh and return preserve forum navigation.
+- Fixed-host, GET-only GitHub REST reads without credentials, new OAuth permissions or forum writes. Bounded 60-second memory cache, response/time limits, rate-limit cooldown and actionable private/missing/redirect/response errors; no background GitHub polling.
+- The command works without a Devdevian login; TUI uses the existing forum session. No private PR support, full patch import, GitHub comments or database changes. GitHub's file-list cap is labeled.
+- Fixture and real terminal tests cover JSON output, linked-PR opening, file pagination, refresh/cache, compact layout, return position and absence of writes or credential forwarding. A small public GitHub smoke read also passed.
 
 ## 0.8.0-alpha.1 — GitHub source context
 

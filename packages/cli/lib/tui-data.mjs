@@ -1,3 +1,4 @@
+import { githubReader, pullRequestLines } from "./github-reader.mjs";
 import { loadCatalog, isCatalog } from "./catalog.mjs";
 import { createHash } from "node:crypto";
 import { githubContextLines } from "./github-context.mjs";
@@ -25,6 +26,7 @@ export const navigation = [
   ["search", "Search", "Find a conversation"],
   ["devices", "Connected terminals", "Manage CLI access"],
   ["appearance", "Appearance", "Themes & layout"],
+  ["github-pr", "GitHub PR", "Read a public pull request"],
   ["help", "Help", "Keys & commands"],
 ];
 export async function notificationRoute(api, item) {
@@ -61,6 +63,8 @@ export async function notificationRoute(api, item) {
       };
 }
 export async function loadPage(api, route, signal) {
+  if (route.view === "pr")
+    return githubReader.load(route.url, { page: route.page || 1, signal });
   if (isCatalog(route)) return loadCatalog(api, route, signal);
   const get = (path) => api(path, { signal }),
     page = route.page || 1;
@@ -224,11 +228,13 @@ export async function loadPage(api, route, signal) {
   return { items: [], title: "Your workspace", subtitle: "" };
 }
 export function contentLines(route, data) {
+  if (route.view === "pr") return pullRequestLines(data);
   if (route.view === "help")
     return [
       "A developer workspace, in your terminal.",
       "",
       "Ctrl+K / /actions Search quick actions, sections and recent views",
+      "/pr URL          Read a public GitHub PR and paginate changed files",
       "Tab              Switch navigation / content / command bar",
       "↑ ↓              Select a section, conversation or reply",
       "Enter            Open the selected item",
