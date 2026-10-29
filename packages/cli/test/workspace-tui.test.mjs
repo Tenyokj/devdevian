@@ -135,6 +135,8 @@ test(
         for await (const c of req) body += c;
         posted = JSON.parse(body);
         posts++;
+        // Receiving the write does not yet acknowledge it to the terminal.
+        await delay(150);
         data = { id: 77 };
       } else if (path === "/api/me")
         data = { user: { id: 1, username: "reviewer" } };
@@ -246,6 +248,7 @@ test(
       assert.ok(posted.code.includes("+export const value1 = 111;"));
       assert.ok(!posted.code.includes("value25"));
       assert.ok(posted.body.includes("Review source: Git diff"));
+      await ui.wait("Saved. Your web account sees the same update.");
       assert.equal((await store.list()).length, 0);
       await ui.wait("Code feedback");
       // The same picker also supports file navigation and a range, including a compact terminal.
