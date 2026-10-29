@@ -280,69 +280,71 @@ export default function Landing() {
       <a href="#explore" className="landing-skip">
         Skip to content
       </a>
-      <nav className="landing-nav" aria-label="Main navigation">
-        <a className="landing-brand" href="/" aria-label="Devdevian home">
-          <img src="/devdevian-logo.png" alt="" />
-          devdevian<span>.</span>
-        </a>
-        <div className="landing-nav-links">
-          <a href="#cli">CLI</a>
-          <a href="#explore">Explore</a>
-          <a href="#community">Communities</a>
-          <a href="#open-source">Open source</a>
-          <a href="#faq">FAQ</a>
-        </div>
-        <div className="landing-nav-actions">
-          <a
-            href={repository}
-            className="landing-github"
-            aria-label="Devdevian on GitHub"
-          >
-            <Github size={21} />
+      <div className="landing-opening">
+        <nav className="landing-nav" aria-label="Main navigation">
+          <a className="landing-brand" href="/" aria-label="Devdevian home">
+            <img src="/devdevian-logo.png" alt="" />
+            devdevian<span>.</span>
           </a>
-          <a className="landing-button small" href="/app">
-            Enter the forum <ArrowUpRight size={16} />
-          </a>
-        </div>
-      </nav>
+          <div className="landing-nav-links">
+            <a href="#cli">CLI</a>
+            <a href="#explore">Explore</a>
+            <a href="#community">Communities</a>
+            <a href="#open-source">Open source</a>
+            <a href="#faq">FAQ</a>
+          </div>
+          <div className="landing-nav-actions">
+            <a
+              href={repository}
+              className="landing-github"
+              aria-label="Devdevian on GitHub"
+            >
+              <Github size={21} />
+            </a>
+            <a className="landing-button small" href="/app">
+              Enter the forum <ArrowUpRight size={16} />
+            </a>
+          </div>
+        </nav>
 
-      <section className="landing-hero" aria-label="Welcome to Devdevian">
-        <div className="hero-haze" aria-hidden="true" />
-        <div className="hero-particles" aria-hidden="true">
-          {Array.from({ length: 64 }, (_, i) => (
-            <i
-              key={i}
-              style={{
-                "--x": `${(i * 37.7) % 100}%`,
-                "--size": `${3 + ((i * 7) % 17)}px`,
-                "--duration": `${10 + ((i * 3.7) % 16)}s`,
-                "--delay": `${-((i * 2.3) % 26)}s`,
-                "--drift": `${((i * 31) % 160) - 80}px`,
-                "--alpha": 0.15 + (i % 5) * 0.09,
-              }}
+        <section className="landing-hero" aria-label="Welcome to Devdevian">
+          <div className="hero-haze" aria-hidden="true" />
+          <div className="hero-particles" aria-hidden="true">
+            {Array.from({ length: 64 }, (_, i) => (
+              <i
+                key={i}
+                style={{
+                  "--x": `${(i * 37.7) % 100}%`,
+                  "--size": `${3 + ((i * 7) % 17)}px`,
+                  "--duration": `${10 + ((i * 3.7) % 16)}s`,
+                  "--delay": `${-((i * 2.3) % 26)}s`,
+                  "--drift": `${((i * 31) % 160) - 80}px`,
+                  "--alpha": 0.15 + (i % 5) * 0.09,
+                }}
+              />
+            ))}
+          </div>
+          <div className="hero-orbit" aria-hidden="true">
+            <span />
+            <span />
+          </div>
+          <div className="hero-logo-stage">
+            <img
+              className="hero-logo"
+              src="/devdevian-logo.png"
+              alt="Devdevian"
+              fetchPriority="high"
             />
-          ))}
-        </div>
-        <div className="hero-orbit" aria-hidden="true">
-          <span />
-          <span />
-        </div>
-        <div className="hero-logo-stage">
-          <img
-            className="hero-logo"
-            src="/devdevian-logo.png"
-            alt="Devdevian"
-            fetchPriority="high"
-          />
-        </div>
-        <div className="hero-caption">
-          <span>CURIOUS MINDS. SHARED CONTEXT. BETTER CODE.</span>
-          <a href="#explore" aria-label="Explore Devdevian">
-            <ArrowDown size={20} />
-          </a>
-        </div>
-        <div className="hero-bottom-glow" aria-hidden="true" />
-      </section>
+          </div>
+          <div className="hero-caption">
+            <span>CURIOUS MINDS. SHARED CONTEXT. BETTER CODE.</span>
+            <a href="#explore" aria-label="Explore Devdevian">
+              <ArrowDown size={20} />
+            </a>
+          </div>
+          <div className="hero-bottom-glow" aria-hidden="true" />
+        </section>
+      </div>
 
       <div className="landing-world">
         <main className="landing-main" id="explore">

@@ -2,6 +2,8 @@
 
 ## Unreleased — Website visual refresh
 
+- Joined navigation and hero on a shared brighter gradient and blended the hero edge into the blurred photograph backdrop.
+
 - Brightened the logo hero with layered indigo/blue light and added a responsive rectangular footer directory below the existing invitation and brand. Keyboard focus and reduced motion remain supported.
 
 - Added npm to the technology ribbon with a local brand mark and CLI package link.

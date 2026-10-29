@@ -61,6 +61,13 @@ body.landing-page {
 .landing-skip:focus {
   top: 15px;
 }
+.landing-opening {
+  background:
+    radial-gradient(ellipse at 48% 78%, #7762b85c, transparent 68%),
+    radial-gradient(ellipse at 8% 32%, #456ba34d, transparent 58%),
+    radial-gradient(ellipse at 94% 12%, #645bb54a, transparent 55%),
+    linear-gradient(160deg, #171f38, #242341 55%, #171b32);
+}
 .landing-nav {
   display: flex;
   align-items: center;
@@ -188,11 +195,16 @@ body.landing-page {
   display: grid;
   place-items: center;
   overflow: hidden;
-  background:
-    radial-gradient(ellipse at 48% 78%, #7762b85c, transparent 68%),
-    radial-gradient(ellipse at 8% 32%, #456ba34d, transparent 58%),
-    radial-gradient(ellipse at 94% 12%, #645bb54a, transparent 55%),
-    linear-gradient(160deg, #171f38, #242341 55%, #171b32);
+}
+/* Match the next section's opaque top stop, then let its photo emerge. */
+.landing-hero::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: clamp(160px, 24svh, 260px);
+  background: linear-gradient(180deg, transparent, #24243c);
+  z-index: 2;
+  pointer-events: none;
 }
 .hero-haze {
   position: absolute;
@@ -283,7 +295,7 @@ body.landing-page {
 .hero-caption > span {
   font-size: 9px;
   letter-spacing: 3px;
-  color: #9490b3;
+  color: #bab6d4;
 }
 .hero-caption a {
   color: #a695cf;
@@ -2213,8 +2225,9 @@ html:has(body.landing-page) {
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  background: linear-gradient(180deg, #090c1880, #0c10204d 45%, #090c1870);
-  box-shadow: inset 0 1px #ffffff0c;
+  background:
+    linear-gradient(180deg, #24243c, #24243c00 clamp(180px, 27svh, 300px)),
+    linear-gradient(180deg, #090c1880, #0c10204d 45%, #090c1870);
 }
 .landing-world .landing-main {
   position: relative;
