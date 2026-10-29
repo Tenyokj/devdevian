@@ -69,6 +69,10 @@ In full-text reading (**Space** on a reply or remark), **/** opens local text se
 
 Active fields explain their input: Space stays a space, Enter adds a line in multiline fields, and Tab leaves the field. Project feedback accepts text and URLs; dedicated website/repository/additional links are in **People & links**. Additional links use one `Label | https://example.com` per line. Context hints stay below the editor on larger terminals and use the status/hint lines on compact ones. **Ctrl+S** checks the complete form and opens a preview; drafts autosave locally and publication still requires explicit confirmation.
 
+Multiline fields show the current logical line and total line count. While editing, the command bar gives its space to the form; the caret stays visible as you add lines or move through the text. Previous lines remain part of the same field, including after Enter. On short terminals only a window of a long message is visible; use ↑/↓ to revisit earlier lines or Ctrl+E for the external editor.
+
+Conversation overviews and publication previews display Demo/Repository URL fields alongside any labeled links, with duplicate destinations shown once.
+
 ## Meet Devi
 
 Devi is the Devdevian mascot: a small ghost with a laptop and an orbit. The terminal uses colored ASCII art, so it needs no image protocol or image downloads. A compact drawing is used when space is limited; authentication codes, addresses and controls take priority over decoration.

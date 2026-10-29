@@ -1,5 +1,11 @@
 # Changelog
 
+## CLI 0.7.2-alpha.1 — Links and multiline visibility
+
+- Show Demo/Repository URLs in conversation details and publication previews, alongside labeled links without duplicate destinations.
+- Give forms the inactive command bar’s space, follow the multiline caret and show the current logical line/count.
+- Terminal/API checks cover real saved links and visible multiline edits at 60×18. No API/schema migration.
+
 ## CLI 0.7.1-alpha.1 — Clear form navigation
 
 - Visible keyboard Back/Next/Preview controls, field-specific input guidance and compact-terminal hints.

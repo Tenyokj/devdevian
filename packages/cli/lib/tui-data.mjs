@@ -1,5 +1,6 @@
 import { loadCatalog, isCatalog } from "./catalog.mjs";
 import { createHash } from "node:crypto";
+import { conversationLinks } from "./conversation-links.mjs";
 export function assertSnippet(code, hash) {
   if (
     createHash("sha256")
@@ -288,11 +289,12 @@ export function contentLines(route, data) {
           .split("\n")
           .map((line, index) => String(index + 1).padStart(4) + "  " + line),
       );
-    if (p.links?.length)
+    const links = conversationLinks(p);
+    if (links.length)
       lines.push(
         "",
         "LINKS",
-        ...p.links.map((link) => link.label + " · " + link.url),
+        ...links.map((link) => link.label + " · " + link.url),
       );
     if (p.archived_at || p.locked_at)
       lines.push("", "Replies are paused for this conversation.");

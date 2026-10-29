@@ -55,6 +55,7 @@ import {
 import { contextActions } from "./context-actions.mjs";
 import { editExternal } from "./external-editor.mjs";
 import { markdownRows } from "./rich-text.mjs";
+import { conversationLinks } from "./conversation-links.mjs";
 import { problemMessage } from "./problems.mjs";
 import { ReviewWorkspace, codeRange } from "./review-workspace.mjs";
 import {
@@ -306,9 +307,14 @@ function FormView({ form, active, cursor, width, height, navFocus }) {
     navRows = step && height >= 3 ? 1 : 0;
   const editorHeight = Math.max(1, height - helpRows - navRows);
   let selectedLine = rows.length;
+  let caretRow = null;
   fields.forEach((field, index) => {
     if (step && !step.indexes.includes(index)) return;
     if (index === active) selectedLine = rows.length;
+    const value = form.values[field.key] || "";
+    const lineNumber = field.multiline
+      ? graphemes(value).slice(0, cursor).join("").split("\n").length
+      : 0;
     rows.push({
       text: (index === active && !navFocus ? "› " : "  ") + field.label,
       color: index === active && !navFocus ? colors.purple : colors.muted,
@@ -324,7 +330,6 @@ function FormView({ form, active, cursor, width, height, navFocus }) {
         color: index === active && !navFocus ? colors.blue : colors.text,
       });
     } else {
-      const value = form.values[field.key] || "";
       const text =
         index === active && !navFocus
           ? cursorLines(value, cursor, width - 3).lines
@@ -339,12 +344,18 @@ function FormView({ form, active, cursor, width, height, navFocus }) {
       const visible = field.multiline
           ? Math.min(
               index === active
-                ? Math.max(1, Math.min(12, editorHeight - 2))
+                ? Math.max(1, Math.min(12, editorHeight - 1))
                 : 3,
               Math.max(2, text.length),
             )
           : 1,
         start = index === active ? Math.max(0, caretLine - visible + 1) : 0;
+      if (index === active && !navFocus && field.multiline) {
+        rows.at(-1).text += ` · line ${lineNumber}/${value.split("\n").length}`;
+        // Follow the caret, rather than anchoring the viewport to the field label.
+        // A newline keeps its preceding row visible whenever the terminal has room.
+        caretRow = rows.length + caretLine - start;
+      }
       rows.push(
         ...text.slice(start, start + visible).map((line) => ({
           text: "  " + line,
@@ -369,13 +380,15 @@ function FormView({ form, active, cursor, width, height, navFocus }) {
       color: colors.blue,
       bold: true,
     });
-  const offset = Math.max(
+  let offset = Math.max(
     0,
     Math.min(
       selectedLine - (editorHeight >= 4 ? 1 : 0),
       rows.length - editorHeight,
     ),
   );
+  if (caretRow !== null && caretRow >= offset + editorHeight)
+    offset = caretRow - editorHeight + 1;
   return h(
     Box,
     { flexDirection: "column", height, overflow: "hidden" },
@@ -554,12 +567,11 @@ function documentRows(route, data, width, colors) {
       ...markdownRows(fence + "\n" + post.code + "\n" + fence, width, colors),
     );
   }
-  if (post.links?.length)
+  const links = conversationLinks(post);
+  if (links.length)
     rows.push(
       { text: "LINKS", bold: true },
-      ...post.links.flatMap((link) =>
-        wrap(link.label + " · " + link.url, width),
-      ),
+      ...links.flatMap((link) => wrap(link.label + " · " + link.url, width)),
     );
   if (post.archived_at || post.locked_at)
     rows.push({
@@ -708,7 +720,8 @@ function App({ initialConfig, flags, root, initialAppearance }) {
     height = Math.max(1, rows - 1),
     compact = width < 90 || effectiveAppearance.sidebar === "hidden",
     sidebar = compact ? 0 : 25,
-    bodyHeight = Math.max(1, height - 9),
+    editingForm = !!form && !preview && !picker,
+    bodyHeight = Math.max(1, height - (editingForm ? 6 : 9)),
     contentWidth = Math.max(1, width - sidebar - 6),
     contentHeight = Math.max(1, bodyHeight - 6);
   const key = JSON.stringify(route),
@@ -3150,6 +3163,10 @@ function App({ initialConfig, flags, root, initialAppearance }) {
           ? [payload.title || payload.name, ""]
           : []),
         payload.body || payload.reason || payload.description || "",
+        ...conversationLinks(payload).flatMap((link) => [
+          "",
+          link.label + " · " + link.url,
+        ]),
         ...(preview.catalog
           ? [
               "",
@@ -3614,31 +3631,33 @@ function App({ initialConfig, flags, root, initialAppearance }) {
         width,
         color: error ? colors.red : notice ? colors.green : colors.muted,
       }),
-      h(
-        Box,
-        {
-          height: 3,
-          borderStyle: colors.frame,
-          borderColor: focus === "prompt" ? colors.blue : colors.line,
-          paddingX: 1,
-          overflow: "hidden",
-        },
-        h(Text, { color: colors.purple, bold: true }, "› "),
-        focus === "prompt"
-          ? h(InputText, {
-              value: command,
-              cursor: commandCursor,
-              width: Math.max(1, width - 6),
-            })
-          : h(
-              Text,
-              { color: colors.muted },
-              clip(
-                "Search or /command     ·     Press / to type · X actions · , appearance",
-                width - 6,
-              ),
-            ),
-      ),
+      editingForm
+        ? null
+        : h(
+            Box,
+            {
+              height: 3,
+              borderStyle: colors.frame,
+              borderColor: focus === "prompt" ? colors.blue : colors.line,
+              paddingX: 1,
+              overflow: "hidden",
+            },
+            h(Text, { color: colors.purple, bold: true }, "› "),
+            focus === "prompt"
+              ? h(InputText, {
+                  value: command,
+                  cursor: commandCursor,
+                  width: Math.max(1, width - 6),
+                })
+              : h(
+                  Text,
+                  { color: colors.muted },
+                  clip(
+                    "Search or /command     ·     Press / to type · X actions · , appearance",
+                    width - 6,
+                  ),
+                ),
+          ),
       h(TextLine, { text: hint, width, color: colors.muted }),
     ),
   );

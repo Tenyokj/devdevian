@@ -39,7 +39,11 @@ test(
       const post = (
         await author("/posts", {
           title: "A useful workflow question",
-          body: "How do you keep long technical conversations readable?",
+          body: "How do you keep conversations readable?",
+          demo_url: "https://example.com/workflow-demo",
+          details: {
+            links: [{ label: "Guide", url: "https://example.com/guide" }],
+          },
           topic: "web",
           kind: "question",
         })
@@ -123,6 +127,10 @@ test(
         await send("\r");
       };
       await wait(post.title);
+      await send("\r");
+      await wait("https://example.com/workflow-demo");
+      await wait("https://example.com/guide");
+      await send("\x1b");
       await send("\x0b");
       await wait("QUICK ACTIONS");
       await send("Ask a question");
@@ -136,6 +144,11 @@ test(
       await send(
         "This question was written through the new staged terminal form.",
       );
+      await send("\r");
+      await wait("staged terminal form.");
+      await wait("line 2/2");
+      await send("Second line stays in the same message.");
+      await wait("staged terminal form.");
       await send("\x10");
       await wait("Step 1/2");
       await send("\x0e");
@@ -155,7 +168,7 @@ test(
       assert.equal(shared.length, 1);
       assert.match(
         (await other("/posts/" + shared[0].id)).data.body,
-        /staged terminal form/,
+        /staged terminal form\.\nSecond line stays in the same message\./,
       );
       await command("/actions");
       await wait("QUICK ACTIONS");
@@ -280,8 +293,18 @@ test(
       await wait("Step 2/4");
       await send("Enough context for a compact terminal project.");
       await send("\r");
+      await wait("Enough context");
+      await wait("line 2/2");
       await send("line2");
       await wait("line2");
+      await wait("Enough context");
+      await send("\r");
+      await wait("line2");
+      await wait("line 3/3");
+      await send("\x1b[A");
+      await send("\x1b[F");
+      await send(" edited");
+      await wait("line2 edited");
       assert.equal(term.buffer.active.baseY, 0);
       await send("\x03");
       assert.ok(reply.id);

@@ -10,6 +10,8 @@ import { notificationRoute, loadPage } from "../lib/tui-data.mjs";
 import { problemMessage } from "../lib/problems.mjs";
 import { client } from "../lib/client.mjs";
 import { createServer } from "node:http";
+import { conversationLinks } from "../lib/conversation-links.mjs";
+import { contentLines } from "../lib/tui-data.mjs";
 
 test("external editor uses argv, private bounded UTF-8 output, cleanup and no shell", async () => {
   assert.deepEqual(
@@ -151,4 +153,29 @@ test("non-JSON gateway failures preserve HTTP status for actionable errors", asy
     server.closeAllConnections();
     await new Promise((r) => server.close(r));
   }
+});
+
+// These fields also occur on older posts and posts created through the web client.
+test("conversation details retain demo and repository URLs beside labeled links", () => {
+  const post = {
+    body: "Context",
+    demo_url: "https://example.com/demo",
+    repo_url: "https://example.com/source",
+    links: [
+      { label: "Try it", url: "https://example.com/demo" },
+      { label: "Docs", url: "https://example.com/docs" },
+    ],
+  };
+  assert.deepEqual(conversationLinks(post), [
+    ...post.links,
+    { label: "Repository", url: post.repo_url },
+  ]);
+  const text = contentLines({ view: "post" }, { post }).join("\n");
+  assert.ok(text.includes(post.demo_url));
+  assert.ok(text.includes(post.repo_url));
+  assert.equal(
+    conversationLinks({ demo_url: post.demo_url })[0].url,
+    post.demo_url,
+  );
+  assert.deepEqual(conversationLinks({}), []);
 });

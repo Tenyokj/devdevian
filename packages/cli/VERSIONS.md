@@ -8,6 +8,12 @@ Every published npm artifact has a unique immutable version. We record each vers
 
 **0.7.0 focuses on everyday terminal use**: discoverable quick actions, staged forms and resumable reading.
 
+## 0.7.2-alpha.1 — Visible links and multiline writing
+
+- Conversation overviews now include Demo and Repository URL fields alongside labeled links. Duplicate URLs appear once, preserving a supplied label; publication previews show the same destinations.
+- Multiline editing follows the caret and displays the logical line position/count. Enter retains the preceding visible line when space permits. While editing, the inactive command bar yields its rows to the form, including at 60×18.
+- Real terminal/API regressions cover saved Demo URLs together with labeled links, newline visibility, cursor movement and editing in compact terminals. No API/schema or credential changes.
+
 ## 0.7.1-alpha.1 — Clearer forms
 
 - Added visible, keyboard-focusable Back / Next controls to staged forms. Tab reaches the controls at step boundaries, arrows choose an available action and Enter activates it. The final action is Preview; publication remains a separate confirmation. Ctrl+N/P shortcuts remain available.
