@@ -10,7 +10,8 @@ export function contextActions({ route, data, selected, user, live }) {
   const reply =
     route.view === "thread" ||
     (route.view === "post" && route.tab === "replies");
-  if (selected) add("read", "Read selected item");
+  if (selected && !route.view.startsWith("pr"))
+    add("read", "Read selected item");
   if (post && !post.archived_at && !post.locked_at) {
     add("reply", "Write a reply");
     if (post.code) add("comment", "Comment on selected code lines");
@@ -47,7 +48,12 @@ export function contextActions({ route, data, selected, user, live }) {
     add("report", "Report selected feedback…");
   if (post?.github_context?.pull_request)
     add("github-pr", "Read linked GitHub PR");
-  if (route.view === "pr" && data?.pull) add("pr-browser", "Open PR on GitHub");
+  if (route.view === "pr" && data?.pull)
+    add("pr-files", "Choose a file / inspect diff");
+  if (route.view === "pr-diff" && data?.patch?.hunks?.length)
+    add("pr-review", "Request review of selected hunks");
+  if (["pr", "pr-files", "pr-diff"].includes(route.view) && data?.pull)
+    add("pr-browser", "Open PR on GitHub");
   if (post) add("browser", "Open conversation in browser");
   if (route.view === "inbox" && data?.unread_count > 0)
     add("read-all", "Mark received notifications as read");

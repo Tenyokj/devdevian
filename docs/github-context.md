@@ -2,6 +2,8 @@
 
 Devdevian can attach author-provided GitHub context to a code review created from the CLI. Both the terminal and browser display the repository, branch (or detached HEAD), full base commit, repository-relative file path, optional selected file range, staged/unstaged source type and an optional matching pull-request link.
 
+The local-source workflow below remains optional. CLI 0.10 also supports [selecting public PR patches](github-pr-reader.md) without a local checkout. Those reviews use `mode: "pr"`, record both base/head commits and a selected complete-hunk range, and are labeled **PR patch snapshot**. Their saved code is frozen; source metadata is still author-provided and does not prove repository ownership or synchronize comments back to GitHub.
+
 ## Terminal workspace
 
 1. Start `devdevian tui` inside your project, or pass `--project PATH`.

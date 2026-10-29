@@ -61,6 +61,8 @@ import { editExternal } from "./external-editor.mjs";
 import { markdownRows } from "./rich-text.mjs";
 import { githubReader, pullRequestRef } from "./github-reader.mjs";
 import { githubContextLines } from "./github-context.mjs";
+import { selectPRHunks, validatePRSelection } from "./pr-diff.mjs";
+import { PRFiles, PRDiff } from "./pr-diff-view.mjs";
 import { conversationLinks } from "./conversation-links.mjs";
 import { problemMessage } from "./problems.mjs";
 import { ReviewWorkspace, codeRange } from "./review-workspace.mjs";
@@ -103,6 +105,8 @@ const labelOf = (route) =>
     feedback: "Code feedback",
     thread: "Reply thread",
     pr: "GitHub pull request",
+    "pr-files": "PR changed files",
+    "pr-diff": "PR diff",
     project: "Project",
     event: "Event",
   }[route.view] ||
@@ -136,34 +140,41 @@ function fieldsFor(form) {
       {
         key: "kind",
         label: "Publication type",
-        options: [
-          ["discussion", "Discussion"],
-          ["question", "Question"],
-          ["review", "Code review"],
-          ["showcase", "Show & tell"],
-        ],
+        options: form.prSelection
+          ? [["review", "Code review"]]
+          : [
+              ["discussion", "Discussion"],
+              ["question", "Question"],
+              ["review", "Code review"],
+              ["showcase", "Show & tell"],
+            ],
       },
       { key: "title", label: "Title", min: 5, max: 160 },
       { key: "topic", label: "Topic", options: form.topics },
       { key: "community_id", label: "Audience", options: form.audiences },
       ...(form.values.kind === "review"
         ? [
-            {
-              key: "file",
-              label: form.source?.kind === "diff" ? "Git diff" : "Code file",
-              min: 1,
-              max: 1500,
-              hint: "Ctrl+O file explorer · Ctrl+G Git diff · Enter browses an empty field.",
-            },
-            ...(form.source?.kind === "diff"
+            ...(form.prSelection
               ? []
               : [
                   {
-                    key: "lines",
-                    label: "File lines (optional)",
-                    max: 30,
-                    hint: "START:END; published snippet line numbers start at 1.",
+                    key: "file",
+                    label:
+                      form.source?.kind === "diff" ? "Git diff" : "Code file",
+                    min: 1,
+                    max: 1500,
+                    hint: "Ctrl+O file explorer · Ctrl+G Git diff · Enter browses an empty field.",
                   },
+                  ...(form.source?.kind === "diff"
+                    ? []
+                    : [
+                        {
+                          key: "lines",
+                          label: "File lines (optional)",
+                          max: 30,
+                          hint: "START:END; published snippet line numbers start at 1.",
+                        },
+                      ]),
                 ]),
             {
               key: "review_focus",
@@ -184,7 +195,7 @@ function fieldsFor(form) {
         max: 15000,
         multiline: true,
       },
-      ...(form.values.kind === "review"
+      ...(form.values.kind === "review" && !form.prSelection
         ? [
             {
               key: "github",
@@ -1074,7 +1085,13 @@ function App({ initialConfig, flags, root, initialAppearance }) {
     }
   }
   function invalidate(message) {
-    if (route.view === "pr") githubReader.clear();
+    if (["pr", "pr-files", "pr-diff"].includes(route.view))
+      githubReader.clear();
+    if (route.view === "pr-diff") {
+      setReviewLine(0);
+      setReviewAnchor(null);
+      setScroll(0);
+    }
     cache.current.clear();
     setRefresh((n) => n + 1);
     if (message) setNotice(message);
@@ -1515,7 +1532,19 @@ function App({ initialConfig, flags, root, initialAppearance }) {
     setFocus("form");
     setError("");
   }
-  async function composePublication(kind = "discussion") {
+  function requestPRReview() {
+    try {
+      const snapshot = selectPRHunks(
+        current,
+        Math.min(reviewAnchor ?? reviewLine, reviewLine) + 1,
+        Math.max(reviewAnchor ?? reviewLine, reviewLine) + 1,
+      );
+      composePublication("review", snapshot);
+    } catch (e) {
+      fail(e);
+    }
+  }
+  async function composePublication(kind = "discussion", prSelection = null) {
     await task(async () => {
       const [topics, communities] = await Promise.all([
         api("/topics"),
@@ -1534,18 +1563,25 @@ function App({ initialConfig, flags, root, initialAppearance }) {
           : "";
       openForm({
         kind: "publication",
+        ...(prSelection ? { prSelection } : {}),
         title:
           kind === "review" ? "Request a code review" : "Start a conversation",
         topics: itemsOf(topics).map((item) => [item.id, item.name]),
         audiences,
         values: {
           kind,
-          title: "",
+          title: prSelection
+            ? ("Review: " + prSelection.label).slice(0, 160)
+            : "",
           topic: itemsOf(topics).some((item) => item.id === "web")
             ? "web"
             : itemsOf(topics)[0]?.id || "web",
           community_id: audience,
-          body: "",
+          body: prSelection
+            ? "PR patch snapshot · " +
+              prSelection.label +
+              "\nDescribe the context and what you have already checked."
+            : "",
           file: "",
           lines: "",
           review_focus: "",
@@ -1761,41 +1797,55 @@ function App({ initialConfig, flags, root, initialAppearance }) {
         };
         url = "/posts";
         if (payload.kind === "review") {
-          let source = form.source;
-          if (source?.kind !== "diff") {
-            source = {
-              kind: "file",
-              path: form.values.file.replace(/^~(?=\/)/, homedir()),
-            };
-            if (form.values.lines) {
-              const match = form.values.lines.match(/^([1-9]\d*):([1-9]\d*)$/);
-              if (!match) throw Error("Use START:END for file lines.");
-              source.start = Number(match[1]);
-              source.end = Number(match[2]);
-            }
-          }
-          const chosen = await reviewSource(root, source);
-          payload.code = chosen.code;
-          if (chosen.kind === "diff") {
+          if (form.prSelection) {
+            const selected = validatePRSelection(form.prSelection);
+            payload.code = selected.code;
+            payload.details = { github_context: selected.context };
             payload.body +=
-              "\n\nReview source: " +
-              clean(chosen.label).replace(/\n/g, " ") +
-              "\nReview line numbers refer to the published patch, including its headers.";
+              "\n\nReview lines refer to the published patch, including its headers. This is a frozen GitHub PR snapshot, not a synchronized GitHub review.";
             if (payload.body.length > 15000)
               throw Error(
-                "Shorten the context to leave room for the Git diff source label.",
+                "Shorten the context to leave room for the PR snapshot label.",
+              );
+          } else {
+            let source = form.source;
+            if (source?.kind !== "diff") {
+              source = {
+                kind: "file",
+                path: form.values.file.replace(/^~(?=\/)/, homedir()),
+              };
+              if (form.values.lines) {
+                const match = form.values.lines.match(
+                  /^([1-9]\d*):([1-9]\d*)$/,
+                );
+                if (!match) throw Error("Use START:END for file lines.");
+                source.start = Number(match[1]);
+                source.end = Number(match[2]);
+              }
+            }
+            const chosen = await reviewSource(root, source);
+            payload.code = chosen.code;
+            if (chosen.kind === "diff") {
+              payload.body +=
+                "\n\nReview source: " +
+                clean(chosen.label).replace(/\n/g, " ") +
+                "\nReview line numbers refer to the published patch, including its headers.";
+              if (payload.body.length > 15000)
+                throw Error(
+                  "Shorten the context to leave room for the Git diff source label.",
+                );
+            }
+            if (form.values.github === "on")
+              payload.details = {
+                github_context: await readGitHubContext(root, source, {
+                  pullRequest: form.values.pull_request || "",
+                }),
+              };
+            else if (form.values.pull_request?.trim())
+              throw Error(
+                "Enable GitHub context to attach a matching pull request URL, or clear the URL.",
               );
           }
-          if (form.values.github === "on")
-            payload.details = {
-              github_context: await readGitHubContext(root, source, {
-                pullRequest: form.values.pull_request || "",
-              }),
-            };
-          else if (form.values.pull_request?.trim())
-            throw Error(
-              "Enable GitHub context to attach a matching pull request URL, or clear the URL.",
-            );
           payload.review_focus = form.values.review_focus;
         }
         if (payload.kind === "showcase")
@@ -1895,6 +1945,16 @@ function App({ initialConfig, flags, root, initialAppearance }) {
     });
   }
   async function openSelected() {
+    if (route.view === "pr-files") {
+      if (selected)
+        navigate({
+          view: "pr-diff",
+          url: route.url,
+          page: route.page,
+          path: selected.path,
+        });
+      return;
+    }
     if (route.view === "projects" || route.view === "events") {
       if (selected)
         navigate({ view: route.view.slice(0, -1), id: selected.id, page: 1 });
@@ -2152,6 +2212,9 @@ function App({ initialConfig, flags, root, initialAppearance }) {
         url: pullRequestRef(current.post.github_context.pull_request).url,
         page: 1,
       });
+    else if (id === "pr-files")
+      navigate({ view: "pr-files", url: route.url, page: route.page || 1 });
+    else if (id === "pr-review") requestPRReview();
     else if (id === "pr-browser") openBrowser(current.pull.url);
     else if (id === "reply") reply();
     else if (id === "comment") lineFeedback();
@@ -2520,7 +2583,8 @@ function App({ initialConfig, flags, root, initialAppearance }) {
         ["o", "g"].includes(input) &&
         form.kind === "publication" &&
         !formNav &&
-        form.values.kind === "review"
+        form.values.kind === "review" &&
+        !form.prSelection
       ) {
         setPicker(input === "g" ? "changes" : "files");
         return;
@@ -2776,6 +2840,61 @@ function App({ initialConfig, flags, root, initialAppearance }) {
           setReviewFocus("notes");
         } else
           setNotice("No remark on this line on the current page. C adds one.");
+        return;
+      }
+    }
+    if (route.view === "pr" && (input === "f" || input === "F")) {
+      navigate({ view: "pr-files", url: route.url, page: route.page || 1 });
+      return;
+    }
+    if (route.view === "pr-diff") {
+      if (input === "c" || input === "C") {
+        requestPRReview();
+        return;
+      }
+      if (input === " ") {
+        setReviewAnchor((v) => (v === null ? reviewLine : null));
+        return;
+      }
+      if (input === "[" || input === "]") {
+        setReviewLine((v) =>
+          Math.max(
+            0,
+            Math.min(
+              (current?.patch?.hunks?.length || 1) - 1,
+              v + (input === "]" ? 1 : -1),
+            ),
+          ),
+        );
+        setScroll(0);
+        return;
+      }
+      if (keyEvent.leftArrow || keyEvent.rightArrow) {
+        setReviewHorizontal((v) =>
+          Math.max(0, v + (keyEvent.leftArrow ? -8 : 8)),
+        );
+        return;
+      }
+      if (
+        keyEvent.upArrow ||
+        keyEvent.downArrow ||
+        keyEvent.pageUp ||
+        keyEvent.pageDown
+      ) {
+        const rows = current?.patch?.hunks?.[reviewLine]?.lines?.length || 1;
+        const step =
+          keyEvent.pageUp || keyEvent.pageDown
+            ? Math.max(1, contentHeight - 3)
+            : 1;
+        setScroll((v) =>
+          Math.max(
+            0,
+            Math.min(
+              Math.max(0, rows - 1 - Math.max(1, contentHeight - 3)),
+              v + (keyEvent.upArrow || keyEvent.pageUp ? -step : step),
+            ),
+          ),
+        );
         return;
       }
     }
@@ -3339,7 +3458,24 @@ function App({ initialConfig, flags, root, initialAppearance }) {
             ),
           ),
       );
-    } else if (reviewing)
+    } else if (route.view === "pr-files" && current)
+      body = h(PRFiles, {
+        data: current,
+        index,
+        width: contentWidth,
+        height: contentHeight,
+      });
+    else if (route.view === "pr-diff" && current)
+      body = h(PRDiff, {
+        data: current,
+        width: contentWidth,
+        height: contentHeight,
+        hunk: reviewLine,
+        anchor: reviewAnchor,
+        scroll,
+        horizontal: reviewHorizontal,
+      });
+    else if (reviewing)
       body = h(ReviewWorkspace, {
         post: current.post,
         note: route.view === "feedback" ? current.note : null,
@@ -3610,44 +3746,48 @@ function App({ initialConfig, flags, root, initialAppearance }) {
     );
   }
   const hint =
-    route.view === "pr" && !form && !reading && !palette
-      ? "↑↓ scroll · [ ] file pages · X actions · Shift+R refresh · Esc back"
-      : palette
-        ? "Type to filter · ↑↓ choose · Enter open · Esc return"
-        : ["projects", "events"].includes(route.view) &&
-            !form &&
-            !preview &&
-            !picker
-          ? "↑↓ select · Enter open · F filters · N new · [ ] pages · / search"
-          : ["project", "event"].includes(route.view) && !form && !preview
-            ? "↑↓ scroll · X actions · E edit your publication · Esc back"
-            : form?.kind === "appearance"
-              ? "← → choose · Tab next · Ctrl+S save · Esc cancel · 0 default preview"
-              : actionIndex !== null
-                ? "Actions are scoped to the selected item · Esc closes"
-                : reviewing && !form && !preview && !reading
-                  ? "W code / discussion · Space select · C comment · X actions · F filter"
-                  : picker
-                    ? "Project files stay local until publication is confirmed"
-                    : reading
-                      ? readerFind.editing
-                        ? "Find in this text · Enter locate · Esc finish search"
-                        : "↑↓ scroll · / find · n/N match · Home/End · Esc return"
-                      : preview
-                        ? "← → choose · Enter confirm · Esc edit"
-                        : form
-                          ? formNav
-                            ? `${stepControls(activeSteps, activeStep).find((control) => control.id === formNav)?.label || "Next"} · Enter select · Tab fields · Ctrl+S preview`
-                            : fieldsFor(form)[field]?.multiline
-                              ? "Enter new line · Tab next field · Ctrl+N next step · Ctrl+S preview"
-                              : "Enter/Tab next field · Ctrl+N/P steps · Ctrl+S preview"
-                          : phase !== "ready"
-                            ? "Enter connect / open browser · Ctrl+C exit"
-                            : route.view === "feedback"
-                              ? "↑↓ select · R reply · E edit · D delete · S resolve · ! report"
-                              : route.view === "post"
-                                ? "←→ tabs · ↑↓ select · R reply · E edit · D delete · Space read"
-                                : "↑↓ select · Enter open · Tab sections · [ ] pages · N new · / search";
+    route.view === "pr-diff" && !form && !preview && !palette
+      ? "↑↓ scroll · [ ] hunks · Space range · C review · ←→ pan · Esc files"
+      : route.view === "pr-files" && !form && !palette
+        ? "↑↓ choose file · Enter diff · [ ] file pages · X actions · Esc back"
+        : route.view === "pr" && !form && !reading && !palette
+          ? "↑↓ scroll · F choose file / diff · [ ] pages · X actions · Esc back"
+          : palette
+            ? "Type to filter · ↑↓ choose · Enter open · Esc return"
+            : ["projects", "events"].includes(route.view) &&
+                !form &&
+                !preview &&
+                !picker
+              ? "↑↓ select · Enter open · F filters · N new · [ ] pages · / search"
+              : ["project", "event"].includes(route.view) && !form && !preview
+                ? "↑↓ scroll · X actions · E edit your publication · Esc back"
+                : form?.kind === "appearance"
+                  ? "← → choose · Tab next · Ctrl+S save · Esc cancel · 0 default preview"
+                  : actionIndex !== null
+                    ? "Actions are scoped to the selected item · Esc closes"
+                    : reviewing && !form && !preview && !reading
+                      ? "W code / discussion · Space select · C comment · X actions · F filter"
+                      : picker
+                        ? "Project files stay local until publication is confirmed"
+                        : reading
+                          ? readerFind.editing
+                            ? "Find in this text · Enter locate · Esc finish search"
+                            : "↑↓ scroll · / find · n/N match · Home/End · Esc return"
+                          : preview
+                            ? "← → choose · Enter confirm · Esc edit"
+                            : form
+                              ? formNav
+                                ? `${stepControls(activeSteps, activeStep).find((control) => control.id === formNav)?.label || "Next"} · Enter select · Tab fields · Ctrl+S preview`
+                                : fieldsFor(form)[field]?.multiline
+                                  ? "Enter new line · Tab next field · Ctrl+N next step · Ctrl+S preview"
+                                  : "Enter/Tab next field · Ctrl+N/P steps · Ctrl+S preview"
+                              : phase !== "ready"
+                                ? "Enter connect / open browser · Ctrl+C exit"
+                                : route.view === "feedback"
+                                  ? "↑↓ select · R reply · E edit · D delete · S resolve · ! report"
+                                  : route.view === "post"
+                                    ? "←→ tabs · ↑↓ select · R reply · E edit · D delete · Space read"
+                                    : "↑↓ select · Enter open · Tab sections · [ ] pages · N new · / search";
   return h(
     ThemeContext.Provider,
     { value: colors },

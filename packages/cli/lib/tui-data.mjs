@@ -63,6 +63,23 @@ export async function notificationRoute(api, item) {
       };
 }
 export async function loadPage(api, route, signal) {
+  if (route.view === "pr-diff")
+    return githubReader.loadDiff(route.url, {
+      page: route.page || 1,
+      path: route.path,
+      signal,
+    });
+  if (route.view === "pr-files") {
+    const data = await githubReader.load(route.url, {
+      page: route.page || 1,
+      signal,
+    });
+    return {
+      ...data,
+      title: "PR changed files",
+      items: data.files.map((f) => ({ ...f, id: f.path })),
+    };
+  }
   if (route.view === "pr")
     return githubReader.load(route.url, { page: route.page || 1, signal });
   if (isCatalog(route)) return loadCatalog(api, route, signal);

@@ -1,6 +1,6 @@
 {
   "name": "@tenyokjs/devdevian-cli",
-  "version": "0.9.0-alpha.1",
+  "version": "0.10.0-alpha.1",
   "description": "Devdevian in your terminal: discussions, questions and human code reviews.",
   "type": "module",
   "bin": {

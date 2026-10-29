@@ -23,6 +23,7 @@ import {
   loadAppearance,
   saveAppearance,
 } from "../lib/appearance.mjs";
+import { selectPRHunks } from "../lib/pr-diff.mjs";
 import { githubReader, pullRequestLines } from "../lib/github-reader.mjs";
 import { readGitHubContext, workspaceRoot } from "../lib/workspace.mjs";
 import { githubContextLines } from "../lib/github-context.mjs";
@@ -42,6 +43,7 @@ const options = {
   focus: { type: "string" },
   "github-context": { type: "boolean" },
   pr: { type: "string" },
+  hunks: { type: "string" },
   "start-line": { type: "string" },
   "end-line": { type: "string" },
   status: { type: "string" },
@@ -120,6 +122,8 @@ const help = `Devdevian CLI ${version} · alpha
   devdevian review reopen POST_ID REVIEW_ID
   devdevian communities [--page 2]
   devdevian github pr https://github.com/owner/repo/pull/42 [--page 2]
+  devdevian github diff PR_URL --file src/retry.ts [--page 2]
+  devdevian github review PR_URL --file src/retry.ts --hunks 1:2 --title "..." --focus "..." --body "..."
 
   Inside the workspace: /projects, /project ID, /events, /event ID
   Ctrl+K or /actions opens quick actions; type to filter
@@ -293,6 +297,27 @@ async function execute(args, flags) {
     return;
   }
   const command = args[0];
+  if (command === "github" && args[1] === "diff") {
+    const data = await githubReader.loadDiff(args[2], {
+      page: positive(flags.page || "1", "Page"),
+      path: flags.file,
+    });
+    if (flags.json) process.stdout.write(JSON.stringify(data) + "\n");
+    else
+      out(
+        data.title +
+          "\nHead: " +
+          data.pull.commit +
+          "\nBase: " +
+          data.pull.base_commit +
+          "\n\n" +
+          (data.patch.reason ||
+            data.patch.hunks
+              .map((h, i) => `HUNK ${i + 1}\n` + h.lines.join("\n"))
+              .join("\n\n")),
+      );
+    return;
+  }
   if (command === "github" && args[1] === "pr") {
     const data = await githubReader.load(args[2], {
       page: positive(flags.page || "1", "Page"),
@@ -382,8 +407,33 @@ async function execute(args, flags) {
     }
     return;
   }
-  if (command === "ask" || (command === "review" && args[1] === "create")) {
-    const review = command === "review";
+  if (
+    command === "ask" ||
+    (command === "review" && args[1] === "create") ||
+    (command === "github" && args[1] === "review")
+  ) {
+    const fromPR = command === "github",
+      review = command === "review" || fromPR;
+    let prSelection;
+    if (fromPR) {
+      if (!flags.hunks || !/^([1-9]\d*)(?::([1-9]\d*))?$/.test(flags.hunks))
+        throw Error(
+          "Choose --hunks START:END (or a single hunk number). Inspect github diff first.",
+        );
+      if (flags.lines || flags["github-context"] || flags.pr)
+        throw Error(
+          "PR reviews use their snapshot context. Omit --lines, --github-context and --pr.",
+        );
+      const [start, end = start] = flags.hunks.split(":").map(Number);
+      prSelection = selectPRHunks(
+        await githubReader.loadDiff(args[2], {
+          page: positive(flags.page || "1", "Page"),
+          path: flags.file,
+        }),
+        start,
+        end,
+      );
+    }
     let code = "",
       file,
       range;
@@ -391,7 +441,7 @@ async function execute(args, flags) {
       throw Error("GitHub context is available for review create.");
     if (flags.pr && !flags["github-context"])
       throw Error("--pr requires --github-context.");
-    if (review) {
+    if (review && !fromPR) {
       file = flags.file || (await prompt("Code file"));
       code = await boundedFile(file, 20000);
       if (flags.lines) {
@@ -419,7 +469,12 @@ async function execute(args, flags) {
       ...(flags.community ? { community_id: flags.community } : {}),
     };
     if (review) {
-      payload.code = code;
+      payload.code = prSelection?.code || code;
+      if (prSelection) {
+        payload.details = { github_context: prSelection.context };
+        payload.body +=
+          "\n\nReview lines refer to the published patch, including its headers. This is a frozen GitHub PR snapshot, not a synchronized GitHub review.";
+      }
       payload.review_focus =
         flags.focus || (await prompt("What should reviewers focus on?"));
       if (flags["github-context"])

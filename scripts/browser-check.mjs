@@ -313,13 +313,19 @@ try {
   });
   await expect(footerDirectory.getByRole("link")).toHaveCount(12);
   await expect(
-    footerDirectory.getByRole("link", { name: "CLI documentation", exact: true }),
+    footerDirectory.getByRole("link", {
+      name: "CLI documentation",
+      exact: true,
+    }),
   ).toHaveAttribute(
     "href",
     "https://github.com/Tenyokj/devdevian/blob/main/packages/cli/README.md",
   );
   await expect(
-    footerDirectory.getByRole("link", { name: "Privacy & Security", exact: true }),
+    footerDirectory.getByRole("link", {
+      name: "Privacy & Security",
+      exact: true,
+    }),
   ).toHaveAttribute("href", "/privacy");
   await footerDirectory.getByRole("link").first().focus();
   await page.keyboard.press("Tab");
@@ -1572,6 +1578,55 @@ try {
     ).toBeTruthy();
     await card.screenshot({
       path: artifacts + "/github-context-" + theme + ".png",
+    });
+  }
+  const prSnapshot = await second.request.post(base + "/api/posts", {
+    data: {
+      title: "Selected GitHub PR snapshot browser check",
+      kind: "review",
+      topic: "web",
+      body: "Review this explicit PR patch snapshot.",
+      code: '--- "a/retry.ts"\n+++ "b/retry.ts"\n@@ -1 +1 @@\n-old\n+new',
+      review_focus: "Check the retry behaviour.",
+      details: {
+        github_context: {
+          repository: "https://github.com/example/project",
+          commit: "a".repeat(40),
+          base_commit: "b".repeat(40),
+          branch: "retry",
+          path: "src/retry.ts",
+          mode: "pr",
+          pull_request: "https://github.com/example/project/pull/42",
+          hunk_start: 1,
+          hunk_end: 2,
+        },
+      },
+    },
+  });
+  expect(prSnapshot.ok()).toBeTruthy();
+  const prSnapshotId = (await prSnapshot.json()).id;
+  for (const viewport of [
+    { width: 1440, height: 1000 },
+    { width: 390, height: 844 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await page.goto(base + "/app#post/" + prSnapshotId);
+    const card = page.getByRole("region", { name: "GitHub context" });
+    await expect(card).toContainText("PR patch snapshot");
+    await expect(card).toContainText("Hunks 1–2");
+    await expect(card).toContainText(
+      "Review lines refer to the published patch",
+    );
+    await expect(
+      card.getByRole("link", { name: "Head aaaaaaa" }),
+    ).toBeVisible();
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBeTruthy();
+    await card.screenshot({
+      path: artifacts + "/pr-snapshot-" + viewport.width + ".png",
     });
   }
   console.log(

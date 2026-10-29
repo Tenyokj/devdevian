@@ -28,6 +28,19 @@ Actual CLI captures from isolated demonstration accounts. Your terminal uses you
 
 Run `devdevian --help` for script commands and workspace shortcuts. Interactive help has a large wordmark and selective accents; `NO_COLOR=1` keeps it uncolored, narrow terminals use a compact heading, and redirected output stays plain.
 
+## GitHub PR → human review
+
+Open `/pr https://github.com/owner/repo/pull/42`, press **F**, choose a file and press **Enter**. **[ / ]** chooses a hunk; **Space** anchors a range. **C** starts a review from just those changes. Add context/focus, then **Ctrl+S** previews before explicit publication. No local repository is required. [Full PR/diff guide](https://github.com/Tenyokj/devdevian/blob/main/docs/github-pr-reader.md).
+
+```sh
+devdevian github diff PR_URL --file src/retry.ts
+devdevian github review PR_URL --file src/retry.ts --hunks 1:2 \
+  --title "Review retries" --topic web --focus "Check timeouts" \
+  --body "Please review these changes and their failure cases."
+```
+
+Only public GitHub data is read; private PRs and posting comments back to GitHub are not supported. Reviews store a frozen selected patch (one file, complete hunks, up to 20,000 characters) and base/head commits. GitHub may change afterwards. Local drafts include your selected code; treat them as private files.
+
 ## Live workspace
 
 The default `devdevian` command and `devdevian tui` open an alternate terminal screen. Navigation, conversations, inline forms, previews and search update in that screen; exiting restores your normal terminal. The blue and purple layout adapts to the terminal size, with compact navigation below 90 columns. Minimum size: 60 columns × 18 rows.

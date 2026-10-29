@@ -6,7 +6,14 @@ Every published npm artifact has a unique immutable version. We record each vers
 
 ## Current milestone
 
-**0.9.0 adds public PR reading** to the local GitHub source context introduced in 0.8.0.
+**0.10.0 adds PR diffs and selected-hunk code reviews** to public PR reading.
+
+## 0.10.0-alpha.1 — PR diffs into human code review
+
+- Select changed files, inspect colored complete hunks with old/new line numbers, pan long lines and choose a contiguous hunk range. Create an editable review draft with explicit preview/confirmation; browser and CLI display base/head snapshot provenance.
+- `github diff` supports public reads without login; `github review --file ... --hunks START:END` publishes through the existing Devdevian account and permissions. Snapshot drafts restore without disk/GitHub re-reads.
+- Fresh summary/files/summary reads detect base/head changes during loading. Reject unavailable/binary, oversized, truncated, unsafe-control patches and oversized selections. Existing fixed-host GET-only requests, quotas and timeout limits remain; no GitHub writes, new OAuth permissions, dependencies or schema migration.
+- Unit, API, command, real terminal and browser checks cover selection, provenance, publication gates, drafts, compact layouts and existing permissions.
 
 ## 0.9.0-alpha.1 — Read public pull requests
 

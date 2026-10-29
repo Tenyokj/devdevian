@@ -50,7 +50,7 @@ export function normalizeGitHubContext(value) {
     path.startsWith("/") ||
     /[\\\x00-\x1f\x7f-\x9f\u202a-\u202e\u2066-\u2069]/u.test(path) ||
     path.split("/").some((p) => !p || p === "." || p === "..") ||
-    !["file", "staged", "unstaged"].includes(mode)
+    !["file", "staged", "unstaged", "pr"].includes(mode)
   )
     fail();
   if (
@@ -77,6 +77,22 @@ export function normalizeGitHubContext(value) {
       fail();
     pr = repository + "/pull/" + match[3];
   }
+  let snapshot = {};
+  if (mode === "pr") {
+    const { base_commit, hunk_start, hunk_end } = value;
+    if (
+      !pr ||
+      typeof base_commit !== "string" ||
+      !/^(?:[a-f0-9]{40}|[a-f0-9]{64})$/.test(base_commit) ||
+      !Number.isSafeInteger(hunk_start) ||
+      !Number.isSafeInteger(hunk_end) ||
+      hunk_start < 1 ||
+      hunk_end < hunk_start ||
+      hunk_end > 10000
+    )
+      fail();
+    snapshot = { base_commit, hunk_start, hunk_end };
+  }
   return {
     repository,
     branch,
@@ -86,6 +102,7 @@ export function normalizeGitHubContext(value) {
     start_line,
     end_line,
     pull_request: pr,
+    ...snapshot,
   };
 }
 export function githubContextLines(value) {
@@ -101,13 +118,21 @@ export function githubContextLines(value) {
   return [
     "GITHUB CONTEXT · provided by the author",
     c.repository,
-    `Branch: ${c.branch || "detached HEAD"} · ${c.mode === "file" ? "Local file" : c.mode === "staged" ? "Staged patch" : "Unstaged patch"}`,
+    `Branch: ${c.branch || "detached HEAD"} · ${c.mode === "pr" ? "GitHub PR patch snapshot" : c.mode === "file" ? "Local file" : c.mode === "staged" ? "Staged patch" : "Unstaged patch"}`,
     "File: " +
       c.path +
       (c.start_line ? ` · lines ${c.start_line}–${c.end_line}` : ""),
-    "Base commit: " + c.commit,
+    ...(c.mode === "pr"
+      ? [
+          `Selected hunks: ${c.hunk_start}–${c.hunk_end}`,
+          "Base commit: " + c.base_commit,
+        ]
+      : []),
+    (c.mode === "pr" ? "Head commit: " : "Base commit: ") + c.commit,
     c.repository + "/commit/" + c.commit,
     ...(c.pull_request ? ["Pull request: " + c.pull_request] : []),
-    "Local code may differ from the base commit. GitHub content is not synchronized.",
+    c.mode === "pr"
+      ? "Author-provided PR patch snapshot. Published line numbers refer to this patch, not the original file. GitHub is not synchronized."
+      : "Local code may differ from the base commit. GitHub content is not synchronized.",
   ];
 }

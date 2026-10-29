@@ -1,3 +1,4 @@
+import { parsePRPatch } from "./pr-diff.mjs";
 import { clean } from "./client.mjs";
 import { githubRepository } from "./github-context.mjs";
 export function pullRequestRef(value) {
@@ -30,9 +31,9 @@ const count = (n) => (Number.isSafeInteger(n) && n >= 0 ? n : 0);
 export function createGitHubReader({ fetchImpl = fetch, now = Date.now } = {}) {
   const cache = new Map();
   let blockedUntil = 0;
-  async function get(url, signal) {
+  async function get(url, signal, fresh = false) {
     const cached = cache.get(url);
-    if (cached && now() - cached.at < 60000) return cached;
+    if (!fresh && cached && now() - cached.at < 60000) return cached;
     if (now() < blockedUntil)
       throw Error(
         `GitHub rate limit reached. Try again in ${Math.max(1, Math.ceil((blockedUntil - now()) / 1000))} seconds.`,
@@ -135,11 +136,52 @@ export function createGitHubReader({ fetchImpl = fetch, now = Date.now } = {}) {
     clear() {
       cache.clear();
     },
-    async load(value, { page = 1, signal } = {}) {
+    async loadDiff(value, { page = 1, path, signal } = {}) {
+      const ref = pullRequestRef(value);
+      if (typeof path !== "string" || !path || path.length > 1000)
+        throw Error("Choose a file from the PR file list.");
+      // Read a fresh page bracketed by matching base/head commits. Never mix an
+      // old summary with a newly pushed patch or silently replace a draft snapshot.
+      const data = await this.load(value, { page, signal, fresh: true });
+      const raw = (
+        await get(ref.api + `/files?per_page=20&page=${page}`, signal)
+      ).data;
+      const after = (await get(ref.api, signal, true)).data;
+      if (
+        after?.head?.sha !== data.pull.commit ||
+        after?.base?.sha !== data.pull.base_commit
+      )
+        throw Error(
+          "This PR changed while loading its diff. Refresh the file list and select again.",
+        );
+      const file = data.files.find((f) => f.path === path);
+      const original = raw.find((f) => f.filename === path);
+      if (!file || !original)
+        throw Error(
+          "This file moved or is no longer on this page. Refresh the PR file list.",
+        );
+      if (
+        !/^(?:[a-f0-9]{40}|[a-f0-9]{64})$/.test(data.pull.commit) ||
+        !/^(?:[a-f0-9]{40}|[a-f0-9]{64})$/.test(data.pull.base_commit)
+      )
+        throw Error(
+          "GitHub did not provide valid snapshot commits. Open the PR in your browser.",
+        );
+      return {
+        ...data,
+        items: [],
+        file,
+        patch: parsePRPatch(original.patch, file),
+        title: "PR diff · " + file.path,
+        subtitle:
+          "GitHub snapshot · ↑↓ scroll · [ ] hunks · Space range · C review",
+      };
+    },
+    async load(value, { page = 1, signal, fresh = false } = {}) {
       const ref = pullRequestRef(value);
       if (!Number.isSafeInteger(page) || page < 1 || page > 150)
         throw Error("Choose a PR file page between 1 and 150.");
-      const summary = await get(ref.api, signal),
+      const summary = await get(ref.api, signal, fresh),
         p = summary.data;
       if (
         !p ||
@@ -153,6 +195,7 @@ export function createGitHubReader({ fetchImpl = fetch, now = Date.now } = {}) {
       const files = await get(
         ref.api + `/files?per_page=20&page=${page}`,
         signal,
+        fresh,
       );
       if (!Array.isArray(files.data) || files.data.length > 20)
         throw Error("GitHub returned an invalid file page.");
@@ -165,7 +208,7 @@ export function createGitHubReader({ fetchImpl = fetch, now = Date.now } = {}) {
       return {
         title: `PR #${ref.number} · ${text(p.title, 256)}`,
         subtitle:
-          "Public GitHub · read-only · [ ] file pages · Shift+R refresh",
+          "Public GitHub · F choose file / diff · [ ] file pages · Shift+R refresh",
         pull: {
           url: ref.url,
           repository: ref.repository,
@@ -177,6 +220,8 @@ export function createGitHubReader({ fetchImpl = fetch, now = Date.now } = {}) {
           base: text(p.base?.label || p.base?.ref, 300),
           head: text(p.head?.label || p.head?.ref, 300),
           commit: text(p.head?.sha, 64),
+          base_commit: text(p.base?.sha, 64),
+          head_ref: text(p.head?.ref || "", 200),
           body: text(p.body || "", 20000),
           additions: count(p.additions),
           deletions: count(p.deletions),

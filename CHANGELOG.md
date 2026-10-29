@@ -10,6 +10,12 @@
 - Centered public conversation count in a glowing Doto display, with brief copy, pausable orbit effects and visibility/reduced-motion handling. Existing public-only cached counting stays unchanged.
 - Added a bounded blurred photograph/glass backdrop below the hero, plus short event-driven forum page/card feedback. No new API requests, animation framework or database change.
 
+## CLI 0.10.0-alpha.1 — PR diffs and selected reviews
+
+- Browse public PR files, inspect complete diff hunks and select a contiguous range into an editable code-review draft with preview/confirmation.
+- New public `github diff` and authenticated `github review` commands, frozen snapshot drafts, and shared browser/terminal head/base/hunk provenance.
+- Fresh commit checks during reads; bounded complete-patch parsing, unavailable/binary/truncated handling and compact terminal rendering. No GitHub writes, new OAuth scopes, dependencies or database migration.
+
 ## CLI 0.9.0-alpha.1 — Public GitHub PR reading
 
 - Inspect a linked or explicitly entered public PR in the terminal: status, author, branches, description and paginated changed files.

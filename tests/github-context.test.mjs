@@ -99,6 +99,30 @@ test("GitHub context persists across clients and edits, validates before writes 
       (await author("/posts/" + privatePost.id)).data.github_context.commit,
       github.commit,
     );
+    const snapshot = {
+      ...github,
+      mode: "pr",
+      commit: "a".repeat(40),
+      base_commit: "b".repeat(40),
+      hunk_start: 2,
+      hunk_end: 3,
+    };
+    const prPost = await author("/posts", {
+      ...payload,
+      title: "Selected public PR patch snapshot",
+      details: { github_context: snapshot },
+      code: '--- "a/retry.ts"\n+++ "b/retry.ts"\n@@ -1 +1 @@\n-old\n+new',
+    });
+    assert.equal(prPost.status, 201);
+    assert.deepEqual(
+      (await other("/posts/" + prPost.data.id)).data.github_context,
+      { ...snapshot, start_line: null, end_line: null },
+    );
+    const invalidSnapshot = await author("/posts", {
+      ...payload,
+      details: { github_context: { ...snapshot, base_commit: "not-a-sha" } },
+    });
+    assert.equal(invalidSnapshot.status, 400);
     // Exercise the actual command client against the same API and browser account.
     const root = join(f.directory, "project"),
       config = join(f.directory, "cli");
