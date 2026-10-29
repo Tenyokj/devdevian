@@ -189,15 +189,18 @@ body.landing-page {
   place-items: center;
   overflow: hidden;
   background:
-    radial-gradient(ellipse at 50% 85%, #3323591f, transparent 64%), #090c18;
+    radial-gradient(ellipse at 48% 78%, #7762b85c, transparent 68%),
+    radial-gradient(ellipse at 8% 32%, #456ba34d, transparent 58%),
+    radial-gradient(ellipse at 94% 12%, #645bb54a, transparent 55%),
+    linear-gradient(160deg, #171f38, #242341 55%, #171b32);
 }
 .hero-haze {
   position: absolute;
   inset: 3% 14% 0;
   background: radial-gradient(
     ellipse at 50% 50%,
-    #9174db25,
-    #514c9d12 40%,
+    #ad99e647,
+    #787cc52b 40%,
     transparent 68%
   );
   filter: blur(25px);
@@ -1207,13 +1210,82 @@ body.landing-page {
   color: #79728f;
   margin-top: 3px;
 }
-.footer-bottom > div {
-  display: flex;
-  gap: 23px;
-  margin-left: auto;
-  font-size: 10px;
-  color: #9c91b4;
+/* A quiet directory below the invitation, with one continuous rectangular grid. */
+.footer-directory {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 38px;
+  border: 1px solid #b4b7ed29;
+  background: #10172b45;
 }
+.footer-directory-group + .footer-directory-group {
+  border-left: 1px solid #b4b7ed29;
+}
+.footer-directory h3 {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0;
+  padding: 24px;
+  color: #b8b4d4;
+  font: 10px var(--font-mono, monospace);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+.footer-directory h3 > span {
+  color: #8589b7;
+}
+.footer-directory a {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  min-height: 66px;
+  padding: 18px 24px;
+  border-top: 1px solid #b4b7ed20;
+  color: #d7d6ec;
+  font-size: 13px;
+  text-decoration: none;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
+}
+.footer-directory a svg {
+  flex-shrink: 0;
+  color: #969bc7;
+  transition:
+    transform 0.2s ease,
+    color 0.2s ease;
+}
+.footer-directory a:hover,
+.footer-directory a:focus-visible {
+  background: #8e91e51c;
+  color: #fff;
+}
+.footer-directory a:hover svg,
+.footer-directory a:focus-visible svg {
+  transform: translate(3px, -3px);
+  color: #c8bdff;
+}
+.footer-directory a:focus-visible {
+  outline: 2px solid #b7abff;
+  outline-offset: -3px;
+}
+.footer-colophon {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin-top: 24px;
+  color: #a6a4bf;
+  font-size: 10px;
+}
+.footer-colophon a {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .motion-ready [data-reveal] {
   opacity: 0;
   transform: translateY(24px);
@@ -1679,12 +1751,21 @@ body.landing-page {
   .footer-bottom small {
     font-size: 7px;
   }
-  .footer-bottom > div {
-    width: 100%;
-    margin-left: 0;
-    gap: 24px;
-    font-size: 9px;
-    padding-top: 5px;
+  .footer-directory {
+    grid-template-columns: 1fr;
+    margin-top: 28px;
+  }
+  .footer-directory-group + .footer-directory-group {
+    border-left: 0;
+    border-top: 1px solid #b4b7ed29;
+  }
+  .footer-directory h3 {
+    padding: 21px;
+  }
+  .footer-directory a {
+    min-height: 60px;
+    padding: 17px 21px;
+    font-size: 12px;
   }
 }
 @media (max-width: 370px) {

@@ -744,20 +744,59 @@ export default function Landing() {
                 A forum for everyone who builds.
                 <small>Open source · GPL v3 · In active development</small>
               </span>
-              <div>
-                <a href={repository + "/blob/main/packages/cli/README.md"}>
-                  CLI documentation
-                </a>
-                <a href={repository + "/blob/main/docs/README.md"}>
-                  Documentation
-                </a>
-                <a href={repository + "/blob/main/CONTRIBUTING.md"}>
-                  Contributing
-                </a>
-                <a href="/privacy">Privacy &amp; Security</a>
-                <a href="/terms">Terms of Use</a>
-                <a href="#faq">FAQ</a>
-              </div>
+            </div>
+            <nav className="footer-directory" aria-label="Footer navigation">
+              {[
+                [
+                  "Explore",
+                  [
+                    ["Public feed", "/app#feed"],
+                    ["Communities", "/app#communities"],
+                    ["Projects", "/app#projects"],
+                    ["Events", "/app#events"],
+                  ],
+                ],
+                [
+                  "Build together",
+                  [
+                    ["Source on GitHub", repository],
+                    [
+                      "CLI documentation",
+                      repository + "/blob/main/packages/cli/README.md",
+                    ],
+                    ["Documentation", repository + "/blob/main/docs/README.md"],
+                    ["Contributing", repository + "/blob/main/CONTRIBUTING.md"],
+                  ],
+                ],
+                [
+                  "Good to know",
+                  [
+                    ["Privacy & Security", "/privacy"],
+                    ["Terms of Use", "/terms"],
+                    ["Questions & answers", "#faq"],
+                    ["Report an issue", repository + "/issues"],
+                  ],
+                ],
+              ].map(([label, links], index) => (
+                <section className="footer-directory-group" key={label}>
+                  <h3>
+                    <span aria-hidden="true">0{index + 1}</span>
+                    {label}
+                  </h3>
+                  {links.map(([text, href]) => (
+                    <a href={href} key={text}>
+                      <span>{text}</span>
+                      <ArrowUpRight size={18} aria-hidden="true" />
+                    </a>
+                  ))}
+                </section>
+              ))}
+            </nav>
+            <div className="footer-colophon">
+              <span>Built in the open. Made for the curious.</span>
+              <a href="#">
+                Back to top <ArrowUpRight size={14} aria-hidden="true" />
+              </a>
             </div>
           </div>
         </footer>

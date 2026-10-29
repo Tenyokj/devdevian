@@ -307,6 +307,25 @@ try {
   await page.locator(".stack-group img").evaluateAll(async (images) => {
     await Promise.all(images.map((img) => img.decode()));
   });
+  const footerDirectory = page.getByRole("navigation", {
+    name: "Footer navigation",
+    exact: true,
+  });
+  await expect(footerDirectory.getByRole("link")).toHaveCount(12);
+  await expect(
+    footerDirectory.getByRole("link", { name: "CLI documentation", exact: true }),
+  ).toHaveAttribute(
+    "href",
+    "https://github.com/Tenyokj/devdevian/blob/main/packages/cli/README.md",
+  );
+  await expect(
+    footerDirectory.getByRole("link", { name: "Privacy & Security", exact: true }),
+  ).toHaveAttribute("href", "/privacy");
+  await footerDirectory.getByRole("link").first().focus();
+  await page.keyboard.press("Tab");
+  await expect(
+    footerDirectory.getByRole("link", { name: "Communities", exact: true }),
+  ).toBeFocused();
   for (const [name, width, height] of [
     ["desktop", 1440, 1000],
     ["tablet", 834, 1112],
@@ -327,6 +346,17 @@ try {
         () => document.documentElement.scrollWidth <= innerWidth,
       ),
     ).toBeTruthy();
+    await page.locator(".landing-hero").screenshot({
+      path: artifacts + "/hero-" + name + ".png",
+      animations: "disabled",
+    });
+    await footerDirectory.screenshot({
+      path: artifacts + "/footer-directory-" + name + ".png",
+      animations: "disabled",
+    });
+    const directoryBox = await footerDirectory.boundingBox();
+    expect(directoryBox.width).toBeLessThanOrEqual(width);
+    await expect(footerDirectory.getByRole("link").last()).toBeVisible();
     await page.screenshot({
       path: artifacts + "/landing-" + name + ".png",
       fullPage: true,
@@ -341,12 +371,10 @@ try {
     await page.setViewportSize({ width, height });
     await page.locator(".landing-activity").scrollIntoViewIfNeeded();
     await page.evaluate(() => document.fonts.ready);
-    await page
-      .locator(".landing-activity")
-      .screenshot({
-        path: artifacts + "/activity-" + name + ".png",
-        animations: "disabled",
-      });
+    await page.locator(".landing-activity").screenshot({
+      path: artifacts + "/activity-" + name + ".png",
+      animations: "disabled",
+    });
     const offset = await page.locator(".activity-number").evaluate((e) => {
       const number = e.getBoundingClientRect(),
         section = e.closest("section").getBoundingClientRect();

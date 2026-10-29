@@ -2,6 +2,8 @@
 
 ## Unreleased — Website visual refresh
 
+- Brightened the logo hero with layered indigo/blue light and added a responsive rectangular footer directory below the existing invitation and brand. Keyboard focus and reduced motion remain supported.
+
 - Added npm to the technology ribbon with a local brand mark and CLI package link.
 - Centered public conversation count in a glowing Doto display, with brief copy, pausable orbit effects and visibility/reduced-motion handling. Existing public-only cached counting stays unchanged.
 - Added a bounded blurred photograph/glass backdrop below the hero, plus short event-driven forum page/card feedback. No new API requests, animation framework or database change.
