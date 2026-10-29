@@ -117,6 +117,7 @@ const help = `Devdevian CLI ${version} · alpha
   Inside the workspace: /projects, /project ID, /events, /event ID
   Ctrl+K or /actions opens quick actions; type to filter
   Ctrl+N / Ctrl+P moves between form steps; Ctrl+S validates and previews
+  Forms: Tab fields/buttons, Enter selects Back/Next or adds a line in multiline text
   Full reply text: / find, n/N matches, Home/End, Esc remembers your place
   N creates · F filters · E edits your publication · X opens context actions
 

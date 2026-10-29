@@ -167,7 +167,7 @@ test(
       await wait("Request for feedback");
       await send("e");
       await wait("Edit your project");
-      for (let i = 0; i < 13; i++) await send("\t");
+      for (let i = 0; i < 3; i++) await send("\x0e");
       await send("\x0f");
       await wait("Enter preview image");
       await send("/");

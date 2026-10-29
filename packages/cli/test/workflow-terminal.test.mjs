@@ -157,6 +157,68 @@ test(
         (await other("/posts/" + shared[0].id)).data.body,
         /staged terminal form/,
       );
+      await command("/actions");
+      await wait("QUICK ACTIONS");
+      await send("Create a project");
+      await send("\r");
+      await wait("Step 1/4");
+      await wait("Next: Story");
+      await send("Form navigation project");
+      await send("\x0e");
+      await wait("Step 2/4");
+      await send("A project demonstrating clear terminal forms and links.");
+      await send("\t");
+      await wait("Text and links are allowed");
+      await wait("Enter adds a line");
+      await send("Review");
+      await send(" ");
+      await send("https://example.com/design");
+      await send("\r");
+      await send("Focus on reliability.");
+      await send("\x0e");
+      await wait("Step 3/4");
+      await send("https://example.com/project");
+      await send("\t"); // Source URL: optional.
+      await send("\t"); // Team: optional.
+      await send("\t");
+      await wait("One per line: Label");
+      await send("Docs | https://example.com/docs");
+      await send("\r");
+      await send("Demo | https://example.com/demo");
+      await send("\t"); // Focus Next instead of silently changing steps.
+      await wait("›[ Next: Images");
+      await send("\x1b[D");
+      await send("\r"); // Back keeps all link values.
+      await wait("Step 2/4");
+      await send("\x0e");
+      await wait("Step 3/4");
+      await wait("https://example.com/project");
+      await send("\x0e");
+      await wait("Step 4/4");
+      await send("\t"); // Screenshot paths.
+      await send("\t"); // Preview button.
+      await wait("›[ Preview");
+      await send("\r");
+      await wait("Preview · Create a project");
+      assert.equal(
+        (await other("/projects?q=Form%20navigation")).data.length,
+        0,
+      );
+      await send("\x1b[C");
+      await send("\r");
+      await wait("Request for feedback");
+      const projects = (await other("/projects?q=Form%20navigation")).data;
+      assert.equal(projects.length, 1);
+      const project = (await other("/projects/" + projects[0].id)).data;
+      assert.equal(
+        project.help,
+        "Review https://example.com/design\nFocus on reliability.",
+      );
+      assert.equal(project.url, "https://example.com/project");
+      assert.deepEqual(project.links, [
+        { label: "Docs", url: "https://example.com/docs" },
+        { label: "Demo", url: "https://example.com/demo" },
+      ]);
       await command("/open " + post.id);
       await wait(post.title);
       await send("\x1b[C");
@@ -201,7 +263,7 @@ test(
       await send("\x1b");
       await send("\x1b");
       await send("\x1b");
-      await wait(post.title);
+      await wait("Form navigation project");
       term.resize(60, 18);
       child.stdin.write(JSON.stringify({ resize: [60, 18] }) + "\n");
       await delay(200);
@@ -210,6 +272,16 @@ test(
       await send("projects");
       await send("\r");
       await wait("Projects");
+      assert.equal(term.buffer.active.baseY, 0);
+      await send("n");
+      await wait("Step 1/4");
+      await send("Compact project");
+      await send("\x0e");
+      await wait("Step 2/4");
+      await send("Enough context for a compact terminal project.");
+      await send("\r");
+      await send("line2");
+      await wait("line2");
       assert.equal(term.buffer.active.baseY, 0);
       await send("\x03");
       assert.ok(reply.id);

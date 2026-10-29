@@ -1,5 +1,11 @@
 # Changelog
 
+## CLI 0.7.1-alpha.1 — Clear form navigation
+
+- Visible keyboard Back/Next/Preview controls, field-specific input guidance and compact-terminal hints.
+- Clear project-link instructions and explicit distinction between local autosave, preview and publication.
+- Project spaces/newlines/links, step controls, preserved selections and compact multiline editing verified in real terminal/API regressions. No API/schema migration.
+
 ## CLI 0.7.0-alpha.1 — Everyday terminal flow
 
 - Searchable quick actions with scoped operations, navigation, creation, recent views and explicit search/open choices.

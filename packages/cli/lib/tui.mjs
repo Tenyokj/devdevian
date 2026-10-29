@@ -43,6 +43,7 @@ import {
   appearanceFlags,
 } from "./appearance.mjs";
 import { liveLoop, anchoredIndex } from "./live.mjs";
+import { fieldGuidance, stepControls } from "./form-guidance.mjs";
 import { paletteItems } from "./palette.mjs";
 import {
   formSteps,
@@ -289,21 +290,29 @@ function InputText({ value, cursor, width, height = 1 }) {
     }),
   );
 }
-function FormView({ form, active, cursor, width, height }) {
+function FormView({ form, active, cursor, width, height, navFocus }) {
   const colors = useTheme();
   const fields = fieldsFor(form),
     rows = [];
   const steps = formSteps(form, fields),
     stepIndex = stepAt(steps, active, fields.length),
     step = steps[stepIndex];
+  const guidance = fieldGuidance(navFocus ? null : fields[active], {
+    wizard: !!step,
+    project: form.kind === "catalog" && form.entity === "project",
+  });
+  const helpRows =
+      form.kind === "appearance" ? 0 : height >= 8 ? 2 : height >= 5 ? 1 : 0,
+    navRows = step && height >= 3 ? 1 : 0;
+  const editorHeight = Math.max(1, height - helpRows - navRows);
   let selectedLine = rows.length;
   fields.forEach((field, index) => {
     if (step && !step.indexes.includes(index)) return;
     if (index === active) selectedLine = rows.length;
     rows.push({
-      text: (index === active ? "› " : "  ") + field.label,
-      color: index === active ? colors.purple : colors.muted,
-      bold: index === active,
+      text: (index === active && !navFocus ? "› " : "  ") + field.label,
+      color: index === active && !navFocus ? colors.purple : colors.muted,
+      bold: index === active && !navFocus,
     });
     if (field.options) {
       const option = field.options.find(
@@ -312,12 +321,12 @@ function FormView({ form, active, cursor, width, height }) {
       rows.push({
         text:
           "  ‹ " + (option?.[1] || form.values[field.key] || "Choose") + " ›",
-        color: index === active ? colors.blue : colors.text,
+        color: index === active && !navFocus ? colors.blue : colors.text,
       });
     } else {
       const value = form.values[field.key] || "";
       const text =
-        index === active
+        index === active && !navFocus
           ? cursorLines(value, cursor, width - 3).lines
           : wrap(value || "…", width - 3);
       const caretLine =
@@ -329,7 +338,9 @@ function FormView({ form, active, cursor, width, height }) {
           : 0;
       const visible = field.multiline
           ? Math.min(
-              index === active ? Math.max(1, Math.min(12, height - 3)) : 3,
+              index === active
+                ? Math.max(1, Math.min(12, editorHeight - 2))
+                : 3,
               Math.max(2, text.length),
             )
           : 1,
@@ -337,16 +348,14 @@ function FormView({ form, active, cursor, width, height }) {
       rows.push(
         ...text.slice(start, start + visible).map((line) => ({
           text: "  " + line,
-          color: index === active ? colors.text : colors.muted,
+          color: index === active && !navFocus ? colors.text : colors.muted,
         })),
       );
     }
-    if (field.hint && active === index)
-      rows.push({ text: "  " + field.hint, color: colors.muted });
     rows.push("");
   });
   if (active === fields.length) selectedLine = rows.length;
-  if (!step || stepIndex === steps.length - 1)
+  if (!step)
     rows.push({
       text:
         (active === fields.length ? "› " : "  ") +
@@ -362,9 +371,56 @@ function FormView({ form, active, cursor, width, height }) {
     });
   const offset = Math.max(
     0,
-    Math.min(selectedLine - (height >= 4 ? 1 : 0), rows.length - height),
+    Math.min(
+      selectedLine - (editorHeight >= 4 ? 1 : 0),
+      rows.length - editorHeight,
+    ),
   );
-  return h(FrameRows, { rows, width, height, offset });
+  return h(
+    Box,
+    { flexDirection: "column", height, overflow: "hidden" },
+    h(FrameRows, { rows, width, height: editorHeight, offset }),
+    helpRows === 2
+      ? h(TextLine, {
+          text:
+            guidance.detail ||
+            (form.kind === "catalogFilter"
+              ? "Ctrl+S applies these filters."
+              : form.kind === "calendar"
+                ? "Ctrl+S exports a new calendar file."
+                : "Ctrl+S opens a preview; publishing requires separate confirmation."),
+          width,
+          color: colors.muted,
+        })
+      : null,
+    helpRows
+      ? h(TextLine, { text: guidance.keys, width, color: colors.muted })
+      : null,
+    navRows
+      ? h(
+          Text,
+          { wrap: "truncate" },
+          ...stepControls(steps, stepIndex).map((control) =>
+            h(
+              Text,
+              {
+                key: control.id,
+                color: !control.enabled
+                  ? colors.muted
+                  : navFocus === control.id
+                    ? colors.blue
+                    : colors.purple,
+                bold: navFocus === control.id,
+                dimColor: !control.enabled,
+                backgroundColor:
+                  navFocus === control.id ? colors.selected : undefined,
+              },
+              ` ${navFocus === control.id ? "›" : " "}[ ${control.label} ] `,
+            ),
+          ),
+        )
+      : null,
+  );
 }
 function listRows(route, data, index, width, colors, density = "comfortable") {
   const items = data.items || [];
@@ -591,6 +647,7 @@ function App({ initialConfig, flags, root, initialAppearance }) {
     [notice, setNotice] = useState(initialAppearance.warning || "");
   const [form, setForm] = useState(null),
     [field, setField] = useState(0),
+    [formNav, setFormNav] = useState(null),
     [cursor, setCursor] = useState(0),
     [preview, setPreview] = useState(null),
     [dialog, setDialog] = useState(null),
@@ -893,6 +950,7 @@ function App({ initialConfig, flags, root, initialAppearance }) {
     setReaderFind({ query: "", cursor: 0, editing: false });
   }
   function moveStep(direction) {
+    setFormNav(null);
     const fields = fieldsFor(form),
       steps = formSteps(form, fields),
       currentStep = stepAt(steps, field, fields.length);
@@ -1392,6 +1450,8 @@ function App({ initialConfig, flags, root, initialAppearance }) {
     );
   }
   function openForm(next) {
+    setFormNav(null);
+    setNotice("");
     setBooting(false);
     setForm({
       ...next,
@@ -1556,6 +1616,7 @@ function App({ initialConfig, flags, root, initialAppearance }) {
   }
   async function prepare() {
     if (!form) return;
+    setFormNav(null);
     if (form.kind === "catalogFilter") {
       await task(async () => {
         const values = validateFilter(form.values);
@@ -2128,7 +2189,19 @@ function App({ initialConfig, flags, root, initialAppearance }) {
   }
   function changeField(next) {
     const fields = fieldsFor(form),
-      selected = (next + fields.length + 1) % (fields.length + 1);
+      steps = formSteps(form, fields),
+      stepIndex = stepAt(steps, field, fields.length),
+      step = steps[stepIndex];
+    if (
+      step &&
+      !formNav &&
+      ((next > field && field === step.indexes.at(-1)) ||
+        (next < field && field === step.indexes[0]))
+    ) {
+      setFormNav(next < field && stepIndex > 0 ? "back" : "next");
+      return;
+    }
+    const selected = (next + fields.length + 1) % (fields.length + 1);
     setField(selected);
     setCursor(
       selected < fields.length
@@ -2324,7 +2397,12 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       return;
     }
     if (form) {
-      if (keyEvent.ctrl && input === "o" && form.kind === "catalog") {
+      if (
+        keyEvent.ctrl &&
+        input === "o" &&
+        form.kind === "catalog" &&
+        !formNav
+      ) {
         const active = fieldsFor(form)[field];
         if (["logo", "banner", "screenshots"].includes(active?.key)) {
           setPicker({ mediaKey: active.key });
@@ -2359,7 +2437,7 @@ function App({ initialConfig, flags, root, initialAppearance }) {
         moveStep(input === "n" ? 1 : -1);
         return;
       }
-      if (keyEvent.ctrl && input === "e") {
+      if (keyEvent.ctrl && input === "e" && !formNav) {
         externalEdit();
         return;
       }
@@ -2367,6 +2445,7 @@ function App({ initialConfig, flags, root, initialAppearance }) {
         keyEvent.ctrl &&
         ["o", "g"].includes(input) &&
         form.kind === "publication" &&
+        !formNav &&
         form.values.kind === "review"
       ) {
         setPicker(input === "g" ? "changes" : "files");
@@ -2388,6 +2467,39 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       }
       if (keyEvent.ctrl && input === "s") {
         prepare();
+        return;
+      }
+      if (formNav) {
+        const fields = fieldsFor(form),
+          steps = formSteps(form, fields),
+          i = stepAt(steps, field, fields.length),
+          step = steps[i];
+        if (keyEvent.return) {
+          moveStep(formNav === "back" ? -1 : 1);
+          return;
+        }
+        if (keyEvent.leftArrow || keyEvent.upArrow) {
+          setFormNav(i > 0 ? "back" : "next");
+          return;
+        }
+        if (keyEvent.rightArrow || keyEvent.downArrow) {
+          setFormNav("next");
+          return;
+        }
+        if (keyEvent.tab) {
+          if (keyEvent.shift && formNav === "next" && i > 0) {
+            setFormNav("back");
+            return;
+          }
+          if (!keyEvent.shift && formNav === "back") {
+            setFormNav("next");
+            return;
+          }
+          const next = keyEvent.shift ? step.indexes.at(-1) : step.indexes[0];
+          setFormNav(null);
+          setField(next);
+          setCursor(graphemes(form.values[fields[next].key] || "").length);
+        }
         return;
       }
       if (keyEvent.tab) {
@@ -2735,8 +2847,16 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       reportSelected();
     }
   });
+  const compactFieldHelp =
+    form && !formNav && form.kind !== "appearance" && contentHeight < 8
+      ? fieldGuidance(fieldsFor(form)[field], {
+          wizard: !!activeSteps.length,
+          project: form.kind === "catalog" && form.entity === "project",
+        }).detail
+      : "";
   const status =
     error ||
+    compactFieldHelp ||
     liveStatus ||
     notice ||
     (pending
@@ -3087,6 +3207,7 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       body = h(form.kind === "appearance" ? AppearanceView : FormView, {
         form,
         active: field,
+        navFocus: formNav,
         cursor,
         width: contentWidth,
         height: contentHeight,
@@ -3432,7 +3553,11 @@ function App({ initialConfig, flags, root, initialAppearance }) {
                   : preview
                     ? "← → choose · Enter confirm · Esc edit"
                     : form
-                      ? "Tab field · Ctrl+N/P steps · Ctrl+E editor · Ctrl+S preview"
+                      ? formNav
+                        ? `${stepControls(activeSteps, activeStep).find((control) => control.id === formNav)?.label || "Next"} · Enter select · Tab fields · Ctrl+S preview`
+                        : fieldsFor(form)[field]?.multiline
+                          ? "Enter new line · Tab next field · Ctrl+N next step · Ctrl+S preview"
+                          : "Enter/Tab next field · Ctrl+N/P steps · Ctrl+S preview"
                       : phase !== "ready"
                         ? "Enter connect / open browser · Ctrl+C exit"
                         : route.view === "feedback"

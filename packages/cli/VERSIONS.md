@@ -8,6 +8,14 @@ Every published npm artifact has a unique immutable version. We record each vers
 
 **0.7.0 focuses on everyday terminal use**: discoverable quick actions, staged forms and resumable reading.
 
+## 0.7.1-alpha.1 — Clearer forms
+
+- Added visible, keyboard-focusable Back / Next controls to staged forms. Tab reaches the controls at step boundaries, arrows choose an available action and Enter activates it. The final action is Preview; publication remains a separate confirmation. Ctrl+N/P shortcuts remain available.
+- Pinned input guidance distinguishes Space, multiline Enter, field navigation and image/code pickers. Project help explicitly points to the dedicated People & links step. Compact layouts prioritize the caret and keep guidance in status/hint lines.
+- Clarified additional-link syntax, preview versus autosaved drafts, and optional URL fields. Opening a new form clears stale success notices.
+- Regression coverage publishes a project through the real terminal and isolated API, checks text spaces/newlines and multiple labeled links from a second account, exercises Back/Next/Preview, preserves Git/image selections and checks multiline editing at 60×18.
+- No API/schema change, new dependency or production-data reset. Per-version history is recorded here; no separate GitHub release is required for this patch.
+
 ## 0.7.0-alpha.1 — Everyday flow
 
 - Added a searchable quick-action workspace via `Ctrl+K` or `/actions`: scoped actions, navigation, creation, up to eight recent views, explicit ID opening and a regular forum-search fallback. Typing performs no requests or mutations; existing server permissions and confirmation dialogs still apply.

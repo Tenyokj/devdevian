@@ -191,7 +191,7 @@ test(
       await ui.send("\t");
       await ui.send("\t");
       await ui.send("\x1b[C"); // Explicitly choose the private audience.
-      await ui.send("\t");
+      await ui.send("\x0e"); // Next step; preserve the selected Git hunk.
       await ui.send("\t");
       await ui.send("Please review retry behaviour and timeout handling.");
       await ui.send("\t");
