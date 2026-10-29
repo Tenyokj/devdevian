@@ -9,6 +9,12 @@ const stack = [
   ["vite", "Vite", "Build tooling", "https://vite.dev/"],
   ["nodedotjs", "Node.js", "Server runtime", "https://nodejs.org/"],
   [
+    "npm",
+    "npm",
+    "CLI distribution",
+    "https://www.npmjs.com/package/@tenyokjs/devdevian-cli",
+  ],
+  [
     "github",
     "GitHub",
     "Source & sign-in",

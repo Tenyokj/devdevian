@@ -1155,22 +1155,14 @@ body.landing-page {
   padding: 0;
   border: 0;
   overflow: hidden;
-  background: #0d1122;
-}
-.footer-image {
-  position: absolute;
-  inset: -30px;
-  z-index: -2;
-  background: url("/background1.jpg") center 55% / cover;
-  filter: blur(24px);
-  opacity: 0.32;
+  background: transparent;
 }
 .landing-footer::before {
   content: "";
   position: absolute;
   inset: 0;
   z-index: -1;
-  background: linear-gradient(#090c18 0%, #090c1866 45%, #090c18e6 100%);
+  background: linear-gradient(#090c1833, #090c1855);
 }
 .landing-footer-inner {
   max-width: 1320px;
@@ -2111,43 +2103,100 @@ html:has(body.landing-page) {
   line-height: 1.8;
   font-size: 13px;
 }
+/* A bounded, static photograph beneath one glass tint; the hero stays independent. */
+.landing-world {
+  position: relative;
+  isolation: isolate;
+  overflow: clip;
+  background: #0b0e1a;
+}
+.landing-world::before {
+  content: "";
+  display: block;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  height: 100svh;
+  margin-bottom: -100vh;
+  margin-bottom: -100svh;
+  z-index: -2;
+  background: url("/background1.jpg") center 52% / cover;
+  filter: blur(28px);
+  opacity: 0.3;
+  transform: scale(1.06);
+  pointer-events: none;
+}
+.landing-world::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(180deg, #090c1880, #0c10204d 45%, #090c1870);
+  box-shadow: inset 0 1px #ffffff0c;
+}
+.landing-world .landing-main {
+  position: relative;
+}
+@font-face {
+  font-family: "Doto";
+  src: url("/fonts/doto-latin-900.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 900;
+  font-display: swap;
+}
 .landing-activity {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 60px;
-  align-items: center;
-  padding: 75px 0 95px;
-  border-bottom: 1px solid var(--line);
-}
-.landing-activity h2 {
-  font-size: clamp(30px, 3.2vw, 44px);
-  line-height: 1.2;
-  letter-spacing: -0.04em;
-  margin: 24px 0 18px;
-}
-.landing-activity p {
-  color: var(--text-secondary);
-  line-height: 1.8;
-  max-width: 430px;
+  place-items: center;
+  min-height: 510px;
+  padding: 110px 24px;
+  margin: 0 0 72px;
+  border-block: 1px solid #b7a5ff24;
+  background: radial-gradient(ellipse at center, #7b5fff12, transparent 65%);
 }
 .activity-counter {
-  text-align: right;
+  position: relative;
+  text-align: center;
+  min-width: 0;
+  max-width: 100%;
+  z-index: 1;
+}
+.activity-signal {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #bcb4d5;
 }
 .activity-number {
-  font-family: "Space Grotesk", sans-serif;
-  font-size: clamp(60px, 7vw, 108px);
-  font-weight: 600;
+  font-family: "Doto", "Space Grotesk", monospace;
+  font-size: clamp(
+    16px,
+    calc(min(80vw, 1000px) / var(--places, 1) * 1.25),
+    220px
+  );
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
   line-height: 1;
-  color: #c4b4ff;
-  letter-spacing: -0.055em;
-  text-shadow: 0 0 50px #8964f94a;
+  letter-spacing: 0;
+  color: #dfd4ff;
+  text-shadow:
+    0 0 32px #a790ff73,
+    0 0 100px #7565d63b;
+  margin: 24px 0 25px;
 }
 .activity-number > span {
   display: inline-flex;
+  white-space: nowrap;
 }
 .activity-digit {
   height: 1em;
-  width: 0.65em;
+  width: 0.7em;
   overflow: hidden;
   display: inline-block;
 }
@@ -2162,18 +2211,109 @@ html:has(body.landing-page) {
   height: 1em;
   flex: 0 0 1em;
 }
-.activity-counter strong {
-  display: block;
-  margin: 14px 0;
-  font-size: 17px;
-  font-weight: 400;
-  color: #d4ccec;
+.activity-separator {
+  width: 0.35em;
 }
-.activity-counter small {
-  display: block;
-  color: var(--text-muted);
-  font-size: 11px;
-  line-height: 1.8;
+.landing-activity h2 {
+  font-family: "Space Grotesk", sans-serif;
+  font-weight: 400;
+  font-size: clamp(13px, 1.5vw, 18px);
+  line-height: 1.6;
+  letter-spacing: -0.02em;
+  color: #c4bed5;
+  margin: 0;
+}
+.activity-aura {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+.activity-aura::before {
+  content: "";
+  position: absolute;
+  width: 70%;
+  height: 80%;
+  inset: 10% 15%;
+  background: radial-gradient(ellipse, #9e80ff16, transparent 66%);
+}
+.activity-orbit {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 76%;
+  height: 62%;
+  border: 1px solid #a18bed30;
+  border-radius: 50%;
+  --angle: -15deg;
+  transform: translate(-50%, -50%) rotate(var(--angle));
+  animation: activity-orbit-turn 48s linear infinite;
+  animation-play-state: paused;
+}
+.activity-orbit.inner {
+  width: 58%;
+  height: 76%;
+  --angle: 24deg;
+  border-color: #79a7ef21;
+  animation-duration: 64s;
+  animation-direction: reverse;
+}
+.activity-orbit::before {
+  content: "";
+  position: absolute;
+  top: 15%;
+  left: 13%;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #c5adff;
+  box-shadow: 0 0 22px #a98aef;
+}
+.activity-orbit.inner::before {
+  background: #96c9ff;
+  box-shadow: 0 0 24px #6c9ddf;
+}
+.landing-activity[data-effects-running="true"] .activity-orbit {
+  animation-play-state: running;
+}
+.activity-crosshair {
+  position: absolute;
+  font: 300 22px monospace;
+  color: #a398ce59;
+}
+.activity-crosshair.north {
+  left: 7%;
+  top: 16%;
+}
+.activity-crosshair.south {
+  right: 7%;
+  bottom: 16%;
+}
+.activity-motion {
+  position: absolute;
+  right: 14px;
+  top: 14px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid #a99adb2e;
+  border-radius: 50%;
+  background: #15152880;
+  color: #b6abcd;
+  transition:
+    border-color 0.2s,
+    color 0.2s;
+}
+.activity-motion:hover {
+  border-color: #bda3ff85;
+  color: #e5d9ff;
+}
+@keyframes activity-orbit-turn {
+  to {
+    transform: translate(-50%, -50%) rotate(calc(var(--angle) + 360deg));
+  }
 }
 @keyframes cli-capture-in {
   from {
@@ -2197,12 +2337,17 @@ html:has(body.landing-page) {
     font-size: 15px;
   }
   .landing-activity {
-    grid-template-columns: 1fr;
-    gap: 20px;
-    padding: 45px 0;
+    min-height: 390px;
+    padding: 90px 18px;
+    margin-bottom: 48px;
   }
-  .activity-counter {
-    text-align: left;
+  .activity-orbit {
+    width: 85%;
+    height: 65%;
+  }
+  .activity-orbit.inner {
+    width: 78%;
+    height: 72%;
   }
   .cli-capabilities {
     gap: 16px;
@@ -2239,6 +2384,12 @@ html:has(body.landing-page) {
 @media (prefers-reduced-motion: reduce) {
   .cli-preview > img {
     animation: none;
+  }
+  .activity-orbit {
+    animation: none;
+  }
+  .activity-motion {
+    display: none;
   }
   .activity-reel,
   .cli-tabs button,

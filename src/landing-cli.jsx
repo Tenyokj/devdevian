@@ -7,6 +7,8 @@ import {
   GitPullRequest,
   FolderCode,
   Palette,
+  Pause,
+  Play,
 } from "lucide-react";
 const docs =
   "https://github.com/Tenyokj/devdevian/blob/main/packages/cli/README.md";
@@ -230,7 +232,9 @@ export function CLIReview() {
 export function PublicActivity() {
   const root = useRef(null),
     [value, setValue] = useState(null),
-    [status, setStatus] = useState("loading");
+    [status, setStatus] = useState("loading"),
+    [effectsActive, setEffectsActive] = useState(false),
+    [effectsPaused, setEffectsPaused] = useState(false);
   useEffect(() => {
     let visible = false,
       stopped = false,
@@ -270,6 +274,8 @@ export function PublicActivity() {
       }
     };
     const sync = () => {
+      if (stopped) return;
+      setEffectsActive(visible && !document.hidden);
       clear();
       if (visible && !document.hidden) refresh();
     };
@@ -282,7 +288,7 @@ export function PublicActivity() {
     if (observer) observer.observe(root.current);
     else {
       visible = true;
-      refresh();
+      sync();
     }
     document.addEventListener("visibilitychange", sync);
     return () => {
@@ -297,28 +303,42 @@ export function PublicActivity() {
   return (
     <section
       className="landing-activity"
+      data-effects-running={effectsActive && !effectsPaused}
       ref={root}
       aria-labelledby="activity-heading"
       data-reveal
     >
-      <div>
-        <span className="landing-kicker">
-          <span className="landing-status-dot" /> BUILT ONE CONVERSATION AT A
-          TIME
-        </span>
-        <h2 id="activity-heading">
-          A question today.
-          <br />
-          <em>Someone's next step tomorrow.</em>
-        </h2>
-        <p>
-          From the browser to the terminal, every public conversation has a
-          place here.
-        </p>
+      <div className="activity-aura" aria-hidden="true">
+        <i className="activity-orbit" />
+        <i className="activity-orbit inner" />
+        <span className="activity-crosshair north">+</span>
+        <span className="activity-crosshair south">+</span>
       </div>
+      <button
+        type="button"
+        className="activity-motion"
+        aria-label={
+          effectsPaused ? "Resume counter effects" : "Pause counter effects"
+        }
+        aria-pressed={effectsPaused}
+        onClick={() => setEffectsPaused((v) => !v)}
+      >
+        {effectsPaused ? <Play size={14} /> : <Pause size={14} />}
+      </button>
       <div className="activity-counter">
+        <span className="activity-signal">
+          <span className="landing-status-dot" />
+          {status === "live"
+            ? "Live from the forum"
+            : value === null
+              ? status === "loading"
+                ? "Connecting to the forum"
+                : "Count temporarily unavailable"
+              : "Last synced count"}
+        </span>
         <div
           className="activity-number"
+          style={{ "--places": formatted.length }}
           role="status"
           aria-live="polite"
           aria-label={
@@ -350,17 +370,9 @@ export function PublicActivity() {
             )}
           </span>
         </div>
-        <strong>public conversations</strong>
-        <small>
-          {status === "live"
-            ? "Updates about every 30 seconds"
-            : value === null
-              ? status === "loading"
-                ? "Connecting to the forum"
-                : "Count temporarily unavailable"
-              : "Showing the last available count"}{" "}
-          · Private communities stay private
-        </small>
+        <h2 id="activity-heading">
+          Public conversations, shared by developers.
+        </h2>
       </div>
     </section>
   );

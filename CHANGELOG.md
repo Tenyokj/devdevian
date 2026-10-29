@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — Website visual refresh
+
+- Added npm to the technology ribbon with a local brand mark and CLI package link.
+- Centered public conversation count in a glowing Doto display, with brief copy, pausable orbit effects and visibility/reduced-motion handling. Existing public-only cached counting stays unchanged.
+- Added a bounded blurred photograph/glass backdrop below the hero, plus short event-driven forum page/card feedback. No new API requests, animation framework or database change.
+
 ## CLI 0.9.0-alpha.1 — Public GitHub PR reading
 
 - Inspect a linked or explicitly entered public PR in the terminal: status, author, branches, description and paginated changed files.

@@ -214,6 +214,29 @@ try {
   await expect(
     page.getByRole("status", { name: "12 public conversations", exact: true }),
   ).toBeVisible();
+  await expect(page.locator(".landing-activity")).toHaveAttribute(
+    "data-effects-running",
+    "true",
+  );
+  await page.getByRole("button", { name: "Pause counter effects" }).click();
+  await expect(page.locator(".activity-orbit").first()).toHaveCSS(
+    "animation-play-state",
+    "paused",
+  );
+  await page.getByRole("button", { name: "Resume counter effects" }).click();
+  await expect(page.locator(".activity-orbit").first()).toHaveCSS(
+    "animation-play-state",
+    "running",
+  );
+  await page.evaluate(() => document.fonts.load('900 160px "Doto"'));
+  expect(
+    await page.evaluate(() => document.fonts.check('900 160px "Doto"')),
+  ).toBeTruthy();
+  expect(
+    await page
+      .locator(".landing-hero")
+      .evaluate((e) => e.closest(".landing-world") === null),
+  ).toBeTruthy();
   activityCount = 13;
   await page.evaluate(() =>
     document.dispatchEvent(new Event("visibilitychange")),
@@ -222,6 +245,10 @@ try {
     page.getByRole("status", { name: "13 public conversations", exact: true }),
   ).toBeVisible();
   await page.locator(".faq-list summary").first().click();
+  await expect(page.locator(".landing-activity")).toHaveAttribute(
+    "data-effects-running",
+    "false",
+  );
   await expect(page.locator(".faq-list details").first()).toHaveAttribute(
     "open",
     "",
@@ -239,7 +266,16 @@ try {
   const track = page.locator(".stack-track");
   await page.locator(".stack-ribbon").scrollIntoViewIfNeeded();
   await expect(page.locator(".stack-group").first().locator("a")).toHaveCount(
-    10,
+    11,
+  );
+  await expect(
+    page
+      .locator(".stack-group")
+      .first()
+      .getByRole("link", { name: /npm CLI distribution/ }),
+  ).toHaveAttribute(
+    "href",
+    "https://www.npmjs.com/package/@tenyokjs/devdevian-cli",
   );
   expect(
     await page
@@ -297,6 +333,54 @@ try {
       animations: "disabled",
     });
   }
+  for (const [name, width, height] of [
+    ["desktop", 1440, 1000],
+    ["tablet", 834, 1112],
+    ["mobile", 390, 844],
+  ]) {
+    await page.setViewportSize({ width, height });
+    await page.locator(".landing-activity").scrollIntoViewIfNeeded();
+    await page.evaluate(() => document.fonts.ready);
+    await page
+      .locator(".landing-activity")
+      .screenshot({
+        path: artifacts + "/activity-" + name + ".png",
+        animations: "disabled",
+      });
+    const offset = await page.locator(".activity-number").evaluate((e) => {
+      const number = e.getBoundingClientRect(),
+        section = e.closest("section").getBoundingClientRect();
+      return Math.abs(
+        number.left + number.width / 2 - (section.left + section.width / 2),
+      );
+    });
+    expect(offset).toBeLessThan(2);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBeTruthy();
+  }
+  activityCount = Number.MAX_SAFE_INTEGER;
+  await page.evaluate(() =>
+    document.dispatchEvent(new Event("visibilitychange")),
+  );
+  await expect(
+    page.getByRole("status", {
+      name: "9,007,199,254,740,991 public conversations",
+      exact: true,
+    }),
+  ).toBeVisible();
+  expect(
+    await page
+      .locator(".activity-number > span")
+      .evaluate(
+        (e) =>
+          e.getBoundingClientRect().width <=
+          e.closest("section").getBoundingClientRect().width,
+      ),
+  ).toBeTruthy();
+  activityCount = 13;
   await page.goto(base + "/#faq");
   await expect(page.locator(".landing-faq")).toBeVisible();
   const reduced = await context.newPage();
@@ -325,6 +409,13 @@ try {
     "transition-duration",
     "0s",
   );
+  await expect(reduced.locator(".activity-orbit").first()).toHaveCSS(
+    "animation-name",
+    "none",
+  );
+  await expect(
+    reduced.getByRole("button", { name: "Pause counter effects" }),
+  ).toBeHidden();
   await reduced.close();
   await page.setViewportSize({ width: 1440, height: 1000 });
   for (const [path, title] of [
