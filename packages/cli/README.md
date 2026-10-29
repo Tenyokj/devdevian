@@ -73,6 +73,12 @@ Multiline fields show the current logical line and total line count. While editi
 
 Conversation overviews and publication previews display Demo/Repository URL fields alongside any labeled links, with duplicate destinations shown once.
 
+## GitHub review context
+
+Code reviews have an optional **GitHub** step after Content. Change **GitHub context** from Skip to Include, optionally add a PR URL from the same repository, and inspect the complete publication preview. The repository, branch, base commit and selected path appear in both CLI and browser. Local code may differ from that base commit; metadata is author-provided and PR content/status is not synchronized.
+
+The command equivalent is `devdevian review create --file src/retry.ts --title "Review retries" --topic web --body-file question.md --focus "Timeout handling" --github-context --pr https://github.com/owner/repo/pull/42`. The PR is optional. Context is opt-in, reads local Git only and needs a GitHub `origin` and existing HEAD. No new OAuth setup is required. See the [full guide](https://github.com/Tenyokj/devdevian/blob/main/docs/github-context.md).
+
 ## Meet Devi
 
 Devi is the Devdevian mascot: a small ghost with a laptop and an orbit. The terminal uses colored ASCII art, so it needs no image protocol or image downloads. A compact drawing is used when space is limited; authentication codes, addresses and controls take priority over decoration.

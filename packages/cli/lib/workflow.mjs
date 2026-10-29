@@ -6,6 +6,7 @@ export function formSteps(form, fields) {
     groups = [
       ["About", ["kind", "title", "topic", "community_id"]],
       ["Content", ["file", "lines", "review_focus", "demo_url", "body"]],
+      ["GitHub", ["github", "pull_request"]],
     ];
   else if (form.kind === "catalog")
     groups =

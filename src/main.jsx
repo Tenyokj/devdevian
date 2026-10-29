@@ -1,4 +1,5 @@
 import { CliApproval } from "./cli";
+import { GitHubContext } from "./github-context";
 import { CodeReview } from "./code-review";
 import { version as appVersion } from "../package.json";
 import { SubscriptionManager } from "./subscriptions";
@@ -1951,6 +1952,7 @@ function PostDetail({
           </>
         )}
         <MD>{p.body}</MD>
+        <GitHubContext value={p.github_context} />
         {p.kind === "review" && (
           <section className="review-brief">
             <span className="eyebrow">REVIEW REQUEST</span>

@@ -1,5 +1,11 @@
 # Changelog
 
+## CLI 0.8.0-alpha.1 — GitHub source context
+
+- Opt-in local GitHub repository/branch/base-commit context for selected review files and diffs; optional matching PR URL, explicit preview and preserved drafts.
+- Shared terminal/script/browser display with local-versus-commit clarification and responsive source cards.
+- Bounded server validation and existing permission scopes; preserve post details during edits. No schema migration or additional OAuth setup. See [GitHub context](docs/github-context.md) for limits.
+
 ## CLI 0.7.2-alpha.1 — Links and multiline visibility
 
 - Show Demo/Repository URLs in conversation details and publication previews, alongside labeled links without duplicate destinations.

@@ -28,7 +28,7 @@ npm install -g @tenyokjs/devdevian-cli@alpha
 devdevian tui
 ```
 
-Requires Node.js 24+. Login is approved in your browser. Use `devdevian open` for a separate terminal window.
+Requires Node.js 24+. Login is approved in your browser. Use `devdevian open` for a separate terminal window. Reviews can optionally carry [GitHub repository, branch, base commit and PR context](docs/github-context.md), visible in both clients.
 
 [CLI documentation](packages/cli/README.md) · [npm package](https://www.npmjs.com/package/@tenyokjs/devdevian-cli) · [Version history](packages/cli/VERSIONS.md)
 

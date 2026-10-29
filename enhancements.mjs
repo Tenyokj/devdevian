@@ -7,6 +7,7 @@ import {
 import { randomUUID } from "node:crypto";
 import { pageRows, scopeSQL, memberOf } from "./spaces.mjs";
 import { normalizeName, literalPattern } from "./search-sql.mjs";
+import { normalizeGitHubContext } from "./packages/cli/lib/github-context.mjs";
 export const validatedDetails = Symbol("validated entity details");
 export { normalizeName } from "./search-sql.mjs";
 export function manages(db, user, id) {
@@ -234,6 +235,17 @@ export function registerEnhancements(app, db, required, seed) {
         }
         clean[key] = key === "screenshots" ? ids : ids[0] || null;
       }
+    if ("github_context" in data) {
+      if (kind !== "post")
+        throw new InputError(
+          "GitHub review context belongs to a conversation.",
+        );
+      try {
+        clean.github_context = normalizeGitHubContext(data.github_context);
+      } catch (e) {
+        throw new InputError(e.message);
+      }
+    }
     if ("links" in data) {
       if (!Array.isArray(data.links) || data.links.length > 100)
         throw new InputError("Use up to 100 links.");
@@ -570,7 +582,7 @@ export function registerEnhancements(app, db, required, seed) {
           createKind,
           createKind === "user"
             ? req.user.id
-            : path.match(/^\/(?:events|projects)\/(\d+)$/)?.[1] || "",
+            : path.match(/^\/(?:events|projects|posts)\/(\d+)$/)?.[1] || "",
         );
       } catch (e) {
         if (!(e instanceof InputError)) throw e;

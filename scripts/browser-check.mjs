@@ -1400,6 +1400,61 @@ try {
   await page
     .locator("main>footer")
     .screenshot({ path: artifacts + "/release-footer-mobile.png" });
+  // GitHub context published by a terminal is readable in both browser themes/layouts.
+  const sourceReview = await second.request.post(base + "/api/posts", {
+    data: {
+      title: "GitHub context browser check",
+      kind: "review",
+      topic: "web",
+      body: "Review this selected local patch and its source context.",
+      code: "const retry = 3;",
+      review_focus: "Check retries and error handling.",
+      details: {
+        github_context: {
+          repository: "https://github.com/example/project",
+          commit: "c".repeat(40),
+          branch: "feature/retries",
+          path: "packages/client/src/long-path/retry.ts",
+          mode: "unstaged",
+          pull_request: "https://github.com/example/project/pull/42",
+        },
+      },
+    },
+  });
+  expect(sourceReview.ok()).toBeTruthy();
+  const sourceId = (await sourceReview.json()).id;
+  for (const [theme, viewport] of [
+    ["light", { width: 1440, height: 1000 }],
+    ["dark", { width: 390, height: 844 }],
+  ]) {
+    await page.setViewportSize(viewport);
+    await page.evaluate(
+      (t) => localStorage.setItem("devdevian-theme", t),
+      theme,
+    );
+    await page.goto(base + "/app#post/" + sourceId);
+    const card = page.getByRole("region", { name: "GitHub context" });
+    await expect(card).toContainText("feature/retries");
+    await expect(card).toContainText("Local code may differ");
+    await expect(card.getByRole("link", { name: "PR #42" })).toHaveAttribute(
+      "href",
+      "https://github.com/example/project/pull/42",
+    );
+    await expect(
+      card.getByRole("link", { name: "Base ccccccc" }),
+    ).toHaveAttribute(
+      "href",
+      "https://github.com/example/project/commit/" + "c".repeat(40),
+    );
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBeTruthy();
+    await card.screenshot({
+      path: artifacts + "/github-context-" + theme + ".png",
+    });
+  }
   console.log(
     "Browser checks passed: themes, real forms, uploads, catalogs, links, mentions, search, validators, screenshots, teams, account switching, mobile navigation.",
   );

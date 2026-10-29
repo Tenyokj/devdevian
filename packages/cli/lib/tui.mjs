@@ -2,7 +2,11 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import { render, Box, Text, useApp, useInput, useWindowSize } from "ink";
 import { randomBytes } from "node:crypto";
 import { homedir, hostname } from "node:os";
-import { workspaceRoot, reviewSource } from "./workspace.mjs";
+import {
+  workspaceRoot,
+  reviewSource,
+  readGitHubContext,
+} from "./workspace.mjs";
 import { DeviPanel } from "./devi.mjs";
 import { WorkspacePicker } from "./picker.mjs";
 import { DraftStore, draftIdentity } from "./drafts.mjs";
@@ -55,6 +59,7 @@ import {
 import { contextActions } from "./context-actions.mjs";
 import { editExternal } from "./external-editor.mjs";
 import { markdownRows } from "./rich-text.mjs";
+import { githubContextLines } from "./github-context.mjs";
 import { conversationLinks } from "./conversation-links.mjs";
 import { problemMessage } from "./problems.mjs";
 import { ReviewWorkspace, codeRange } from "./review-workspace.mjs";
@@ -177,6 +182,25 @@ function fieldsFor(form) {
         max: 15000,
         multiline: true,
       },
+      ...(form.values.kind === "review"
+        ? [
+            {
+              key: "github",
+              label: "GitHub context",
+              options: [
+                ["off", "Skip"],
+                ["on", "Include origin, branch and base commit"],
+              ],
+              hint: "Optional. Local Git metadata is included only in your publication preview.",
+            },
+            {
+              key: "pull_request",
+              label: "Pull request URL (optional)",
+              max: 1000,
+              hint: "https://github.com/owner/repo/pull/123 · same repository as origin; enable GitHub context first.",
+            },
+          ]
+        : []),
     ];
   if (form.kind === "open")
     return [
@@ -567,6 +591,11 @@ function documentRows(route, data, width, colors) {
       ...markdownRows(fence + "\n" + post.code + "\n" + fence, width, colors),
     );
   }
+  rows.push(
+    ...githubContextLines(post.github_context).flatMap((line) =>
+      wrap(line, width),
+    ),
+  );
   const links = conversationLinks(post);
   if (links.length)
     rows.push(
@@ -1512,6 +1541,8 @@ function App({ initialConfig, flags, root, initialAppearance }) {
           lines: "",
           review_focus: "",
           demo_url: "",
+          github: "off",
+          pull_request: "",
         },
       });
     });
@@ -1746,6 +1777,16 @@ function App({ initialConfig, flags, root, initialAppearance }) {
                 "Shorten the context to leave room for the Git diff source label.",
               );
           }
+          if (form.values.github === "on")
+            payload.details = {
+              github_context: await readGitHubContext(root, source, {
+                pullRequest: form.values.pull_request || "",
+              }),
+            };
+          else if (form.values.pull_request?.trim())
+            throw Error(
+              "Enable GitHub context to attach a matching pull request URL, or clear the URL.",
+            );
           payload.review_focus = form.values.review_focus;
         }
         if (payload.kind === "showcase")
@@ -3163,6 +3204,7 @@ function App({ initialConfig, flags, root, initialAppearance }) {
           ? [payload.title || payload.name, ""]
           : []),
         payload.body || payload.reason || payload.description || "",
+        ...githubContextLines(payload.details?.github_context),
         ...conversationLinks(payload).flatMap((link) => [
           "",
           link.label + " · " + link.url,

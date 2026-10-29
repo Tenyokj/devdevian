@@ -1,5 +1,6 @@
 import { loadCatalog, isCatalog } from "./catalog.mjs";
 import { createHash } from "node:crypto";
+import { githubContextLines } from "./github-context.mjs";
 import { conversationLinks } from "./conversation-links.mjs";
 export function assertSnippet(code, hash) {
   if (
@@ -289,6 +290,7 @@ export function contentLines(route, data) {
           .split("\n")
           .map((line, index) => String(index + 1).padStart(4) + "  " + line),
       );
+    lines.push(...githubContextLines(p.github_context));
     const links = conversationLinks(p);
     if (links.length)
       lines.push(

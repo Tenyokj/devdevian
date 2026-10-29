@@ -23,6 +23,9 @@ import {
   loadAppearance,
   saveAppearance,
 } from "../lib/appearance.mjs";
+import { readGitHubContext, workspaceRoot } from "../lib/workspace.mjs";
+import { githubContextLines } from "../lib/github-context.mjs";
+import { conversationLinks } from "../lib/conversation-links.mjs";
 import { renderHelp } from "../lib/help.mjs";
 const version = packageInfo.version;
 const options = {
@@ -36,6 +39,8 @@ const options = {
   file: { type: "string" },
   lines: { type: "string" },
   focus: { type: "string" },
+  "github-context": { type: "boolean" },
+  pr: { type: "string" },
   "start-line": { type: "string" },
   "end-line": { type: "string" },
   status: { type: "string" },
@@ -131,6 +136,8 @@ const help = `Devdevian CLI ${version} · alpha
   --welcome MODE     on | off (Devi greeting)
   --no-live          Disable background reads in the live workspace
   --project PATH     Root directory for the live file/diff picker (default: current directory)
+  --github-context   Include local GitHub origin, branch and base commit in a review
+  --pr URL           Optional matching GitHub PR URL (requires --github-context)
   --community ID     Publish to an approved private community
   --editor           Write text in $VISUAL / $EDITOR
   --json             Machine-readable output
@@ -199,6 +206,9 @@ function show(data, json, kind = "posts") {
   } else if (data.title) {
     out(`#${data.id} · ${data.kind}\n${data.title}\n\n${data.body}`);
     if (data.code) out("\nCode:\n" + data.code);
+    for (const line of githubContextLines(data.github_context)) out(line);
+    for (const link of conversationLinks(data))
+      out(link.label + " · " + link.url);
   } else out(JSON.stringify(data, null, 2));
 }
 async function confirm(payload, flags) {
@@ -364,9 +374,15 @@ async function execute(args, flags) {
   }
   if (command === "ask" || (command === "review" && args[1] === "create")) {
     const review = command === "review";
-    let code = "";
+    let code = "",
+      file,
+      range;
+    if ((flags["github-context"] || flags.pr) && !review)
+      throw Error("GitHub context is available for review create.");
+    if (flags.pr && !flags["github-context"])
+      throw Error("--pr requires --github-context.");
     if (review) {
-      const file = flags.file || (await prompt("Code file"));
+      file = flags.file || (await prompt("Code file"));
       code = await boundedFile(file, 20000);
       if (flags.lines) {
         const m = flags.lines.match(/^(\d+):(\d+)$/);
@@ -376,6 +392,7 @@ async function execute(args, flags) {
           end = positive(m[2]);
         if (end < start || end > lines.length)
           throw Error("The selected range is outside the file.");
+        range = { start, end };
         code = lines.slice(start - 1, end).join("\n");
       }
     }
@@ -395,6 +412,14 @@ async function execute(args, flags) {
       payload.code = code;
       payload.review_focus =
         flags.focus || (await prompt("What should reviewers focus on?"));
+      if (flags["github-context"])
+        payload.details = {
+          github_context: await readGitHubContext(
+            await workspaceRoot(flags.project || process.cwd()),
+            { kind: "file", path: file, ...range },
+            { pullRequest: flags.pr || "" },
+          ),
+        };
     }
     await confirm(payload, flags);
     const result = await api("/posts", { method: "POST", body: payload });

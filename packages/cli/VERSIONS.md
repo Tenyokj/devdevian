@@ -6,7 +6,14 @@ Every published npm artifact has a unique immutable version. We record each vers
 
 ## Current milestone
 
-**0.7.0 focuses on everyday terminal use**: discoverable quick actions, staged forms and resumable reading.
+**0.8.0 begins GitHub integration** with opt-in local source context and manually linked pull requests, shared by the CLI and browser.
+
+## 0.8.0-alpha.1 — GitHub source context
+
+- Optional GitHub step for code reviews: explicitly include local origin, branch/detached HEAD, base commit, repository-relative path and source type; add a matching PR URL when useful. Preview and account/project-scoped drafts preserve the choice. Command clients use `--github-context` and optional `--pr`.
+- Terminal overviews, script output and responsive browser cards share the same context. Base-commit links distinguish local working code/diffs from committed content. Metadata is author-provided; this stage does not synchronize PR content or verify ownership/status.
+- Local read-only Git commands only, canonical GitHub origins without embedded credentials, bounded server validation and existing private/owner permission checks. Other post details survive edits; no schema migration or new OAuth permission is required.
+- Regression coverage exercises real Git repositories, nested project roots, detached HEAD, staged patches, rejected origins/PRs, command/API/browser sharing, private reads, draft restoration and compact/mobile layouts.
 
 ## 0.7.2-alpha.1 — Visible links and multiline writing
 

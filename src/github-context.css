@@ -1,0 +1,72 @@
+.github-context {
+  margin: 24px 0;
+  padding: 20px;
+  border: 1px solid var(--accent-line);
+  border-radius: 18px;
+  background: var(--accent-soft);
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+.github-context-heading,
+.github-context-links {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.github-context-heading {
+  color: var(--accent);
+  margin-bottom: 14px;
+}
+.github-context-heading > span {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-left: auto;
+}
+.github-context-links {
+  margin-bottom: 14px;
+  gap: 10px 20px;
+}
+.github-context-links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+}
+.github-context-links a:hover {
+  text-decoration: underline;
+}
+.github-context p {
+  margin: 7px 0;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.github-context p > span {
+  color: var(--text-secondary);
+}
+.github-context code {
+  white-space: pre-wrap;
+  font-size: 12px;
+}
+.github-context small {
+  display: block;
+  margin-top: 14px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+@media (max-width: 600px) {
+  .github-context {
+    padding: 16px;
+  }
+  .github-context-heading > span {
+    margin-left: 0;
+    width: 100%;
+  }
+  .github-context-links {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

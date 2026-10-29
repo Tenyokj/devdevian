@@ -3,6 +3,7 @@ import { readdir, realpath, lstat, open } from "node:fs/promises";
 import { resolve, relative, join, isAbsolute, sep } from "node:path";
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
+import { githubRepository, normalizeGitHubContext } from "./github-context.mjs";
 const skipped = new Set([
   ".git",
   "node_modules",
@@ -21,7 +22,9 @@ export const sensitivePath = (path) =>
     .split(/[\\/]/)
     .some(
       (name) =>
-        [".git", ".ssh", ".aws", ".gnupg", ".envrc"].includes(name.toLowerCase()) ||
+        [".git", ".ssh", ".aws", ".gnupg", ".envrc"].includes(
+          name.toLowerCase(),
+        ) ||
         /^\.env(?:\.|$)/i.test(name) ||
         /\.(?:pem|key|p12|pfx|keystore)$/i.test(name) ||
         /^(?:id_(?:rsa|ed25519|ecdsa|dsa)(?:\.pub)?|credentials(?:\.json)?|\.npmrc|\.netrc|\.git-credentials)$/i.test(
@@ -383,4 +386,50 @@ export async function reviewSource(root, source, { signal } = {}) {
     label: `File · ${file.path}${source.start ? " · lines " + source.start + "–" + source.end : ""}`,
     kind: "file",
   };
+}
+
+// Explicit opt-in only: local Git metadata, no network calls or raw remote URLs in output.
+export async function readGitHubContext(
+  root,
+  source,
+  { pullRequest = "", signal } = {},
+) {
+  const file = await workspacePath(root, source.path);
+  const [remote, commit, branch, prefix] = await Promise.all([
+    git(root, ["config", "--get", "remote.origin.url"], {
+      signal,
+      max: 4096,
+    }).catch((e) => {
+      if (e.gitCode === 1)
+        throw Error(
+          "No origin remote. Skip GitHub context or configure a GitHub origin.",
+        );
+      throw e;
+    }),
+    git(root, ["rev-parse", "--verify", "HEAD"], { signal, max: 4096 }),
+    git(root, ["symbolic-ref", "--quiet", "--short", "HEAD"], {
+      signal,
+      max: 4096,
+    }).catch((e) => {
+      if (e.gitCode === 1) return "";
+      throw e;
+    }),
+    git(root, ["rev-parse", "--show-prefix"], { signal, max: 4096 }),
+  ]);
+  const repository = githubRepository(remote.trim());
+  if (!repository)
+    throw Error(
+      "Origin must be a standard GitHub HTTPS or SSH URL without credentials. You can skip GitHub context.",
+    );
+  return normalizeGitHubContext({
+    repository,
+    commit: commit.trim(),
+    branch: branch.trim() || null,
+    path: prefix.replace(/\n$/, "") + relative(root, file).split(sep).join("/"),
+    mode:
+      source.kind === "diff" ? (source.staged ? "staged" : "unstaged") : "file",
+    start_line: source.start || null,
+    end_line: source.end || null,
+    pull_request: pullRequest.trim() || null,
+  });
 }

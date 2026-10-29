@@ -125,6 +125,7 @@ test(
         .replace("value1 = 1", "value1 = 111")
         .replace("value25 = 25", "value25 = 250"),
     );
+    git("remote", "add", "origin", "git@github.com:example/review-project.git");
     const before = git("diff", "--no-ext-diff").toString();
     let membership = true;
     const server = createServer(async (req, res) => {
@@ -152,6 +153,7 @@ test(
       else if (path === "/api/posts/77")
         data = {
           ...posted,
+          github_context: posted?.details?.github_context,
           id: 77,
           name: "Reviewer",
           user_id: 1,
@@ -200,6 +202,11 @@ test(
       await ui.send(
         "This worker needs a second pair of eyes before deployment.",
       );
+      await ui.send("\x0e");
+      await ui.wait("GitHub context");
+      await ui.send("\x1b[C");
+      await ui.send("\t");
+      await ui.send("https://github.com/example/review-project/pull/42");
       await ui.wait("Draft saved locally");
       assert.equal(posts, 0);
       await ui.send("\x03");
@@ -237,6 +244,9 @@ test(
       await ui.send("\x1b[D"); // Explicitly choose Public before previewing.
       await ui.send("\x13");
       await ui.wait("Preview · Request a code review");
+      await ui.send("\x1b[B");
+      await ui.send("\x1b[B");
+      await ui.wait("GITHUB CONTEXT");
       assert.equal(posts, 0);
       await ui.send("\x1b[C");
       await ui.send("\r");
@@ -248,6 +258,11 @@ test(
       assert.ok(posted.code.includes("+export const value1 = 111;"));
       assert.ok(!posted.code.includes("value25"));
       assert.ok(posted.body.includes("Review source: Git diff"));
+      assert.equal(posted.details.github_context.mode, "unstaged");
+      assert.equal(
+        posted.details.github_context.pull_request,
+        "https://github.com/example/review-project/pull/42",
+      );
       await ui.wait("Saved. Your web account sees the same update.");
       assert.equal((await store.list()).length, 0);
       await ui.wait("Code feedback");
