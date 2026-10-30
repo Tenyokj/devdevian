@@ -25,7 +25,7 @@
     "@aws-sdk/client-s3": "^3.1152.0",
     "express": "^5.1.0",
     "libsql": "^0.5.29",
-    "lucide-react": "^0.468.0",
+    "lucide-react": "^1.62.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-markdown": "^10.1.0",
