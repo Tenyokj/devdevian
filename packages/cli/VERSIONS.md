@@ -4,6 +4,11 @@ The CLI is a separately versioned Devdevian client. Its npm version does not hav
 
 Every published npm artifact has a unique immutable version. We record each version here, even when several ship in one working session. A GitHub release can summarize a day's work and link to the individual entries; it does not need to be created for every npm publication. An unfinished change stays under **Unreleased** until its package version is assigned. Alpha packages use the `alpha` npm tag.
 
+## Combined GitHub releases
+
+- [0.10.0-alpha.1 — From pull request to conversation](https://github.com/Tenyokj/devdevian/releases/tag/cli-v0.10.0-alpha.1): collects npm versions 0.7.0-alpha.1–0.10.0-alpha.1 plus website/documentation improvements. [Release notes](../../docs/releases/cli-0.10.0-alpha.1.md).
+- [0.6.1-alpha.1 — First combined public alpha](https://github.com/Tenyokj/devdevian/releases/tag/cli-v0.6.1-alpha.1): collects npm versions 0.1.0-alpha.1–0.6.1-alpha.1.
+
 ## Current milestone
 
 **0.10.0 adds PR diffs and selected-hunk code reviews** to public PR reading.

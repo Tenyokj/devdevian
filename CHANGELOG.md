@@ -1,6 +1,12 @@
 # Changelog
 
-## Unreleased — Public guides and website refresh
+## 2026-10-30 — Combined CLI alpha and public website update
+
+[Release notes](docs/releases/cli-0.10.0-alpha.1.md) · [GitHub release](https://github.com/Tenyokj/devdevian/releases/tag/cli-v0.10.0-alpha.1)
+
+This combined release collects CLI 0.7.0-alpha.1 through 0.10.0-alpha.1 and the website changes below. Browser/API remains 0.1.6. Individual npm milestones retain their own entries.
+
+### Public guides and website refresh
 
 - Added prerendered `/updates` and `/faq` pages, with separate Browser/CLI milestones, searchable categorized answers, stable deep links, keyboard-friendly animated disclosures and reduced-motion support.
 - Connected landing, forum and policy navigation; added canonical/social metadata and sitemap entries without reading account data.
@@ -113,21 +119,21 @@
 - Added `devdevian open` for a separate supported desktop terminal; `devdevian tui` and the default command run in the current terminal. Existing script commands and JSON output remain supported.
 - Added cancellable reads, a bounded short-lived page cache, Unicode-aware input and PTY-based resize/publication/terminal-restoration checks. Browser and API versions remain unchanged.
 
-## 0.1.6 — Devdevian CLI Alpha support (unreleased)
+## 0.1.6 — Devdevian CLI Alpha support (included in combined CLI Alpha releases)
 
 - Official standalone `@tenyokjs/devdevian-cli` alpha package with a live alternate-screen workspace and explicit commands for inbox, feeds/search, questions, conversation replies, file-based code review, line remarks, feedback threads/status and community discovery.
 - Browser-approved terminal login with expiring, one-use device requests. Separate 30-day Bearer credentials are hashed at rest, bound to the approving account and revocable in Settings or from the CLI. Password recovery revokes active sessions; approvals predating a password change cannot mint a new session.
 - CLI uses the same API, quotas, community membership and moderation rules as the web client. Selected content is previewed before publishing; noninteractive publication requires explicit `--yes`. Redirects are rejected and remote terminal control sequences are stripped from human output.
 - CLI credentials and pending authorizations are excluded from backups. Schema v6 preparation keeps the current deployment available.
 
-## 0.1.5 — Feedback discussions (unreleased)
+## 0.1.5 — Feedback discussions (included in combined CLI Alpha releases)
 
 - Paginated reply threads on line feedback, with author-only editing and revision-checked deletion. Deletion preserves other members’ replies through tombstones.
 - In-app notifications for feedback replies and resolved/reopened remarks, with links to the exact paginated feedback thread. Existing reply/solution notification preferences apply.
 - Targeted reports on individual remarks/replies, separate scoped moderation queues, reversible post restrictions left unchanged, and audited decisions that can remove only the reported feedback.
 - Additive schema v5 preparation preserves v0.1.4 availability during deployment.
 
-## 0.1.4 — Focused code feedback (unreleased)
+## 0.1.4 — Focused code feedback (included in combined CLI Alpha releases)
 
 - Optional Question and Code review outlines that preserve existing draft text.
 - Feedback on a line or range of up to 50 lines in a published code snippet, with pagination and status/version filters.

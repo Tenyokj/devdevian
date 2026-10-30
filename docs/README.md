@@ -4,6 +4,11 @@ Devdevian is an open-source developer forum. The hosted early release is at [dev
 
 [Source map](source-map.md) · [What’s new](https://devdevian.vercel.app/updates) · [Searchable FAQ](https://devdevian.vercel.app/faq) · [Launch film](https://www.youtube.com/watch?v=ssUCB1Jpf-Q)
 
+## Release notes
+
+- [CLI 0.10 — From pull request to conversation](releases/cli-0.10.0-alpha.1.md): combined CLI 0.7–0.10 alpha and website update, installation and current limits.
+- [Every npm version](../packages/cli/VERSIONS.md) · [Full changelog](../CHANGELOG.md) · [GitHub releases](https://github.com/Tenyokj/devdevian/releases).
+
 ## Using the forum
 
 - [User guide](user-guide.md): accounts, conversations, replies, projects, events, search, and account controls.
