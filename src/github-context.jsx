@@ -58,6 +58,26 @@ export function GitHubContext({ value }) {
           <code>{c.base_commit.slice(0, 7)}</code>
         </p>
       )}
+      {c.files && (
+        <ul aria-label="Selected PR files">
+          {c.files.map((file) => (
+            <li key={file.path}>
+              {link(
+                c.repository +
+                  "/blob/" +
+                  c.commit +
+                  "/" +
+                  file.path.split("/").map(encodeURIComponent).join("/"),
+                file.path,
+              )}
+              {" · hunks "}
+              {file.hunk_start}–{file.hunk_end}
+              {" · published lines "}
+              {file.patch_start}–{file.patch_end}
+            </li>
+          ))}
+        </ul>
+      )}
       <small>
         {c.mode === "pr"
           ? "Author-provided PR patch snapshot. Review lines refer to the published patch, not the original file. GitHub content is not synchronized."

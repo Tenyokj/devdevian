@@ -39,7 +39,9 @@ devdevian github review PR_URL --file src/retry.ts --hunks 1:2 \
   --body "Please review these changes and their failure cases."
 ```
 
-Only public GitHub data is read; private PRs and posting comments back to GitHub are not supported. Reviews store a frozen selected patch (one file, complete hunks, up to 20,000 characters) and base/head commits. GitHub may change afterwards. Local drafts include your selected code; treat them as private files.
+For a multi-file review, press **A** in each diff to add/replace its selected range, **Esc** to choose another file, then **R** to compose and preview the basket. **U** removes the current file; **Z** clears the basket. **C** retains single-file review. Until **R**, the basket lives only in this session; the resulting draft is saved normally. In published review workspaces **{ / }** switches files. Script clients can use `github review PR_URL --selections selections.json`; see the [manifest format and limits](../../docs/github-pr-reader.md).
+
+Only public GitHub data is read; private PRs and posting comments back to GitHub are not supported. Reviews store a frozen selected patch (up to 10 files from the same PR revision, complete hunks, up to 20,000 total characters) and base/head commits. GitHub may change afterwards. Local drafts include your selected code; treat them as private files.
 
 ## Live workspace
 

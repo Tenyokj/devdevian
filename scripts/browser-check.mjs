@@ -174,14 +174,14 @@ try {
   await expect(page.locator(".expanded-faq details:visible")).toHaveCount(6);
   await page.goto(base + "/updates");
   await page.getByRole("button", { name: "CLI", exact: true }).click();
-  await expect(page.locator(".update-card:visible")).toHaveCount(7);
+  await expect(page.locator(".update-card:visible")).toHaveCount(8);
   await expect(page.locator(".update-card:visible").first()).toContainText(
-    "0.10.0-alpha.1",
+    "0.11.0-alpha.1",
   );
   await page.getByRole("button", { name: "Browser", exact: true }).click();
   await expect(page.locator(".update-card:visible")).toHaveCount(7);
   await page.getByRole("button", { name: "All updates" }).click();
-  await expect(page.locator(".update-card:visible")).toHaveCount(14);
+  await expect(page.locator(".update-card:visible")).toHaveCount(15);
   for (const width of [1440, 768, 390]) {
     await page.setViewportSize({ width, height: 900 });
     for (const path of ["faq", "updates"]) {
@@ -1662,7 +1662,7 @@ try {
       kind: "review",
       topic: "web",
       body: "Review this explicit PR patch snapshot.",
-      code: '--- "a/retry.ts"\n+++ "b/retry.ts"\n@@ -1 +1 @@\n-old\n+new',
+      code: '--- "a/src/retry.ts"\n+++ "b/src/retry.ts"\n@@ -1 +1 @@\n-old\n+new\n--- "a/test/retry.test.ts"\n+++ "b/test/retry.test.ts"\n@@ -1 +1 @@\n-old test\n+new test',
       review_focus: "Check the retry behaviour.",
       details: {
         github_context: {
@@ -1675,6 +1675,22 @@ try {
           pull_request: "https://github.com/example/project/pull/42",
           hunk_start: 1,
           hunk_end: 2,
+          files: [
+            {
+              path: "src/retry.ts",
+              hunk_start: 1,
+              hunk_end: 2,
+              patch_start: 1,
+              patch_end: 5,
+            },
+            {
+              path: "test/retry.test.ts",
+              hunk_start: 1,
+              hunk_end: 1,
+              patch_start: 6,
+              patch_end: 10,
+            },
+          ],
         },
       },
     },
@@ -1690,6 +1706,10 @@ try {
     const card = page.getByRole("region", { name: "GitHub context" });
     await expect(card).toContainText("PR patch snapshot");
     await expect(card).toContainText("Hunks 1–2");
+    await expect(
+      card.getByRole("list", { name: "Selected PR files" }),
+    ).toContainText("test/retry.test.ts");
+    await expect(card).toContainText("published lines 6–10");
     await expect(card).toContainText(
       "Review lines refer to the published patch",
     );

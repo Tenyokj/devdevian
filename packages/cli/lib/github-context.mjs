@@ -92,6 +92,54 @@ export function normalizeGitHubContext(value) {
     )
       fail();
     snapshot = { base_commit, hunk_start, hunk_end };
+    if (value.files !== undefined) {
+      if (
+        !Array.isArray(value.files) ||
+        !value.files.length ||
+        value.files.length > 10
+      )
+        fail();
+      const seen = new Set();
+      let nextLine = 1;
+      const files = value.files.map((file) => {
+        if (!file || typeof file !== "object" || Array.isArray(file)) fail();
+        const normalized = normalizeGitHubContext({
+          repository,
+          commit,
+          branch,
+          mode: "pr",
+          pull_request: pr,
+          base_commit,
+          path: file.path,
+          hunk_start: file.hunk_start,
+          hunk_end: file.hunk_end,
+        });
+        if (
+          seen.has(normalized.path) ||
+          file.patch_start !== nextLine ||
+          !Number.isSafeInteger(file.patch_end) ||
+          file.patch_end < nextLine + 3 ||
+          file.patch_end > 20000
+        )
+          fail();
+        seen.add(normalized.path);
+        nextLine = file.patch_end + 1;
+        return {
+          path: normalized.path,
+          hunk_start: normalized.hunk_start,
+          hunk_end: normalized.hunk_end,
+          patch_start: file.patch_start,
+          patch_end: file.patch_end,
+        };
+      });
+      if (
+        files[0].path !== path ||
+        files[0].hunk_start !== hunk_start ||
+        files[0].hunk_end !== hunk_end
+      )
+        fail();
+      snapshot.files = files;
+    }
   }
   return {
     repository,
@@ -122,6 +170,12 @@ export function githubContextLines(value) {
     "File: " +
       c.path +
       (c.start_line ? ` · lines ${c.start_line}–${c.end_line}` : ""),
+    ...(c.files
+      ? c.files.map(
+          (f) =>
+            `Selected file: ${f.path} · hunks ${f.hunk_start}–${f.hunk_end} · published lines ${f.patch_start}–${f.patch_end}`,
+        )
+      : []),
     ...(c.mode === "pr"
       ? [
           `Selected hunks: ${c.hunk_start}–${c.hunk_end}`,

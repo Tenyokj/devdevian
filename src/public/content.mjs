@@ -3,6 +3,20 @@
 export const repository = "https://github.com/Tenyokj/devdevian";
 export const updates = [
   {
+    id: "cli-0-11",
+    channel: "CLI",
+    version: "0.11.0-alpha.1",
+    title: "One PR. All the context that matters.",
+    summary:
+      "Bring selected changes from multiple PR files into one Devdevian review, with a shared frozen revision.",
+    points: [
+      "Collect up to ten files, preview the exact patch, and keep implementation and tests in one conversation.",
+      "Saved drafts, per-file published line ranges and terminal navigation keep review comments anchored. Nothing is written back to GitHub.",
+    ],
+    link: repository + "/blob/main/docs/github-pr-reader.md",
+    label: "Read the multi-file review guide",
+  },
+  {
     id: "browser-public-conversations",
     channel: "Browser",
     version: "0.1.7",

@@ -4,6 +4,8 @@ import {
   parsePRPatch,
   selectPRHunks,
   validatePRSelection,
+  combinePRSelections,
+  addPRSelection,
 } from "../lib/pr-diff.mjs";
 import { createGitHubReader } from "../lib/github-reader.mjs";
 import {
@@ -140,4 +142,84 @@ test("diff reads fresh files between matching base/head snapshots, excludes priv
     reader.loadDiff(url, { path: file.path }),
     /changed while loading/,
   );
+});
+
+test("multi-file reviews retain exact patch offsets, freeze drafts, replace ranges and reject mixed revisions", () => {
+  const first = selectPRHunks(
+    { file, pull, patch: parsePRPatch(patch, file) },
+    1,
+  );
+  const second = selectPRHunks(
+    {
+      file: { ...file, path: "test/retry.test.ts" },
+      pull,
+      patch: parsePRPatch(patch, file),
+    },
+    2,
+  );
+  let basket = addPRSelection([], first);
+  basket = addPRSelection(basket, second);
+  const combined = combinePRSelections(basket);
+  assert.equal(combined.context.files.length, 2);
+  assert.deepEqual(
+    combined.context.files.map((f) => [f.patch_start, f.patch_end]),
+    [
+      [1, 6],
+      [7, 12],
+    ],
+  );
+  assert.equal(combined.code, first.code + "\n" + second.code);
+  assert.deepEqual(validatePRSelection(JSON.parse(JSON.stringify(combined))), {
+    code: combined.code,
+    context: combined.context,
+  });
+  assert.match(
+    githubContextLines(combined.context).join("\n"),
+    /test\/retry.test.ts.*published lines 7–12/,
+  );
+  basket = addPRSelection(basket, {
+    ...first,
+    code: first.code.replace("new one", "changed"),
+  });
+  assert.equal(basket.length, 2);
+  assert.equal(basket.at(-1).context.path, file.path);
+  for (const key of ["commit", "base_commit", "pull_request", "repository"]) {
+    assert.throws(
+      () =>
+        addPRSelection([first], {
+          ...second,
+          context: {
+            ...second.context,
+            [key]: key.includes("commit")
+              ? "c".repeat(40)
+              : "https://github.com/other/project/pull/1",
+          },
+        }),
+      /revisions/,
+    );
+  }
+  assert.throws(() => combinePRSelections([first, first]), /each file once/);
+  assert.throws(() => combinePRSelections([]), /1 and 10/);
+  assert.throws(() => combinePRSelections(Array(11).fill(first)), /1 and 10/);
+  assert.throws(
+    () =>
+      combinePRSelections([
+        first,
+        { ...second, code: second.code + "x".repeat(20000) },
+      ]),
+    /Invalid saved/,
+  );
+  const invalid = structuredClone(combined);
+  invalid.context.files[1].patch_start--;
+  assert.throws(() => validatePRSelection(invalid));
+  const wrongEnd = structuredClone(combined);
+  wrongEnd.context.files[1].patch_end++;
+  assert.throws(() => validatePRSelection(wrongEnd), /ranges/);
+  assert.throws(
+    () => validatePRSelection({ ...combined, code: "junk" + combined.code }),
+    /ranges/,
+  );
+  const badPath = structuredClone(combined.context);
+  badPath.files[1].path = "../secret";
+  assert.throws(() => normalizeGitHubContext(badPath));
 });

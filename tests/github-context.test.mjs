@@ -4,6 +4,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { combinePRSelections } from "../packages/cli/lib/pr-diff.mjs";
 import { startTestServer } from "./http-fixture.mjs";
 const github = {
   repository: "https://github.com/example/project",
@@ -117,6 +118,47 @@ test("GitHub context persists across clients and edits, validates before writes 
     assert.deepEqual(
       (await other("/posts/" + prPost.data.id)).data.github_context,
       { ...snapshot, start_line: null, end_line: null },
+    );
+    const multiAuthor = f.client();
+    await multiAuthor("/register", {
+      name: "Multi-file author",
+      email: "multi@github.test",
+      password: "Fixture-password123",
+    });
+    const selection = (path) => ({
+      context: { ...snapshot, path },
+      code: `--- "a/${path}"\n+++ "b/${path}"\n@@ -1 +1 @@\n-old\n+new`,
+    });
+    const multi = combinePRSelections([
+      selection("src/retry.ts"),
+      selection("test/retry.test.ts"),
+    ]);
+    const multiPost = await multiAuthor("/posts", {
+      ...payload,
+      title: "Multi-file PR review",
+      code: multi.code,
+      details: { github_context: multi.context },
+    });
+    assert.equal(multiPost.status, 201);
+    assert.deepEqual(
+      (await other("/posts/" + multiPost.data.id)).data.github_context,
+      multi.context,
+    );
+    const document = await fetch(f.base + "/conversation/" + multiPost.data.id);
+    assert.equal(document.status, 200);
+    const html = await document.text();
+    assert.match(html, /Selected PR files/);
+    assert.match(html, /test\/retry.test.ts/);
+    const badFiles = structuredClone(multi.context);
+    badFiles.files[1].path = "../secrets";
+    assert.equal(
+      (
+        await multiAuthor("/posts", {
+          ...payload,
+          details: { github_context: badFiles },
+        })
+      ).status,
+      400,
     );
     const invalidSnapshot = await author("/posts", {
       ...payload,

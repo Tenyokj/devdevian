@@ -9,7 +9,7 @@ const row = (text, width, color, key, extra = {}) =>
     { key, color, flexShrink: 0, wrap: "truncate", ...extra },
     clip(text, width),
   );
-export function PRFiles({ data, index, width, height }) {
+export function PRFiles({ data, index, width, height, basket = [] }) {
   const c = useTheme(),
     header = height >= 3 ? 1 : 0,
     spacer = height >= 6 ? 1 : 0,
@@ -20,7 +20,7 @@ export function PRFiles({ data, index, width, height }) {
     { width, height, flexDirection: "column", overflow: "hidden" },
     header
       ? row(
-          `↑↓ choose · Enter diff · [ ] pages · ${data.pagination.page}/${data.pagination.pages}`,
+          `↑↓ choose · Enter diff · [ ] pages · ${data.pagination.page}/${data.pagination.pages} · basket ${basket.length}/10 · R review`,
           width,
           c.muted,
           "header",
@@ -31,7 +31,7 @@ export function PRFiles({ data, index, width, height }) {
       .slice(first, first + capacity)
       .map((f, i) =>
         row(
-          `${first + i === index ? "›" : " "} +${f.additions}/-${f.deletions} · ${f.path} · ${f.status}`,
+          `${first + i === index ? "›" : " "} +${f.additions}/-${f.deletions} · ${f.path} · ${f.status}${basket.some((s) => s.context.path === f.path) ? " [selected]" : ""}`,
           width,
           first + i === index ? c.blue : c.text,
           f.path,
@@ -48,6 +48,7 @@ export function PRDiff({
   anchor,
   scroll,
   horizontal,
+  basket = [],
 }) {
   const c = useTheme(),
     patch = data.patch;
@@ -78,7 +79,7 @@ export function PRDiff({
     Box,
     { width, height, flexDirection: "column", overflow: "hidden" },
     row(
-      `Hunk ${hunk + 1}/${patch.hunks.length} · selected ${from}–${to} · C request review`,
+      `Hunk ${hunk + 1}/${patch.hunks.length} · selected ${from}–${to} · C single · A add · R basket (${basket.length})`,
       width,
       c.purple,
       "title",

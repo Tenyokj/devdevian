@@ -47,6 +47,11 @@ export function ReviewWorkspace({
     : focus === "code"
       ? line
       : Math.max(0, (selectedNote?.start_line || 1) - 1);
+  const sourceFile =
+    !excerpt.old &&
+    post?.github_context?.files?.find(
+      (f) => target + 1 >= f.patch_start && target + 1 <= f.patch_end,
+    );
   const header = height >= 4 ? 2 : 1,
     count = Math.max(1, height - header),
     top = Math.max(
@@ -72,8 +77,10 @@ export function ReviewWorkspace({
           { color: c.muted },
           clip(
             focus === "code"
-              ? `Lines ${range.start}–${range.end} · Space select`
-              : "Markers: remarks on this page",
+              ? `Lines ${range.start}–${range.end} · ${sourceFile ? sourceFile.path + " · { } files" : "Space select"}`
+              : sourceFile
+                ? sourceFile.path + " · { } files"
+                : "Markers: remarks on this page",
             codeWidth,
           ),
         )

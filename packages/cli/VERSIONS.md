@@ -11,7 +11,14 @@ Every published npm artifact has a unique immutable version. We record each vers
 
 ## Current milestone
 
-**0.10.0 adds PR diffs and selected-hunk code reviews** to public PR reading.
+**0.11.0 adds multiple PR files in one review**, with frozen source ranges shared by the terminal and browser.
+
+## 0.11.0-alpha.1 — One PR, multiple files, one conversation
+
+- Add/replace selected hunks with **A**, choose more files across pages, then **R** composes a single review. **U** removes a file, **Z** clears the basket. **C** keeps the single-file workflow.
+- Up to 10 files and 20,000 total patch characters; reject mixed PRs/base/head revisions before changing the basket. One contiguous hunk range per file. The basket is session-only until converted to a saved review draft.
+- Frozen drafts and previews retain each file’s published line range. **{ / }** navigates files in published review workspaces; existing remarks and old single-file/local reviews keep their line numbering.
+- Scripted `github review --selections selections.json` accepts explicit path/hunks/page entries. Browser/API 0.1.8 validates and displays the additive file map, including public conversation documents. No schema migration, dependency change, new GitHub scopes or writeback.
 
 ## 0.10.0-alpha.1 — PR diffs into human code review
 

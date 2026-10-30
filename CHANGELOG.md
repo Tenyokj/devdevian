@@ -1,5 +1,12 @@
 # Changelog
 
+## CLI 0.11.0-alpha.1 / Browser & API 0.1.8
+
+- Update the server’s locked `body-parser` dependency to 2.4.0, which fixes GHSA-27r3-jxmh-p828 (compressed-body denial of service).
+- Collect selected complete hunks from up to 10 files of one public GitHub PR into one code review, bounded to 20,000 characters. Mixed revisions and duplicate files are rejected; selected ranges can be replaced or removed before preview.
+- Preserve frozen multi-file drafts and exact published line ranges; navigate files with `{` / `}` in terminal reviews. Add command manifests with `github review --selections`.
+- Validate and display the additive file map in browser/API and public conversation documents. Existing single-file reviews, comments, permissions and database schema stay compatible.
+
 ## 0.1.7 — Public conversation documents
 
 - Added `/conversation/:id/:slug` with server-rendered public text, Markdown, code, source context, attachments and bounded root-reply pages. Original app routes remain supported; sharing and card links use public URLs where permitted.

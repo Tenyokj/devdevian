@@ -143,5 +143,87 @@ export function validatePRSelection(selection) {
     )
   )
     throw Error("Invalid saved PR selection. Select the changes again.");
+  if (context.files) {
+    const lines = selection.code.split("\n");
+    if (
+      context.files.at(-1).patch_end !== lines.length ||
+      context.files.some(
+        (f) =>
+          !lines[f.patch_start - 1]?.startsWith("--- ") ||
+          !lines[f.patch_start]?.startsWith("+++ ") ||
+          !lines[f.patch_start + 1]?.startsWith("@@ "),
+      )
+    )
+      throw Error("Saved PR file ranges do not match the published patch.");
+  }
   return { code: selection.code, context };
+}
+
+// Combine frozen selections only when every file belongs to the same PR revision.
+// One contiguous hunk range per file; replacing a file never duplicates its lines.
+export function combinePRSelections(selections) {
+  if (
+    !Array.isArray(selections) ||
+    !selections.length ||
+    selections.length > 10
+  )
+    throw Error("Choose between 1 and 10 files for one review.");
+  const valid = selections.map(validatePRSelection),
+    first = valid[0].context;
+  const seen = new Set();
+  let line = 1;
+  const files = valid.map(({ code, context: c }) => {
+    if (c.files || seen.has(c.path))
+      throw Error(
+        "Choose each file once; replace its selected range to change it.",
+      );
+    if (
+      ["repository", "commit", "base_commit", "pull_request"].some(
+        (k) => c[k] !== first[k],
+      )
+    )
+      throw Error(
+        "PR revisions differ. Clear the basket and select all files again from one revision.",
+      );
+    seen.add(c.path);
+    const file = {
+      path: c.path,
+      hunk_start: c.hunk_start,
+      hunk_end: c.hunk_end,
+      patch_start: line,
+      patch_end: line + code.split("\n").length - 1,
+    };
+    line = file.patch_end + 1;
+    return file;
+  });
+  const code = valid.map((s) => s.code).join("\n");
+  if (code.length > 20000)
+    throw Error(
+      "Combined patch exceeds 20,000 characters. Choose fewer hunks or files.",
+    );
+  const context = normalizeGitHubContext({ ...first, files });
+  return {
+    code,
+    context,
+    label: `${files.length} file${files.length === 1 ? "" : "s"} · PR #${first.pull_request.split("/").at(-1)}`,
+  };
+}
+
+export function addPRSelection(basket, selection) {
+  if (
+    basket.length &&
+    ["repository", "commit", "base_commit", "pull_request"].some(
+      (key) => basket[0].context[key] !== selection.context[key],
+    )
+  )
+    throw Error(
+      "PR revisions differ. Clear the basket and select all files again from one revision.",
+    );
+  const next = [
+    ...basket.filter((s) => s.context.path !== selection.context.path),
+    selection,
+  ];
+  // Validate before mutating the visible basket, including revision and total size.
+  combinePRSelections(next);
+  return next;
 }

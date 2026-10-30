@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { createServer } from "node:http";
 import { spawn, execFile } from "node:child_process";
 import { promisify } from "node:util";
@@ -42,7 +43,7 @@ test(
         number: 42,
         title: "Fix retries",
         state: "open",
-        changed_files: 2,
+        changed_files: 3,
         head: { ref: "retry", sha: "a".repeat(40) },
         base: { sha: "b".repeat(40) },
       };
@@ -55,6 +56,13 @@ test(
           patch,
         },
         { filename: "image.png", status: "added", additions: 0, deletions: 0 },
+        {
+          filename: "test/retry.test.ts",
+          status: "modified",
+          additions: 2,
+          deletions: 2,
+          patch,
+        },
       ];
       await writeFile(
         preload,
@@ -99,6 +107,13 @@ test(
             ...writes.at(-1),
             github_context: writes.at(-1)?.details?.github_context,
           };
+        else if (path === "/api/posts/77/code-reviews")
+          data = {
+            ...data,
+            snippet_hash: createHash("sha256")
+              .update(writes.at(-1).code)
+              .digest("hex"),
+          };
         res.setHeader("content-type", "application/json");
         res.end(JSON.stringify(data));
       });
@@ -140,6 +155,37 @@ test(
       assert.match(writes[0].code, /new second/);
       assert.doesNotMatch(writes[0].code, /new first/);
       assert.equal(writes[0].details.github_context.hunk_start, 2);
+      await writeFile(
+        join(directory, "selections.json"),
+        JSON.stringify([
+          { path: "src/retry.ts", hunks: "1" },
+          { path: "test/retry.test.ts", hunks: "2", page: 1 },
+        ]),
+      );
+      const multi = await run(
+        process.execPath,
+        [
+          bin,
+          "github",
+          "review",
+          url,
+          "--selections",
+          "selections.json",
+          "--title",
+          "Two files, one review",
+          "--topic",
+          "web",
+          "--focus",
+          "Review source and tests",
+          "--body",
+          "Check how the implementation matches its tests.",
+          "--yes",
+          "--json",
+        ],
+        { env: { ...env, DEVDEVIAN_CONFIG_DIR: config }, cwd: directory },
+      );
+      assert.equal(JSON.parse(multi.stdout).id, 77);
+      assert.equal(writes[1].details.github_context.files.length, 2);
       writes.length = 0;
       const start = () =>
         spawn(
@@ -220,7 +266,19 @@ test(
       await delay(200);
       assert.equal(term.buffer.active.baseY, 0);
       await wait("Hunk 2/2");
-      await send("c");
+      term.resize(120, 36);
+      child.stdin.write(JSON.stringify({ resize: [120, 36] }) + "\n");
+      await send("a");
+      await wait("Basket: 1 files");
+      await send("\x1b");
+      await wait("PR changed files");
+      await send("\x1b[B");
+      await send("\x1b[B");
+      await send("\r");
+      await wait("Hunk 1/2");
+      await send("a");
+      await wait("Basket: 2 files");
+      await send("r");
       await wait("Request a code review");
       await send("\x0e");
       await wait("Review focus");
@@ -240,6 +298,7 @@ test(
             );
       assert.equal(saved.form.prSelection.context.mode, "pr");
       assert.match(saved.form.prSelection.code, /new first/);
+      assert.equal(saved.form.prSelection.context.files.length, 2);
       child.kill();
       await new Promise((r) => child.once("exit", r));
       term.resize(120, 36);
@@ -268,9 +327,17 @@ test(
       assert.match(writes[0].code, /new second/);
       assert.equal(writes[0].details.github_context.hunk_end, 2);
       assert.equal(
+        writes[0].details.github_context.files[1].path,
+        "test/retry.test.ts",
+      );
+      assert.equal(
         writes[0].details.github_context.base_commit,
         "b".repeat(40),
       );
+      await send("v");
+      await wait("Code · W focus");
+      await send("}");
+      await wait("test/retry.test.ts · published lines");
       assert.equal(term.buffer.active.baseY, 0);
     } finally {
       child?.kill();

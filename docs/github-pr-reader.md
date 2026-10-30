@@ -13,7 +13,9 @@ From the PR overview, **F** or **X → Choose a file / inspect diff** opens a se
 
 **C** or **X → Request review of selected hunks** copies only the selected complete hunks to a local review draft. Choose topic/audience, write the review focus and context, then **Ctrl+S** previews the exact patch and source. Publication requires a separate confirmation. Escape returns to editing. Saved drafts retain the frozen patch and base/head commits: restoring one does not fetch newer GitHub code or read a local file. Normal account/community permissions apply; selecting public GitHub code does not automatically publish it.
 
-A review contains one file and one contiguous range of complete hunks, up to 20,000 characters including headers. Review line numbers refer to the published patch, including headers, rather than original file lines. Removed and renamed paths are preserved in patch headers. Missing/binary, oversized, incomplete or control-character patches cannot be selected; open GitHub for full context. Partial-line selection and inline GitHub threads are future work.
+CLI 0.11 adds a multi-file basket. In a diff, **A** adds the selected range (or replaces that file’s previous range). **Esc** returns to the file list; choose another file, including on another page, and repeat. The file list marks selected files. **R** from the diff or file list composes a single review from the basket; **U** removes the current file and **Z** clears the basket. **C** still composes only the current file. Preview shows all paths, published line ranges and exact code before confirmation.
+
+A review contains up to **10 files**, with one contiguous range of complete hunks per file and **20,000 total characters** including headers. Every selected file must share the same repository, PR, head and base commits. If a PR changes between file reads, clear the basket and select the files again. The basket itself is session-only: **R** creates the normal saved draft. Publication does not fetch GitHub again; it deliberately publishes the frozen selection. In a published review workspace, **{ / }** jumps between files without changing the comment line numbering. Review line numbers refer to the published patch, including headers, rather than original file lines. Removed and renamed paths are preserved in patch headers. Missing/binary, oversized, incomplete or control-character patches cannot be selected; open GitHub for full context. Partial-line selection and inline GitHub threads are future work.
 
 Before accepting a patch, the reader fetches fresh metadata, the file page, then fresh metadata again and checks both base/head commits. If the PR changes during loading, it asks you to refresh and select again; it does not retry automatically. This checks for concurrent pushes, not an atomic GitHub snapshot or proof of author ownership. Stored metadata is author-provided and server-validated. The browser and CLI label PR snapshots separately from local Git changes. Published reviews and comments live in Devdevian; no GitHub comments, PR state changes or synchronization are performed.
 
@@ -29,6 +31,17 @@ devdevian github review https://github.com/owner/repo/pull/42 --file src/retry.t
 ```
 
 The `github pr` and `github diff` read commands work without a Devdevian login. Overview JSON contains no raw patches; explicit diff JSON includes parsed hunks or an unavailable reason. `github review` requires login, a file path from the chosen page, and an explicit `--hunks N` or `--hunks START:END`; its preview/confirmation works like other publishing commands (`--yes` explicitly confirms scripted publication). Use `--page N` for files beyond the first page. TUI use requires the usual Devdevian account/session.
+
+For multiple files, use `devdevian github review PR_URL --selections selections.json --title "Review source and tests" --topic web --focus "Check retry coverage" --body "Please review these related changes."`. This replaces `--file` / `--hunks`; publication still requires preview or explicit `--yes`. The explicitly selected JSON file contains:
+
+```json
+[
+  { "path": "src/retry.ts", "hunks": "1:2", "page": 1 },
+  { "path": "test/retry.test.ts", "hunks": "1", "page": 2 }
+]
+```
+
+Page defaults to 1 and refers to the 20-file GitHub list page. Only the chosen file patches are included. Each file costs three fresh GitHub reads; selecting ten files can therefore consume 30 requests. There is no background fetching to fill the basket.
 
 ## Requests, limits and privacy
 

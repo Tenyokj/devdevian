@@ -23,7 +23,7 @@ import {
   loadAppearance,
   saveAppearance,
 } from "../lib/appearance.mjs";
-import { selectPRHunks } from "../lib/pr-diff.mjs";
+import { selectPRHunks, combinePRSelections } from "../lib/pr-diff.mjs";
 import { githubReader, pullRequestLines } from "../lib/github-reader.mjs";
 import { readGitHubContext, workspaceRoot } from "../lib/workspace.mjs";
 import { githubContextLines } from "../lib/github-context.mjs";
@@ -44,6 +44,7 @@ const options = {
   "github-context": { type: "boolean" },
   pr: { type: "string" },
   hunks: { type: "string" },
+  selections: { type: "string" },
   "start-line": { type: "string" },
   "end-line": { type: "string" },
   status: { type: "string" },
@@ -124,6 +125,7 @@ const help = `Devdevian CLI ${version} · alpha
   devdevian github pr https://github.com/owner/repo/pull/42 [--page 2]
   devdevian github diff PR_URL --file src/retry.ts [--page 2]
   devdevian github review PR_URL --file src/retry.ts --hunks 1:2 --title "..." --focus "..." --body "..."
+  devdevian github review PR_URL --selections selections.json --title "..." --focus "..." --body "..."
 
   Inside the workspace: /projects, /project ID, /events, /event ID
   Ctrl+K or /actions opens quick actions; type to filter
@@ -415,7 +417,47 @@ async function execute(args, flags) {
     const fromPR = command === "github",
       review = command === "review" || fromPR;
     let prSelection;
-    if (fromPR) {
+    if (fromPR && flags.selections) {
+      if (
+        flags.file ||
+        flags.hunks ||
+        flags.lines ||
+        flags["github-context"] ||
+        flags.pr
+      )
+        throw Error(
+          "Use --selections instead of --file, --hunks or local context flags.",
+        );
+      const manifest = JSON.parse(await boundedFile(flags.selections, 20000));
+      if (!Array.isArray(manifest) || !manifest.length || manifest.length > 10)
+        throw Error(
+          "Selections must list 1–10 files with path, hunks and optional page.",
+        );
+      const snapshots = [];
+      for (const item of manifest) {
+        if (
+          !item ||
+          typeof item.path !== "string" ||
+          typeof item.hunks !== "string" ||
+          !/^[1-9]\d*(?::[1-9]\d*)?$/.test(item.hunks)
+        )
+          throw Error("Each selection needs path and hunks, for example 1:2.");
+        const [start, end = start] = item.hunks.split(":").map(Number);
+        snapshots.push(
+          selectPRHunks(
+            await githubReader.loadDiff(args[2], {
+              path: item.path,
+              page: positive(String(item.page ?? 1), "Page"),
+            }),
+            start,
+            end,
+          ),
+        );
+        // Stop immediately if a PR changed, rather than fetching the remaining files.
+        combinePRSelections(snapshots);
+      }
+      prSelection = combinePRSelections(snapshots);
+    } else if (fromPR) {
       if (!flags.hunks || !/^([1-9]\d*)(?::([1-9]\d*))?$/.test(flags.hunks))
         throw Error(
           "Choose --hunks START:END (or a single hunk number). Inspect github diff first.",

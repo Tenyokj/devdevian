@@ -61,7 +61,12 @@ import { editExternal } from "./external-editor.mjs";
 import { markdownRows } from "./rich-text.mjs";
 import { githubReader, pullRequestRef } from "./github-reader.mjs";
 import { githubContextLines } from "./github-context.mjs";
-import { selectPRHunks, validatePRSelection } from "./pr-diff.mjs";
+import {
+  selectPRHunks,
+  validatePRSelection,
+  addPRSelection,
+  combinePRSelections,
+} from "./pr-diff.mjs";
 import { PRFiles, PRDiff } from "./pr-diff-view.mjs";
 import { conversationLinks } from "./conversation-links.mjs";
 import { problemMessage } from "./problems.mjs";
@@ -721,6 +726,7 @@ function App({ initialConfig, flags, root, initialAppearance }) {
     [reviewFocus, setReviewFocus] = useState("notes"),
     [reviewLine, setReviewLine] = useState(0),
     [reviewAnchor, setReviewAnchor] = useState(null),
+    [prBasket, setPRBasket] = useState([]),
     [reviewHorizontal, setReviewHorizontal] = useState(0),
     [live, setLive] = useState(!flags["no-live"]),
     [unread, setUnread] = useState(0),
@@ -862,6 +868,7 @@ function App({ initialConfig, flags, root, initialAppearance }) {
     seenSnippet.current = { id: post.id, code: post.code };
   }, [current?.post?.id, current?.post?.code]);
   const resetAccount = () => {
+    setPRBasket([]);
     cache.current.clear();
     history.current = [];
     readingMemory.current.clear();
@@ -1532,6 +1539,27 @@ function App({ initialConfig, flags, root, initialAppearance }) {
     setFocus("form");
     setError("");
   }
+  function selectedPRRange() {
+    return selectPRHunks(
+      current,
+      Math.min(reviewAnchor ?? reviewLine, reviewLine) + 1,
+      Math.max(reviewAnchor ?? reviewLine, reviewLine) + 1,
+    );
+  }
+  function requestPRBasket() {
+    try {
+      if (
+        prBasket.length &&
+        prBasket[0].context.pull_request !== current?.pull?.url
+      )
+        throw Error(
+          "This basket belongs to another PR. Return to it or press Z to clear.",
+        );
+      composePublication("review", combinePRSelections(prBasket));
+    } catch (e) {
+      fail(e);
+    }
+  }
   function requestPRReview() {
     try {
       const snapshot = selectPRHunks(
@@ -1941,6 +1969,7 @@ function App({ initialConfig, flags, root, initialAppearance }) {
             page: 1,
           });
       }
+      if (form.prSelection?.context?.files) setPRBasket([]);
       setNotice("Saved. Your web account sees the same update." + localWarning);
     });
   }
@@ -2766,6 +2795,33 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       navigate({ view: "post", id: current.post.id, tab: "feedback", page: 1 });
       return;
     }
+    if (reviewing && (input === "{" || input === "}")) {
+      const files = current?.post?.github_context?.files;
+      if (files?.length) {
+        const index = Math.max(
+          0,
+          files.findIndex(
+            (f) =>
+              reviewLine + 1 >= f.patch_start && reviewLine + 1 <= f.patch_end,
+          ),
+        );
+        const target =
+          files[
+            Math.max(
+              0,
+              Math.min(files.length - 1, index + (input === "}" ? 1 : -1)),
+            )
+          ];
+        setReviewLine(target.patch_start - 1);
+        setReviewAnchor(null);
+        setReviewFocus("code");
+        setNotice(
+          target.path +
+            ` · published lines ${target.patch_start}–${target.patch_end} · { } switch file`,
+        );
+      }
+      return;
+    }
     if (reviewing && (input === "w" || input === "W")) {
       setReviewFocus((v) => (v === "code" ? "notes" : "code"));
       return;
@@ -2847,7 +2903,37 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       navigate({ view: "pr-files", url: route.url, page: route.page || 1 });
       return;
     }
+    if (["pr-files", "pr-diff"].includes(route.view)) {
+      if (input.toLowerCase() === "r") {
+        requestPRBasket();
+        return;
+      }
+      if (input.toLowerCase() === "z") {
+        setPRBasket([]);
+        setNotice("PR basket cleared.");
+        return;
+      }
+      if (input.toLowerCase() === "u") {
+        const path =
+          route.view === "pr-diff" ? current?.file?.path : selected?.path;
+        setPRBasket((items) => items.filter((s) => s.context.path !== path));
+        setNotice("File removed from the PR basket.");
+        return;
+      }
+    }
     if (route.view === "pr-diff") {
+      if (input.toLowerCase() === "a") {
+        try {
+          const next = addPRSelection(prBasket, selectedPRRange());
+          setPRBasket(next);
+          setNotice(
+            `Basket: ${next.length} files · Esc choose another file · R preview review · U remove · Z clear`,
+          );
+        } catch (e) {
+          fail(e);
+        }
+        return;
+      }
       if (input === "c" || input === "C") {
         requestPRReview();
         return;
@@ -3461,6 +3547,7 @@ function App({ initialConfig, flags, root, initialAppearance }) {
     } else if (route.view === "pr-files" && current)
       body = h(PRFiles, {
         data: current,
+        basket: prBasket,
         index,
         width: contentWidth,
         height: contentHeight,
@@ -3468,6 +3555,7 @@ function App({ initialConfig, flags, root, initialAppearance }) {
     else if (route.view === "pr-diff" && current)
       body = h(PRDiff, {
         data: current,
+        basket: prBasket,
         width: contentWidth,
         height: contentHeight,
         hunk: reviewLine,
@@ -3747,9 +3835,9 @@ function App({ initialConfig, flags, root, initialAppearance }) {
   }
   const hint =
     route.view === "pr-diff" && !form && !preview && !palette
-      ? "↑↓ scroll · [ ] hunks · Space range · C review · ←→ pan · Esc files"
+      ? "[ ] hunks · Space range · A add · R basket · C single · U remove · Z clear · Esc files"
       : route.view === "pr-files" && !form && !palette
-        ? "↑↓ choose file · Enter diff · [ ] file pages · X actions · Esc back"
+        ? "↑↓ file · Enter diff · [ ] pages · R basket · U remove · Z clear · Esc back"
         : route.view === "pr" && !form && !reading && !palette
           ? "↑↓ scroll · F choose file / diff · [ ] pages · X actions · Esc back"
           : palette

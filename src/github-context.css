@@ -70,3 +70,20 @@
     flex-direction: column;
   }
 }
+
+.github-context ul {
+  padding-left: 20px;
+  margin: 12px 0;
+}
+.github-context li {
+  margin: 8px 0;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.github-context li a {
+  color: var(--accent);
+}
+.github-context li svg {
+  margin-left: 5px;
+  vertical-align: middle;
+}
