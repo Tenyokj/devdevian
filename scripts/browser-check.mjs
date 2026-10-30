@@ -114,7 +114,10 @@ try {
   expect(await robotsResponse.text()).toContain("/sitemap.xml");
   const sitemapResponse = await context.request.get(base + "/sitemap.xml");
   expect(sitemapResponse.ok()).toBeTruthy();
-  expect(await sitemapResponse.text()).toContain("/privacy</loc>");
+  expect(await sitemapResponse.text()).toContain("/sitemaps/pages.xml</loc>");
+  expect(
+    await (await context.request.get(base + "/sitemaps/pages.xml")).text(),
+  ).toContain("/privacy</loc>");
   const appShell = await context.request.get(base + "/app");
   expect(appShell.headers()["x-robots-tag"]).toBe("noindex, follow");
   expect((await context.request.get(base + "/does-not-exist")).status()).toBe(
@@ -176,9 +179,9 @@ try {
     "0.10.0-alpha.1",
   );
   await page.getByRole("button", { name: "Browser", exact: true }).click();
-  await expect(page.locator(".update-card:visible")).toHaveCount(6);
+  await expect(page.locator(".update-card:visible")).toHaveCount(7);
   await page.getByRole("button", { name: "All updates" }).click();
-  await expect(page.locator(".update-card:visible")).toHaveCount(13);
+  await expect(page.locator(".update-card:visible")).toHaveCount(14);
   for (const width of [1440, 768, 390]) {
     await page.setViewportSize({ width, height: 900 });
     for (const path of ["faq", "updates"]) {

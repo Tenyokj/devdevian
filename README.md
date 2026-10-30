@@ -6,7 +6,7 @@
   <p>
     <a href="https://github.com/Tenyokj/devdevian/actions/workflows/checks.yml"><img src="https://github.com/Tenyokj/devdevian/actions/workflows/checks.yml/badge.svg" alt="Build and tests" /></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0--only-9e8bff" alt="GPL 3.0 only" /></a>
-    <a href="package.json"><img src="https://img.shields.io/badge/version-0.1.6-7b83ff" alt="Browser/API version 0.1.6" /></a>
+    <a href="package.json"><img src="https://img.shields.io/badge/version-0.1.7-7b83ff" alt="Browser/API version 0.1.7" /></a>
     <a href="https://www.npmjs.com/package/@tenyokjs/devdevian-cli"><img src="https://img.shields.io/badge/CLI-0.10.0--alpha.1-b2a0ff" alt="CLI 0.10.0-alpha.1" /></a>
     <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/Node.js-24%2B-84bc95" alt="Node.js 24 or newer" /></a>
     <img src="https://img.shields.io/badge/status-active_development-b2a0ff" alt="Active development" />
@@ -43,7 +43,7 @@ Requires Node.js 24+. Login is approved in your browser. Use `devdevian open` fo
 
 | Feature | What you can do |
 | --- | --- |
-| Conversations | Ask a question, start a discussion, request a code review, or post a Show & tell. Add code, files, images, and labeled links. |
+| Conversations | Share public conversations through readable URLs with server-rendered content and link previews. Ask a question, start a discussion, request a code review, or post a Show & tell. Add code, files, images, and labeled links. |
 | Useful answers | Reply in threads, vote, save posts, and mark an accepted answer on your question or code review. |
 | Private communities | Request membership, discuss privately with approved members, and appoint community validators. |
 | Projects | Present a project with a logo, screenshots, team, links, and a dedicated feedback conversation. |
@@ -70,6 +70,8 @@ Illustrative product captures from a fictional screenshot dataset; these are not
 ## Start using Devdevian
 
 Open [the forum](https://devdevian.vercel.app/app), sign in, and choose your permanent username. Browse the public feed, join a community, or start with a focused question. If you connect another sign-in provider with the same email, a one-time email confirmation keeps the existing account and its activity together.
+
+Public conversation links open without an account; sign in on the same page to reply. The forum workspace and existing `/app#post/…` links remain available.
 
 Read the [user guide](docs/user-guide.md) for sharing content, joining communities, accepted answers, events, privacy settings, and account deletion. The [moderation guide](docs/moderation.md) explains the difference between community validators and platform moderators.
 

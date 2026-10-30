@@ -47,7 +47,7 @@ test("public pages contain crawlable HTML and unique canonical/social metadata w
   }
 });
 test("sitemap lists only public pages while API, app and missing pages stay out of search", () => {
-  const document = new JSDOM(readFileSync("dist/sitemap.xml", "utf8"), {
+  const document = new JSDOM(readFileSync("dist/sitemaps/pages.xml", "utf8"), {
     contentType: "text/xml",
   }).window.document;
   assert.deepEqual(

@@ -24,6 +24,7 @@ Server domain modules currently live at the root. Generated `dist/`, local data,
 | Task | Main entry points | Verification |
 | --- | --- | --- |
 | Public landing, FAQ or update history | [`src/landing.jsx`](../src/landing.jsx), [`src/public/`](../src/public/), [`scripts/prerender.mjs`](../scripts/prerender.mjs) | SEO suite and browser checks, including no-JavaScript content |
+| Public conversation URLs, SSR and sitemaps | [`public-conversations.mjs`](../public-conversations.mjs), [`conversation-url.mjs`](../conversation-url.mjs), [`src/public/conversation.jsx`](../src/public/conversation.jsx) | Public access/XSS/API suite and dedicated browser flow |
 | Forum screens, forms or notifications | [`src/main.jsx`](../src/main.jsx), [`src/forms.jsx`](../src/forms.jsx), [`src/activity.jsx`](../src/activity.jsx) | Affected browser flow and mobile layouts |
 | Authentication or provider linking | [`auth.mjs`](../auth.mjs), [`oauth-link.mjs`](../oauth-link.mjs), [`password-reset.mjs`](../password-reset.mjs), [`cli-auth.mjs`](../cli-auth.mjs) | Identity/API suites; real callbacks require provider verification |
 | Posts, replies and accepted answers | [`domain.mjs`](../domain.mjs), [`replies.mjs`](../replies.mjs), [`code-reviews.mjs`](../code-reviews.mjs), [`feedback-discussion.mjs`](../feedback-discussion.mjs) | Permission and feedback regression suites |

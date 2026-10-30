@@ -22,3 +22,6 @@ coverage/
 
 # Python terminal test driver cache
 __pycache__/
+
+# Server-side rendering artifacts (built with the browser)
+server-build/

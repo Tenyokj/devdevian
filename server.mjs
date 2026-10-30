@@ -1,3 +1,4 @@
+import { registerPublicConversations } from "./public-conversations.mjs";
 import { registerCliAuth, cliSessionKey } from "./cli-auth.mjs";
 import { registerFeedback } from "./feedback-discussion.mjs";
 import packageInfo from "./package.json" with { type: "json" };
@@ -503,6 +504,7 @@ export async function createApp({ migrationOnly = false } = {}) {
       db.close();
       return null;
     }
+    registerPublicConversations(app, db);
     app.use("/api", (req, res) =>
       res.status(404).json({ error: "API endpoint not found." }),
     );

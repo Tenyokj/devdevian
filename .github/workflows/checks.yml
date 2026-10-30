@@ -25,6 +25,7 @@ jobs:
       - run: npm run test:load
       - run: npx playwright install --with-deps chromium
       - run: node scripts/browser-check.mjs
+      - run: node scripts/public-conversation-check.mjs
       - uses: actions/upload-artifact@v7
         if: failure()
         with:

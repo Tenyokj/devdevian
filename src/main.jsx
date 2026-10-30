@@ -1,3 +1,5 @@
+import { takeConversationReturn } from "./auth-return";
+import { conversationPath } from "../conversation-url.mjs";
 import PublicPage from "./public/pages";
 import { CliApproval } from "./cli";
 import { GitHubContext } from "./github-context";
@@ -186,6 +188,11 @@ export function App() {
   const [detail, setDetail] = useState(null),
     [member, setMember] = useState(null),
     [detailError, setDetailError] = useState("");
+  useEffect(() => {
+    if (!user || user.username_locked === 0) return;
+    const destination = takeConversationReturn();
+    if (destination) location.replace(destination);
+  }, [user?.id, user?.username_locked]);
   const go = (path) => {
     location.hash = path;
   };
@@ -1659,7 +1666,22 @@ function PostCard({
           </span>
         </div>
       </div>
-      <button className="post-title" onClick={onOpen}>
+      <a
+        className="post-title"
+        href={conversationPath(p) || "/app#post/" + p.id}
+        onClick={(event) => {
+          if (
+            event.button === 0 &&
+            !event.metaKey &&
+            !event.ctrlKey &&
+            !event.shiftKey &&
+            !event.altKey
+          ) {
+            event.preventDefault();
+            onOpen();
+          }
+        }}
+      >
         <h2>{p.title}</h2>
         {p.status === "resolved" && (
           <span className="resolved-badge">
@@ -1667,7 +1689,7 @@ function PostCard({
             {p.kind === "review" ? "Review addressed" : "Resolved"}
           </span>
         )}
-      </button>
+      </a>
       <p className="post-excerpt">
         {p.body
           .split("```")[0]
@@ -2031,7 +2053,10 @@ function PostDetail({
           <button
             onClick={async () => {
               try {
-                await navigator.clipboard.writeText(location.href);
+                await navigator.clipboard.writeText(
+                  location.origin +
+                    (conversationPath(p) || "/app#post/" + p.id),
+                );
                 toast("Conversation link copied.");
               } catch {
                 toast(

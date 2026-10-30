@@ -81,3 +81,9 @@ Back up and verify data/files, run `node scripts/migrate.mjs --prepare-feedback`
 Back up and verify data/files, run `node scripts/migrate.mjs --prepare-cli` with the selected production environment, deploy v0.1.6, verify health and browser approval, then finalize with `node scripts/migrate.mjs`. Preparation creates only CLI device/token tables while preserving marker 5. No new OAuth provider keys or email service permissions are required. CLI uses the existing sign-in page.
 
 The standalone package in `packages/cli` has no runtime dependencies. Check `npm pack --dry-run` before publication; only its bin/lib files, README, package metadata and GPL license are included. Publish with the `alpha` dist-tag; the browser application and CLI have independent versions. Never package operator environment files or credentials.
+
+## Public conversation renderer (0.1.7+)
+
+`npm run build` creates both static `dist/` files and the `server-build/` conversation renderer/template. Deploy them from the same commit. Vercel includes `server-build/**` in the API function and rewrites conversation/dynamic sitemap paths into that handler; standalone Node reads the same artifacts. Do not upload only `dist/` to a static host and expect conversation pages to work. No database connection is made at build time.
+
+The database schema remains v6. This feature requires no migration from 0.1.6 and never copies production rows into static build output. Verify a known public post, an unavailable ID and sitemap exclusions after deployment. Public HTML uses no-store; preserve this behavior when adding a proxy/CDN layer.

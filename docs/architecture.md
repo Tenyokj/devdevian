@@ -4,7 +4,7 @@ See the [source map](source-map.md) for task-based navigation and [frontend guid
 
 ## Request flow
 
-A Vite/React frontend talks to a same-origin Express JSON API. The landing is `/`, the forum is `/app` with hash routes, and public guides are `/faq` and `/updates`, and policy pages are `/privacy` and `/terms`. The build prerenders public pages using the same React components and hydrates them in the browser; the app remains client-rendered and noindex. See [search visibility](search.md). `vercel.json` serves built static assets and routes `/api/*` to the exported Express handler in `api/index.mjs`. The standalone Node server also supports these entry points.
+A Vite/React frontend talks to a same-origin Express JSON API. The landing is `/`, the forum is `/app` with hash routes, and public guides are `/faq` and `/updates`, and policy pages are `/privacy` and `/terms`. The build prerenders static public pages using the same React components and hydrates them in the browser; the app remains client-rendered and noindex. Public `/conversation/:id/:slug` documents use a separate React entry, built SSR module and runtime public-only database projection, with bounded root replies and an inline sign-in/reply flow. Dynamic sitemap routes include eligible public conversations. See [search visibility](search.md). `vercel.json` serves built static assets and routes `/api/*` to the exported Express handler in `api/index.mjs`. The standalone Node server also supports these entry points.
 
 The API loads the server session, derives platform and community permissions, validates input and origin where applicable, and executes database operations. React uses `/api/me` to retrieve a safe profile. Password hashes, OAuth secrets, and raw database/object-storage credentials are not sent to the browser.
 
@@ -12,6 +12,7 @@ The API loads the server session, derives platform and community permissions, va
 
 | Area | Main files |
 | --- | --- |
+| Public conversation HTML, URL helpers and dynamic sitemaps | `public-conversations.mjs`, `conversation-url.mjs`, `src/public/conversation*.jsx` |
 | Bootstrap, sessions, login, account switching | `server.mjs` |
 | Email registration and OAuth | `auth.mjs`, `oauth-link.mjs`, `mail.mjs` |
 | Publications, projects, events, votes | `domain.mjs` |

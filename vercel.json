@@ -6,10 +6,22 @@
   "functions": {
     "api/index.mjs": {
       "maxDuration": 60,
-      "includeFiles": "node_modules/@libsql/**"
+      "includeFiles": "{node_modules/@libsql,server-build}/**"
     }
   },
   "rewrites": [
+    {
+      "source": "/conversation/:path*",
+      "destination": "/api?__public_path=/conversation/:path*"
+    },
+    {
+      "source": "/sitemap.xml",
+      "destination": "/api?__public_path=/sitemap.xml"
+    },
+    {
+      "source": "/sitemaps/conversations-:page.xml",
+      "destination": "/api?__public_path=/sitemaps/conversations-:page.xml"
+    },
     {
       "source": "/api/:path*",
       "destination": "/api"

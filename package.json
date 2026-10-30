@@ -1,15 +1,15 @@
 {
   "name": "devdevian",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "node server.mjs",
-    "build": "vite build && node scripts/prerender.mjs",
+    "build": "node scripts/build-web.mjs && node scripts/prerender.mjs",
     "test": "node --test tests/*.test.mjs packages/cli/test/*.test.mjs",
     "start": "NODE_ENV=production node server.mjs",
     "demo": "npm run build && node scripts/demo.mjs",
-    "test:browser": "npm run build && node scripts/browser-check.mjs",
+    "test:browser": "npm run build && node scripts/browser-check.mjs && node scripts/public-conversation-check.mjs",
     "pretest": "npm run build",
     "seed:screenshots": "node scripts/seed-screenshots.mjs",
     "check:screenshots": "node scripts/check-screenshot-data.mjs",

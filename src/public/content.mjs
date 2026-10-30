@@ -3,6 +3,22 @@
 export const repository = "https://github.com/Tenyokj/devdevian";
 export const updates = [
   {
+    id: "browser-public-conversations",
+    channel: "Browser",
+    version: "0.1.7",
+    title: "A conversation worth sharing.",
+    summary:
+      "Public conversations now have readable links with text and code rendered on the server, a social preview, and paginated replies.",
+    points: [
+      "Read without an account, then sign in on the same page to reply. Existing workspace links still work.",
+      "Public sitemaps include eligible conversations; private and removed posts stay excluded.",
+    ],
+    link:
+      repository +
+      "/blob/main/docs/user-guide.md#sharing-and-reading-public-conversations",
+    label: "Read the sharing guide",
+  },
+  {
     id: "site-guide",
     channel: "Browser",
     version: "Website update",
@@ -215,7 +231,7 @@ export const questions = [
     category: categories[0],
     question: "How do I create an account or sign in?",
     answer:
-      "Use verified email registration, Google or GitHub in the browser. An existing account with the same email may require a one-time email confirmation to connect a new provider. Choose your permanent @username carefully; it must be unique.",
+      "Public conversation pages can be read without signing in. To take part, use verified email registration, Google or GitHub in the browser. An existing account with the same email may require a one-time email confirmation to connect a new provider. Choose your permanent @username carefully; it must be unique.",
   },
   {
     id: "password",

@@ -100,3 +100,9 @@ Use **Report feedback** on the particular remark or reply. Community reports go 
 Install `@tenyokjs/devdevian-cli@alpha` with npm (Node.js 24+), run `devdevian login`, compare the displayed code with the browser approval screen, sign in, and choose **Authorize terminal**. Then run `devdevian` for an interactive menu or `devdevian --help` for commands. The CLI uses the same account, publications, private-community permissions, feedback and notifications.
 
 Selected text/files are previewed before publication. Revoke an individual terminal under **Settings → Connected terminals** or run `devdevian logout`. The alpha's scope and local credential-file permissions are documented in the [CLI README](../packages/cli/README.md). Browser-only controls remain available for media/profile editing, event administration and moderation.
+
+## Sharing and reading public conversations
+
+Public posts can be shared using `/conversation/:id/:slug`; Share copies this readable URL. Existing `/app#post/:id` links and the full forum workspace still work. Private-community sharing uses the app route and continues to require membership. Public reading needs no account and works without JavaScript; replies are paginated. Nested threads and advanced actions can be opened in the full workspace.
+
+With JavaScript enabled, sign in on the public page to reply. Browser OAuth returns to the same conversation after completing any required permanent username. Replies still obey pauses, membership/visibility, quotas and server validation. A short-lived, account-scoped session draft may restore text when a reply requires sign-in again; it is not synchronized and expires after 15 minutes. Publication always requires an explicit submit and is never retried automatically.

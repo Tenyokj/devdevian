@@ -4,7 +4,7 @@
 
 ## Entry points
 
-`main.jsx` chooses public documents by pathname and renders the forum on `/app` with hash navigation. Public pages hydrate build-time HTML; the signed-in forum renders separately. Preserve the legacy landing-anchor allowlist when changing root hash routing.
+`main.jsx` chooses public documents by pathname and renders the forum on `/app` with hash navigation. Static public pages hydrate build-time HTML; the signed-in forum renders separately. Conversation documents have their own `conversation.html` → `public/conversation-client.jsx` entry and hydrate a server-generated public seed; they do not bootstrap the complete App. Preserve the legacy landing-anchor allowlist when changing root hash routing.
 
 | Area | Files |
 | --- | --- |
@@ -16,6 +16,7 @@
 | Terminal device approval | `cli.jsx` |
 | Landing and showcases | `landing.jsx`, `landing-cli.jsx`, `stack.jsx`, `landing-media.json` |
 | Public FAQ and update history | `public/pages.jsx`, `public/content.mjs`, `public/accordion.jsx`, `public/pages.css` |
+| Public conversation reading and replies | `public/conversation.jsx`, `public/conversation.css`, `auth-return.js` |
 | Policy documents | `policies.jsx`, `policies.css` |
 | Forum styling | `style.css`, `refresh.css`, `github-context.css` |
 
@@ -33,3 +34,9 @@ Public documents use their own dark appearance without writing to the forum’s 
 `data.js` centralizes JSON error handling, bounded request timeouts and identical in-flight GET sharing. It deliberately does not retain a private response cache between accounts or retry mutations automatically. Preserve those properties when optimizing requests.
 
 Render user text through the established Markdown/link components and use safe URL validation. Never insert user-controlled raw HTML. Visibility and ownership must also be checked by the API; hidden buttons are only presentation.
+
+## Public conversation boundary
+
+`public-conversations.mjs` selects and whitelists only public, non-removed content. `public/conversation-server.jsx` renders the same component used by the separate client entry. Render with an explicit UTC timezone first; switch to the viewer timezone after hydration. Do not render viewer-specific account/session information into the seed. Do not add an HTML/content cache without accounting for removal and visibility changes.
+
+Inline sign-in reuses the established forms. OAuth resumes through a short-lived, strictly validated same-tab conversation return path; the App waits for permanent-username completion before returning. A failed authenticated reply can preserve account-scoped text for 15 minutes in session storage. No reply is replayed automatically.

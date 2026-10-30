@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.7 — Public conversation documents
+
+- Added `/conversation/:id/:slug` with server-rendered public text, Markdown, code, source context, attachments and bounded root-reply pages. Original app routes remain supported; sharing and card links use public URLs where permitted.
+- Added inline browser sign-in/replies and a validated, same-tab OAuth return to the chosen conversation, including permanent-username completion. Authentication recovery can retain an account-scoped reply for 15 minutes in session storage.
+- Public projections ignore session identity and exclude private/removed posts, deleted reply text, account credentials and arbitrary entity metadata. Unavailable documents return a neutral noindex 404; failures return a retryable 503. Content is not cached across requests.
+- Added canonical/social metadata, a local PNG preview, public-only structured data and a dynamic sitemap index with 500 conversations per file. Only current public records enter sitemaps; preview deployments remain noindex.
+- Build browser and server rendering artifacts without database reads; Vercel and standalone hosting share document routes. Added API/access/XSS/sitemap and real browser/no-JavaScript/auth/responsive regression checks.
+- Browser/API version is 0.1.7; CLI remains 0.10.0-alpha.1. No database migration or production reset.
+
 ## 2026-10-30 — Combined CLI alpha and public website update
 
 [Release notes](docs/releases/cli-0.10.0-alpha.1.md) · [GitHub release](https://github.com/Tenyokj/devdevian/releases/tag/cli-v0.10.0-alpha.1)

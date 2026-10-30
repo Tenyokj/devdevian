@@ -6,6 +6,8 @@ Prefer the named npm commands in root `package.json`; they provide the expected 
 
 | Script | Purpose and boundary |
 | --- | --- |
+| `build-web.mjs` | Browser entries and server conversation renderer/template; no database reads, generated `server-build/` stays outside public output |
+| `public-conversation-check.mjs` | Isolated no-JavaScript/inline sign-in/reply/legacy route and responsive conversation checks |
 | `prerender.mjs` | Build-time public HTML, sitemap, metadata and 404 document; no account/database reads |
 | `browser-check.mjs` | Chromium workflows against a disposable local database; screenshots in ignored test artifacts |
 | `load-check.mjs` | Bounded isolated workload, not a production load generator |
