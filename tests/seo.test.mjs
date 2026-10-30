@@ -8,6 +8,8 @@ test("public pages contain crawlable HTML and unique canonical/social metadata w
     ["index.html", "/", "Less noise."],
     ["privacy/index.html", "/privacy", "Privacy & Security"],
     ["terms/index.html", "/terms", "Terms of Use"],
+    ["updates/index.html", "/updates", "Here’s what’s new."],
+    ["faq/index.html", "/faq", "Clear answers."],
   ]) {
     const html = readFileSync("dist/" + file, "utf8");
     const document = new JSDOM(html).window.document;
@@ -52,7 +54,7 @@ test("sitemap lists only public pages while API, app and missing pages stay out 
     [...document.querySelectorAll("loc")].map(
       (n) => new URL(n.textContent).pathname,
     ),
-    ["/", "/privacy", "/terms"],
+    ["/", "/privacy", "/terms", "/updates", "/faq"],
   );
   const robots = readFileSync("dist/robots.txt", "utf8");
   assert.match(robots, /Disallow: \/api\//);

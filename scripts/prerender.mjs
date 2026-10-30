@@ -24,6 +24,8 @@ const escape = (value) =>
     .replaceAll('"', "&quot;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;");
+// This list is the crawlable document boundary, not the forum route table.
+// Never prerender authenticated API data or include private/hash routes here.
 const pages = [
   {
     path: "/",
@@ -50,6 +52,22 @@ const pages = [
     index: true,
   },
   {
+    path: "/updates",
+    file: "updates/index.html",
+    title: "What’s new · Devdevian",
+    description:
+      "Explore Devdevian updates: browser improvements, the live terminal workspace, public GitHub PR reviews, and the story of an open-source developer forum.",
+    index: true,
+  },
+  {
+    path: "/faq",
+    file: "faq/index.html",
+    title: "Frequently asked questions · Devdevian",
+    description:
+      "Answers about Devdevian accounts, conversations, accepted solutions, the CLI, GitHub reviews, private communities, moderation and data privacy.",
+    index: true,
+  },
+  {
     path: "/app",
     file: "app/index.html",
     title: "Developer forum · Devdevian",
@@ -68,6 +86,9 @@ const vite = await createServer({
 try {
   const { default: Landing } = await vite.ssrLoadModule("/src/landing.jsx");
   const { default: PolicyPage } = await vite.ssrLoadModule("/src/policies.jsx");
+  const { default: PublicPage } = await vite.ssrLoadModule(
+    "/src/public/pages.jsx",
+  );
   for (const page of pages) {
     const canonical = origin + (page.path === "/" ? "/" : page.path);
     const image = origin + "/screenshots/feed-screen.png";
@@ -128,7 +149,9 @@ try {
       const element =
         page.path === "/"
           ? React.createElement(Landing)
-          : React.createElement(PolicyPage, { type: page.path.slice(1) });
+          : ["/faq", "/updates"].includes(page.path)
+            ? React.createElement(PublicPage, { type: page.path.slice(1) })
+            : React.createElement(PolicyPage, { type: page.path.slice(1) });
       html = html.replace(
         '<div id="root"></div>',
         () =>
@@ -167,7 +190,7 @@ try {
     `<!doctype html><html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><meta name="robots" content="noindex,follow"/><title>Page not found · Devdevian</title></head><body style="background:#090c18;color:#f3f0ff;font:18px system-ui;padding:12vh 8vw"><h1>Page not found.</h1><p>This address does not exist.</p><a style="color:#b09bff" href="/">Back to Devdevian</a></body></html>`,
   );
   console.log(
-    "Prerendered landing and policy pages; generated sitemap, robots, app metadata, and 404 page.",
+    "Prerendered landing, FAQ, updates and policy pages; generated sitemap, robots, app metadata, and 404 page.",
   );
 } finally {
   await vite.close();

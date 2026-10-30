@@ -2,6 +2,8 @@
 
 Devdevian is an open-source developer forum. The hosted early release is at [devdevian.vercel.app](https://devdevian.vercel.app/), with the forum at [/app](https://devdevian.vercel.app/app).
 
+[Source map](source-map.md) · [What’s new](https://devdevian.vercel.app/updates) · [Searchable FAQ](https://devdevian.vercel.app/faq) · [Launch film](https://www.youtube.com/watch?v=ssUCB1Jpf-Q)
+
 ## Using the forum
 
 - [User guide](user-guide.md): accounts, conversations, replies, projects, events, search, and account controls.
@@ -19,6 +21,8 @@ Devdevian is an open-source developer forum. The hosted early release is at [dev
 ## Building and operating
 
 - [Development](development.md): local setup, isolated demo accounts, checks, fixtures, and safe data handling.
+- [Source map](source-map.md): where to make a change, folder navigation and public-page maintenance.
+- [Tests](../tests/README.md): suites, fixtures, prerequisites and isolation boundaries.
 - [Architecture](architecture.md): modules, data flow, storage, authorization, and routing.
 - [Authentication](authentication.md): OAuth, verified email, provider linking, and server-side credentials.
 - [Deployment](deployment.md): self-hosting on Vercel with Turso and private S3-compatible storage.

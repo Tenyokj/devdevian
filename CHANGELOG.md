@@ -1,6 +1,10 @@
 # Changelog
 
-## Unreleased — Website visual refresh
+## Unreleased — Public guides and website refresh
+
+- Added prerendered `/updates` and `/faq` pages, with separate Browser/CLI milestones, searchable categorized answers, stable deep links, keyboard-friendly animated disclosures and reduced-motion support.
+- Connected landing, forum and policy navigation; added canonical/social metadata and sitemap entries without reading account data.
+- Linked the launch film and added contributor source navigation, frontend/test guides and public-page maintenance instructions. Browser/API and CLI package versions are unchanged.
 
 - Joined navigation and hero on a shared brighter gradient and blended the hero edge into the blurred photograph backdrop.
 

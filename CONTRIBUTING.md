@@ -14,6 +14,12 @@ Do not publish security vulnerabilities in public issues. Follow [SECURITY.md](S
 
 Follow the [development guide](docs/development.md) and [architecture overview](docs/architecture.md). Use an isolated `DB_PATH` or `npm run demo` when experimenting with account deletion, moderation, or migrations. Never commit environment files, databases, uploads, session cookies, OAuth tokens, or production exports.
 
+## Find the right part of the project
+
+Use the [source map](docs/source-map.md), [frontend guide](src/README.md) and [test guide](tests/README.md). The browser/API and CLI have independent versions and dependency lockfiles. Keep package-specific behavior in `packages/cli`; server authorization remains shared.
+
+For public FAQ or update edits, use `src/public/content.mjs`. Keep published fragment IDs stable, separate shipped changes from plans, and verify the built HTML. A new public route also needs prerender metadata, Vercel and standalone-server routing, and sitemap/browser checks. See the [frontend guide](src/README.md).
+
 ## Implementation guidelines
 
 - Keep the blue/violet palette and support both themes.

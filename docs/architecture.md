@@ -1,8 +1,10 @@
 # Architecture
 
+See the [source map](source-map.md) for task-based navigation and [frontend guide](../src/README.md) for public-page and forum boundaries.
+
 ## Request flow
 
-A Vite/React frontend talks to a same-origin Express JSON API. The landing is `/`, the forum is `/app` with hash routes, and policy pages are `/privacy` and `/terms`. The build prerenders public pages using the same React components and hydrates them in the browser; the app remains client-rendered and noindex. See [search visibility](search.md). `vercel.json` serves built static assets and routes `/api/*` to the exported Express handler in `api/index.mjs`. The standalone Node server also supports these entry points.
+A Vite/React frontend talks to a same-origin Express JSON API. The landing is `/`, the forum is `/app` with hash routes, and public guides are `/faq` and `/updates`, and policy pages are `/privacy` and `/terms`. The build prerenders public pages using the same React components and hydrates them in the browser; the app remains client-rendered and noindex. See [search visibility](search.md). `vercel.json` serves built static assets and routes `/api/*` to the exported Express handler in `api/index.mjs`. The standalone Node server also supports these entry points.
 
 The API loads the server session, derives platform and community permissions, validates input and origin where applicable, and executes database operations. React uses `/api/me` to retrieve a safe profile. Password hashes, OAuth secrets, and raw database/object-storage credentials are not sent to the browser.
 

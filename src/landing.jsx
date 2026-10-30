@@ -1,3 +1,4 @@
+import FAQItem from "./public/accordion";
 import { CLISection, CLIReview, PublicActivity } from "./landing-cli";
 import StackRibbon from "./stack";
 import React, { useEffect, useRef, useState } from "react";
@@ -183,49 +184,6 @@ function Screenshot({ name, label, compact = false }) {
   );
 }
 
-// Keep native details semantics, including keyboard activation, while animating
-// the measured height in both directions. Rapid clicks reverse from the current size.
-function FAQItem({ children, ...props }) {
-  const element = useRef(null);
-  const animation = useRef(null);
-  const desired = useRef(false);
-  useEffect(() => () => animation.current?.cancel(), []);
-  const toggle = (event) => {
-    if (!event.target.closest("summary")) return;
-    if (
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
-      !element.current.animate
-    )
-      return;
-    event.preventDefault();
-    const node = element.current;
-    const start = node.getBoundingClientRect().height;
-    desired.current = animation.current ? !desired.current : !node.open;
-    animation.current?.cancel();
-    node.open = true;
-    const end = desired.current
-      ? node.scrollHeight
-      : node.querySelector("summary").getBoundingClientRect().height;
-    node.style.overflow = "hidden";
-    const current = node.animate(
-      [{ height: start + "px" }, { height: end + "px" }],
-      { duration: 280, easing: "cubic-bezier(.22,1,.36,1)" },
-    );
-    animation.current = current;
-    current.onfinish = () => {
-      if (animation.current !== current) return;
-      node.open = desired.current;
-      node.style.overflow = "";
-      animation.current = null;
-    };
-  };
-  return (
-    <details {...props} ref={element} onClick={toggle}>
-      {children}
-    </details>
-  );
-}
-
 export default function Landing() {
   const root = useRef(null);
   const [active, setActive] = useState(0);
@@ -291,7 +249,8 @@ export default function Landing() {
             <a href="#explore">Explore</a>
             <a href="#community">Communities</a>
             <a href="#open-source">Open source</a>
-            <a href="#faq">FAQ</a>
+            <a href="/updates">What’s new</a>
+            <a href="/faq">FAQ</a>
           </div>
           <div className="landing-nav-actions">
             <a
@@ -693,8 +652,8 @@ export default function Landing() {
                 <br />
                 <em>Straight answers.</em>
               </h2>
-              <a href={repository + "/issues"} className="landing-text-link">
-                Have another question? <ArrowUpRight size={16} />
+              <a href="/faq" className="landing-text-link">
+                Explore all questions <ArrowUpRight size={16} />
               </a>
             </div>
             <div className="faq-list">
@@ -775,7 +734,8 @@ export default function Landing() {
                   [
                     ["Privacy & Security", "/privacy"],
                     ["Terms of Use", "/terms"],
-                    ["Questions & answers", "#faq"],
+                    ["Questions & answers", "/faq"],
+                    ["What’s new", "/updates"],
                     ["Report an issue", repository + "/issues"],
                   ],
                 ],

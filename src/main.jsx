@@ -1,3 +1,4 @@
+import PublicPage from "./public/pages";
 import { CliApproval } from "./cli";
 import { GitHubContext } from "./github-context";
 import { CodeReview } from "./code-review";
@@ -1512,6 +1513,8 @@ export function App() {
               >
                 Report a bug <ArrowUpRight size={12} />
               </a>
+              <a href="/updates">What’s new</a>
+              <a href="/faq">FAQ</a>
               <a href="/privacy">Privacy &amp; Security</a>
               <a href="/terms">Terms of Use</a>
               <button
@@ -2779,13 +2782,18 @@ function Participation({ user, go }) {
     />
   );
 }
+// Public documents hydrate the exact build-time HTML; forum hash routes stay
+// client-rendered. Keep public routes in sync with prerender and both hosts.
 if (!import.meta.env.SSR) {
   const root = document.getElementById("root");
-  const page = ["/privacy", "/terms"].includes(window.location.pathname) ? (
+  const page = ["/faq", "/updates"].includes(window.location.pathname) ? (
+    <PublicPage type={window.location.pathname.slice(1)} />
+  ) : ["/privacy", "/terms"].includes(window.location.pathname) ? (
     <PolicyPage type={window.location.pathname.slice(1)} />
   ) : window.location.pathname === "/" &&
     (!window.location.hash ||
       [
+        "#cli",
         "#possibilities",
         "#your-people",
         "#how-it-works",

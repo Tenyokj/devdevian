@@ -131,7 +131,80 @@ try {
   await expect(staticPage.locator(".policy-content")).toContainText(
     "What we collect and why",
   );
+  for (const path of ["faq", "updates"]) {
+    await staticPage.goto(base + "/" + path);
+    await expect(staticPage.locator("main h1")).toBeVisible();
+    await expect(staticPage.locator(".public-toolbar:visible")).toHaveCount(0);
+  }
+  await staticPage.goto(base + "/faq");
+  await staticPage.locator("#accepted-answer summary").click();
+  await expect(
+    staticPage.locator("#accepted-answer .faq-answer"),
+  ).toBeVisible();
+  await expect(staticPage.locator("#accepted-answer")).toContainText(
+    "real product feature",
+  );
   await staticContext.close();
+  // Public guides must hydrate without losing deep links or native disclosure access.
+  await page.goto(base + "/faq#accepted-answer");
+  await expect(page.locator("#accepted-answer")).toHaveAttribute("open", "");
+  await page.locator("#accepted-answer summary").focus();
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#accepted-answer")).not.toHaveAttribute(
+    "open",
+    "",
+  );
+  await page.keyboard.press("Space");
+  await expect(page.locator("#accepted-answer .faq-answer")).toBeVisible();
+  const faqSearch = page.getByRole("searchbox", {
+    name: "Search questions and answers",
+  });
+  await faqSearch.fill("accepted answer");
+  await expect(page.locator(".expanded-faq details:visible")).toHaveCount(1);
+  await faqSearch.fill("no-such-question-987654");
+  await expect(
+    page.getByRole("heading", { name: "No matching questions yet." }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Clear filters" }).click();
+  await expect(page.locator(".expanded-faq details:visible")).toHaveCount(24);
+  await page.getByRole("button", { name: "CLI & GitHub", exact: true }).click();
+  await expect(page.locator(".expanded-faq details:visible")).toHaveCount(6);
+  await page.goto(base + "/updates");
+  await page.getByRole("button", { name: "CLI", exact: true }).click();
+  await expect(page.locator(".update-card:visible")).toHaveCount(7);
+  await expect(page.locator(".update-card:visible").first()).toContainText(
+    "0.10.0-alpha.1",
+  );
+  await page.getByRole("button", { name: "Browser", exact: true }).click();
+  await expect(page.locator(".update-card:visible")).toHaveCount(6);
+  await page.getByRole("button", { name: "All updates" }).click();
+  await expect(page.locator(".update-card:visible")).toHaveCount(13);
+  for (const width of [1440, 768, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    for (const path of ["faq", "updates"]) {
+      await page.goto(base + "/" + path);
+      await expect(page.locator("main h1")).toBeVisible();
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= innerWidth,
+        ),
+      ).toBeTruthy();
+      await page.screenshot({
+        path: `${artifacts}/${path}-${width}.png`,
+        fullPage: true,
+      });
+    }
+  }
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto(base + "/faq#private-content");
+  await expect(page.locator("#private-content .faq-answer")).toBeVisible();
+  await page.locator("#private-content summary").click();
+  await expect(page.locator("#private-content")).not.toHaveAttribute(
+    "open",
+    "",
+  );
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.setViewportSize({ width: 1440, height: 1000 });
   // Verify both public entry points and responsive landing layouts.
   await page.goto(base);
   await expect(page.locator(".landing-hero .hero-logo")).toBeVisible();
@@ -311,7 +384,7 @@ try {
     name: "Footer navigation",
     exact: true,
   });
-  await expect(footerDirectory.getByRole("link")).toHaveCount(12);
+  await expect(footerDirectory.getByRole("link")).toHaveCount(13);
   await expect(
     footerDirectory.getByRole("link", {
       name: "CLI documentation",

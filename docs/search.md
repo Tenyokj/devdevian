@@ -2,9 +2,9 @@
 
 ## Build output
 
-`npm run build` runs Vite and then `scripts/prerender.mjs`. React renders the landing, Privacy & Security, and Terms of Use into static HTML using the same components as the browser. The browser hydrates those public pages; it renders the signed-in application separately. No account, community, or API data is fetched during prerendering.
+`npm run build` runs Vite and then `scripts/prerender.mjs`. React renders the landing, FAQ, What’s new, Privacy & Security, and Terms of Use into static HTML using the same components as the browser. The browser hydrates those public pages; it renders the signed-in application separately. No account, community, or API data is fetched during prerendering.
 
-Each public page receives its own title, description, canonical URL, Open Graph/Twitter metadata, and JSON-LD. The existing feed screenshot is the social preview image. `dist/sitemap.xml` lists only `/`, `/privacy`, and `/terms`; optional `lastmod` dates are omitted instead of inventing modification times.
+Each public page receives its own title, description, canonical URL, Open Graph/Twitter metadata, and JSON-LD. The existing feed screenshot is the social preview image. `dist/sitemap.xml` lists only `/`, `/privacy`, `/terms`, `/updates`, and `/faq`; optional `lastmod` dates are omitted instead of inventing modification times.
 
 The public origin comes from `SITE_URL`, then `APP_URL`, then the maintainer instance's default origin. For an independent deployment, set the correct origin before building. Do not put credentials in that value or in any `VITE_` variable. Vercel non-production builds receive noindex metadata and a robots file that disallows crawling.
 

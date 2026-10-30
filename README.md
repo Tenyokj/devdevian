@@ -10,8 +10,10 @@
     <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/Node.js-24%2B-84bc95" alt="Node.js 24 or newer" /></a>
     <img src="https://img.shields.io/badge/status-active_development-b2a0ff" alt="Active development" />
   </p>
-  <p><a href="https://devdevian.vercel.app/">Website</a> · <a href="https://devdevian.vercel.app/app">Open the forum</a> · <a href="docs/README.md">Documentation</a> · <a href="CONTRIBUTING.md">Contribute</a> · <a href="https://github.com/Tenyokj/devdevian/issues">Report a bug</a></p>
+  <p><a href="https://devdevian.vercel.app/">Website</a> · <a href="https://devdevian.vercel.app/app">Open the forum</a> · <a href="https://devdevian.vercel.app/updates">What’s new</a> · <a href="https://devdevian.vercel.app/faq">FAQ</a> · <a href="docs/README.md">Documentation</a> · <a href="CONTRIBUTING.md">Contribute</a> · <a href="https://github.com/Tenyokj/devdevian/issues">Report a bug</a></p>
 </div>
+
+[Watch the launch film](https://www.youtube.com/watch?v=ssUCB1Jpf-Q) · [Find your way around the source](docs/source-map.md) · [Full changelog](CHANGELOG.md)
 
 ## A place for the work and the people behind it
 
@@ -28,7 +30,7 @@ npm install -g @tenyokjs/devdevian-cli@alpha
 devdevian tui
 ```
 
-Requires Node.js 24+. Login is approved in your browser. Use `devdevian open` for a separate terminal window. Reviews can optionally carry [GitHub repository, branch, base commit and PR context](docs/github-context.md), visible in both clients.
+Requires Node.js 24+. Login is approved in your browser. Use `devdevian open` for a separate terminal window. Reviews can optionally carry [GitHub repository, branch, base commit and PR context](docs/github-context.md), visible in both clients. Read a public GitHub PR, inspect its diff and select changes for a Devdevian review with the [public PR workflow](docs/github-pr-reader.md). This does not write back to GitHub.
 
 [CLI documentation](packages/cli/README.md) · [npm package](https://www.npmjs.com/package/@tenyokjs/devdevian-cli) · [Version history](packages/cli/VERSIONS.md)
 
@@ -73,6 +75,17 @@ Read the [user guide](docs/user-guide.md) for sharing content, joining communiti
 React, Vite, Node.js, and Express power the application. The hosted instance uses Vercel, Turso/libSQL, Supabase Storage, Google/GitHub OAuth, and Brevo transactional email. Local development uses SQLite and local files. These are technology credits, not sponsorship or partnership claims.
 
 See [architecture](docs/architecture.md), [development](docs/development.md), and [self-hosting/deployment](docs/deployment.md). Brand assets and attribution are listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+## Find what you need
+
+| If you want to… | Start here |
+| --- | --- |
+| Use the forum or resolve a common question | [FAQ](https://devdevian.vercel.app/faq) · [User guide](docs/user-guide.md) |
+| Use the terminal or review a public PR | [CLI guide](packages/cli/README.md) · [GitHub PR reader](docs/github-pr-reader.md) |
+| Understand how the code fits together | [Source map](docs/source-map.md) · [Architecture](docs/architecture.md) |
+| Make and verify a change | [Contributing](CONTRIBUTING.md) · [Development](docs/development.md) · [Tests](tests/README.md) |
+| Operate your own instance | [Deployment](docs/deployment.md) · [Recovery](docs/reliability.md) |
+| Follow product and package changes | [What’s new](https://devdevian.vercel.app/updates) · [Changelog](CHANGELOG.md) · [CLI versions](packages/cli/VERSIONS.md) |
 
 ## Develop locally
 

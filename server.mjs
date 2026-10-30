@@ -512,7 +512,7 @@ export async function createApp({ migrationOnly = false } = {}) {
         process.env.DEMO_MODE === "1"
       ) {
         app.use(express.static("dist", { redirect: false }));
-        app.get(["/privacy", "/terms"], (req, res) =>
+        app.get(["/privacy", "/terms", "/faq", "/updates"], (req, res) =>
           res.sendFile(`${process.cwd()}/dist${req.path}/index.html`),
         );
         app.get(["/app", "/app/{*path}"], (req, res) =>

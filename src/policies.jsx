@@ -448,6 +448,8 @@ export default function PolicyPage({ type }) {
           {contact}
         </a>
         <div>
+          <a href="/updates">What’s new</a>
+          <a href="/faq">FAQ</a>
           <a href="/privacy" aria-current={isPrivacy ? "page" : undefined}>
             Privacy &amp; Security
           </a>

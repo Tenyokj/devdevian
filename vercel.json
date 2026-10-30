@@ -25,6 +25,14 @@
     {
       "source": "/terms",
       "destination": "/terms/index.html"
+    },
+    {
+      "source": "/faq",
+      "destination": "/faq/index.html"
+    },
+    {
+      "source": "/updates",
+      "destination": "/updates/index.html"
     }
   ],
   "headers": [
