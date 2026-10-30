@@ -54,8 +54,8 @@ export const updates = [
     summary:
       "Read a public GitHub PR diff, choose a file and specific changes, then preview and publish a code review in Devdevian.",
     points: [
-      "Select complete diff hunks or a contiguous range of changed lines.",
-      "Commit checks catch outdated selections before publishing. Nothing is written back to GitHub.",
+      "Select complete diff hunks or a contiguous range of hunks.",
+      "Base/head checks detect PR changes while a patch loads. Nothing is written back to GitHub.",
     ],
     link: repository + "/blob/main/docs/github-pr-reader.md",
     label: "Read the PR review guide",
@@ -347,7 +347,7 @@ export const questions = [
     category: categories[2],
     question: "Can I turn a GitHub pull request diff into a review?",
     answer:
-      "Yes, for supported public PRs. Open the PR, select a file and complete hunks or a contiguous changed-line range, then preview and publish a Devdevian code review. Commit checks catch stale selections. This creates a conversation in Devdevian; it does not post a review or modify code on GitHub.",
+      "Yes, for supported public PRs. Choose complete hunk ranges from up to ten files: A adds each selection to the basket and R composes one review. Preview the exact patch before publishing. Files must share one base/head revision; the saved draft remains a frozen snapshot if GitHub changes later. Reviews and comments stay in Devdevian; nothing is written back to GitHub.",
     href: repository + "/blob/main/docs/github-pr-reader.md",
     label: "Public PR workflow and limits",
   },
