@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { loadReviewQueue } from "../lib/review-queue.mjs";
 import { fileURLToPath } from "node:url";
 import packageInfo from "../package.json" with { type: "json" };
 import { parseArgs } from "node:util";
@@ -115,6 +116,7 @@ const help = `Devdevian CLI ${version} · alpha
   devdevian appearance             Show local theme and layout preferences
   devdevian appearance --theme daylight --accent violet
   devdevian appearance --reset     Restore the default appearance
+  devdevian reviews [--section open|awaiting] [--page 2]
   devdevian work [--section mine|reviews|saved|following] [--page 2]
   devdevian whoami
   devdevian inbox [--page 2]
@@ -376,6 +378,10 @@ async function execute(args, flags) {
     );
   const api = client(config.origin, config.token),
     page = positive(flags.page || "1", "Page");
+  if (command === "reviews") {
+    show(await loadReviewQueue(api, flags.section || "open", page), flags.json);
+    return;
+  }
   if (command === "work") {
     show(await api(workQuery(flags.section || "mine", page)), flags.json);
     return;

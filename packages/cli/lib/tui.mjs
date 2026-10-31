@@ -1,6 +1,11 @@
+import {
+  reviewQueueTabs,
+  reviewQueueQuery,
+  ReviewMemory,
+} from "./review-queue.mjs";
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { render, Box, Text, useApp, useInput, useWindowSize } from "ink";
-import { randomBytes } from "node:crypto";
+import { randomBytes, createHash } from "node:crypto";
 import { homedir, hostname } from "node:os";
 import {
   workspaceRoot,
@@ -93,7 +98,7 @@ const stamp = (value) => {
     typeof value === "number"
       ? value
       : String(value || "").replace(" ", "T") +
-        (/Z$|[+-]\d\d:\d\d$/.test(value || "") ? "" : "Z"),
+          (/Z$|[+-]\d\d:\d\d$/.test(value || "") ? "" : "Z"),
   );
   return Number.isNaN(date.getTime())
     ? ""
@@ -525,6 +530,13 @@ function listRows(route, data, index, width, colors, density = "comfortable") {
     } else if (route.view === "devices") {
       meta = "Connected " + stamp(item.created);
       body = "Expires " + stamp(item.expires);
+    } else if (route.view === "reviews") {
+      meta =
+        (item.community_name || "Public") +
+        (item.review_target ? " · Awaiting your reply" : " · Open request") +
+        " · " +
+        item.name;
+      body = item.excerpt || item.body || "";
     } else if (route.view === "post" && route.tab === "feedback") {
       title = `Lines ${item.start_line}–${item.end_line} · ${item.resolved ? "resolved" : "open"}${item.outdated ? " · earlier snippet" : ""}`;
       meta = item.name;
@@ -744,6 +756,9 @@ function App({ initialConfig, flags, root, initialAppearance }) {
     [live, setLive] = useState(!flags["no-live"]),
     [unread, setUnread] = useState(0),
     [liveStatus, setLiveStatus] = useState("");
+  const reviewMemory = useRef(new ReviewMemory()),
+    pendingReviewRestore = useRef(false),
+    pendingHistoryHash = useRef(null);
   const readingMemory = useRef(new ReadingMemory()),
     readingReturn = useRef(0);
   const activity = useRef(Date.now()),
@@ -881,8 +896,33 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       setReviewHorizontal(0);
     } else
       setReviewLine((line) => Math.min(line, post.code.split("\n").length - 1));
+    if (pendingHistoryHash.current) {
+      if (
+        pendingHistoryHash.current !==
+        createHash("sha256").update(post.code).digest("hex")
+      ) {
+        setReviewLine(0);
+        setReviewAnchor(null);
+        setReviewHorizontal(0);
+      }
+      pendingHistoryHash.current = null;
+    }
+    if (pendingReviewRestore.current && reviewing) {
+      const saved = reviewMemory.current.restore(post);
+      pendingReviewRestore.current = false;
+      if (saved) {
+        setReviewFocus(saved.reviewFocus);
+        setReviewLine(saved.reviewLine);
+        setReviewAnchor(saved.reviewAnchor);
+        setReviewHorizontal(saved.reviewHorizontal);
+        const selected = current.items?.findIndex(
+          (item) => item.id === saved.selectedId,
+        );
+        if (selected >= 0) setIndex(selected);
+      }
+    }
     seenSnippet.current = { id: post.id, code: post.code };
-  }, [current?.post?.id, current?.post?.code]);
+  }, [current?.key, current?.post?.id, current?.post?.code]);
   const resetAccount = () => {
     diagnosticController.current?.abort();
     setDiagnostic(null);
@@ -890,6 +930,9 @@ function App({ initialConfig, flags, root, initialAppearance }) {
     cache.current.clear();
     history.current = [];
     readingMemory.current.clear();
+    reviewMemory.current.clear();
+    pendingReviewRestore.current = false;
+    pendingHistoryHash.current = null;
     setPalette(null);
     setReaderFind({ query: "", cursor: 0, editing: false });
     setData(null);
@@ -921,7 +964,30 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       );
     } else setError(problemMessage(e));
   }
+  function rememberReview() {
+    if (reviewing && route.view === "post")
+      reviewMemory.current.save(current.post, {
+        reviewFocus,
+        reviewLine,
+        reviewAnchor,
+        reviewHorizontal,
+        selectedId: selected?.id,
+      });
+  }
   function navigate(next, { replace = false } = {}) {
+    rememberReview();
+    pendingHistoryHash.current = null;
+    if (next.view === "post") {
+      next = {
+        ...next,
+        targetReview:
+          !replace && next.tab === "feedback"
+            ? reviewMemory.current.target(next.id)
+            : null,
+      };
+    }
+    pendingReviewRestore.current =
+      !replace && next.view === "post" && next.tab === "feedback";
     setBooting(false);
     if (!replace)
       history.current.push({
@@ -931,6 +997,9 @@ function App({ initialConfig, flags, root, initialAppearance }) {
         scroll,
         selectedId: selected?.id,
         entryType: selected?.entryType,
+        snippetHash: current?.post?.code
+          ? createHash("sha256").update(current.post.code).digest("hex")
+          : null,
         reviewFocus,
         reviewLine,
         reviewAnchor,
@@ -947,9 +1016,16 @@ function App({ initialConfig, flags, root, initialAppearance }) {
     };
     if (history.current.length > 30) history.current.shift();
     setReading(null);
-    setReviewLine(0);
-    setReviewAnchor(null);
-    setReviewHorizontal(0);
+    if (!(
+      replace &&
+      reviewing &&
+      next.view === route.view &&
+      next.id === route.id
+    )) {
+      setReviewLine(0);
+      setReviewAnchor(null);
+      setReviewHorizontal(0);
+    }
     if (next.view === "feedback") setReviewFocus("notes");
     setRoute(next);
     setIndex(0);
@@ -959,8 +1035,11 @@ function App({ initialConfig, flags, root, initialAppearance }) {
     setNotice("");
   }
   function back() {
+    rememberReview();
+    pendingReviewRestore.current = false;
     const previous = history.current.pop();
     if (previous) {
+      pendingHistoryHash.current = previous.snippetHash;
       restoreSelection.current = {
         ...previous,
         key: JSON.stringify(previous.route),
@@ -2098,6 +2177,20 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       });
       return;
     }
+    if (route.view === "reviews") {
+      navigate(
+        item.review_target
+          ? {
+              view: "feedback",
+              postId: item.id,
+              id: item.review_target,
+              page: 1,
+              targetReply: item.review_reply_target || null,
+            }
+          : { view: "post", id: item.id, tab: "feedback", page: 1 },
+      );
+      return;
+    }
     if (route.view === "post" && route.tab === "feedback") {
       navigate({ view: "feedback", postId: route.id, id: item.id, page: 1 });
       return;
@@ -2333,6 +2426,11 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       const parsed = value.startsWith("/")
         ? parseCommand(value)
         : { command: "search", arg: value };
+      if (parsed.command === "reviews") {
+        reviewQueueQuery(parsed.arg || "open");
+        navigate({ view: "reviews", tab: parsed.arg || "open", page: 1 });
+        return;
+      }
       if (parsed.command === "work") {
         workQuery(parsed.arg || "mine");
         navigate({ view: "work", tab: parsed.arg || "mine", page: 1 });
@@ -2953,6 +3051,23 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       );
       return;
     }
+    if (
+      reviewing &&
+      (input === "g" || input === "G") &&
+      route.view === "post"
+    ) {
+      const versions = [undefined, "current", "earlier"];
+      navigate(
+        {
+          ...route,
+          version:
+            versions[(versions.indexOf(route.version) + 1) % versions.length],
+          page: 1,
+        },
+        { replace: true },
+      );
+      return;
+    }
     if (reviewing && reviewFocus === "code") {
       if (
         keyEvent.upArrow ||
@@ -3116,6 +3231,20 @@ function App({ initialConfig, flags, root, initialAppearance }) {
         setIndex((v) =>
           Math.max(0, Math.min((current?.items?.length || 1) - 1, v + delta)),
         );
+      return;
+    }
+    if (
+      route.view === "reviews" &&
+      (keyEvent.leftArrow || keyEvent.rightArrow)
+    ) {
+      navigate(
+        {
+          view: "reviews",
+          tab: (route.tab || "open") === "open" ? "awaiting" : "open",
+          page: 1,
+        },
+        { replace: true },
+      );
       return;
     }
     if (route.view === "work") {
@@ -3736,6 +3865,7 @@ function App({ initialConfig, flags, root, initialAppearance }) {
     else if (reviewing)
       body = h(ReviewWorkspace, {
         post: current.post,
+        summary: current.summary,
         note: route.view === "feedback" ? current.note : null,
         items: current.items || [],
         index,
@@ -3875,7 +4005,9 @@ function App({ initialConfig, flags, root, initialAppearance }) {
           ]
         : route.view === "work" && !form
           ? workTabs
-          : [];
+          : route.view === "reviews" && !form
+            ? reviewQueueTabs
+            : [];
     const pane = h(
       Box,
       {
@@ -3911,15 +4043,27 @@ function App({ initialConfig, flags, root, initialAppearance }) {
                   key: id,
                   color:
                     (route.tab ||
-                      (route.view === "work" ? "mine" : "overview")) === id
+                      (route.view === "work"
+                        ? "mine"
+                        : route.view === "reviews"
+                          ? "open"
+                          : "overview")) === id
                       ? colors.blue
                       : colors.muted,
                   bold:
                     (route.tab ||
-                      (route.view === "work" ? "mine" : "overview")) === id,
+                      (route.view === "work"
+                        ? "mine"
+                        : route.view === "reviews"
+                          ? "open"
+                          : "overview")) === id,
                   backgroundColor:
                     (route.tab ||
-                      (route.view === "work" ? "mine" : "overview")) === id
+                      (route.view === "work"
+                        ? "mine"
+                        : route.view === "reviews"
+                          ? "open"
+                          : "overview")) === id
                       ? colors.selected
                       : undefined,
                 },
@@ -3929,7 +4073,12 @@ function App({ initialConfig, flags, root, initialAppearance }) {
             h(
               Text,
               { color: colors.muted },
-              reviewing ? "  W focus · F " + (route.status || "all") : "  ← →",
+              reviewing
+                ? "  W · F " +
+                    (route.status || "all") +
+                    " · G " +
+                    (route.version || "all")
+                : "  ← →",
             ),
           )
         : h(TextLine, {

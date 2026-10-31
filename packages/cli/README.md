@@ -239,3 +239,15 @@ For local development use `devdevian login --host http://127.0.0.1:4173`. Remote
 This alpha covers login/logout, inbox, paginated feeds and search, discussions and replies, questions, code review creation, line feedback and feedback threads/status, and community discovery, creation and private publication. Project/event creation, editing, media uploads and participation are available in the TUI. Profile editing and moderation remain available in the browser. There is no offline mode or automatic GitHub repository synchronization.
 
 Source, contributions and issue reporting: [Tenyokj/devdevian](https://github.com/Tenyokj/devdevian). Report security issues through the repository's [security policy](https://github.com/Tenyokj/devdevian/blob/main/SECURITY.md), not a public issue containing private data. Licensed GPL-3.0-only.
+
+## Review queue and continuity
+
+Open **Review queue** or type `/reviews`. Left/right switches **Open requests** and **Awaiting you**; `[ / ]` paginates and Enter opens the selected review. Script clients can use `devdevian reviews --section awaiting --page 2 --json`. Queue reads require API 0.1.10+; an older server produces an upgrade message rather than silently returning the feed.
+
+Open requests are visible, open review publications with no accepted solution and no archive/lock. This includes approved private communities you belong to. Awaiting you contains those requests with an unresolved, undeleted code remark where you are the request author, remark author or a visible reply participant, and the last visible message was written by someone else. It is a workflow aid, not a claim that someone assigned you a task. Enter opens one qualifying remark at its latest visible reply; after responding, refresh the queue with R. Resolved remarks and paused/removed/inaccessible conversations leave the queue. Deleted messages do not determine the last speaker. Earlier-version open discussions can still need a reply.
+
+The review discussion header shows **Open / Resolved / Earlier** totals: open and resolved refer to the current snippet; earlier counts remarks on older code. Deleted remarks are excluded from totals. **F** cycles status and **G** cycles all/current/earlier snippet versions. Totals cover the whole review independently of the current page/filter. On very short terminals secondary headers are hidden to preserve space for content.
+
+Leaving a review and reopening it with **V** in the same terminal session restores code focus, file/line, horizontal position, range and the selected remark. The remark target is located by ID, including later feedback pages. Positions are held in a bounded in-memory cache, cleared on account reset, and invalidated if the exact code changes; they are not saved across CLI restarts. Esc also restores ordinary navigation history. Inbox already opens exact remarks and replies; those explicit targets take priority over remembered positions.
+
+This release does not write anything back to GitHub or add new OAuth permissions. Network failures do not automatically repeat publications; ordinary previews, scoped drafts and reconnect rules still apply.

@@ -60,3 +60,7 @@ Open the published review in the browser app. **Review file** selects a file fro
 Select a numbered line or Shift-click a range, then add a remark (up to 50 lines). Numbers remain global to the exact published patch, including its file and hunk headers. Changing files does not renumber code, reload GitHub or clear your feedback text. **Show in code** returns from a current-version remark to its file, page and selected lines. Cross-file ranges keep their global numbers without a misleading single-file label.
 
 Earlier-version remarks retain their saved quotes and do not offer a jump into changed code. Existing discussion links, status/version filters, replies and resolve/reopen controls continue to work. If author-provided file metadata is missing, malformed or no longer matches the patch, the complete plain snippet remains available with the same line numbers. Private-community permissions and paused-conversation rules are enforced by the existing API.
+
+## Terminal review queue
+
+CLI 0.14 adds `/reviews` and the **Review queue** section: open requests and involved remark discussions awaiting your reply. F/G filter status/version, and session memory restores code position without applying old anchors to changed code. [Queue semantics and shortcuts](../packages/cli/README.md#review-queue-and-continuity). Requires API 0.1.10+.

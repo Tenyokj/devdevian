@@ -1,3 +1,4 @@
+import { reviewSummary } from "./review-queue.mjs";
 import React from "react";
 import { Box, Text } from "ink";
 import { clip, graphemes } from "./tui-model.mjs";
@@ -22,6 +23,7 @@ export function reviewExcerpt(post, note) {
 }
 export function ReviewWorkspace({
   post,
+  summary,
   note,
   items,
   index,
@@ -145,7 +147,10 @@ export function ReviewWorkspace({
       ? h(
           Text,
           { color: c.muted },
-          clip("Enter thread · Space read · X actions", notesWidth),
+          clip(
+            reviewSummary(summary) || "Enter thread · Space read · X actions",
+            notesWidth,
+          ),
         )
       : null,
     ...(items.length

@@ -1,3 +1,4 @@
+import { awaitingReviewSQL } from "./review-queue.mjs";
 import { details } from "./enhancements.mjs";
 import { notifyMentions } from "./mentions.mjs";
 import { notifyTopic } from "./subscriptions.mjs";
@@ -224,6 +225,24 @@ export function registerDomain(app, db, required, profile) {
   app.get("/api/posts", (req, res) => {
     const where = [scopeSQL("p", req.user), "p.removed_at IS NULL"],
       params = [];
+    const queue = req.query.review_queue;
+    if (queue !== undefined && !["open", "awaiting"].includes(queue))
+      return res
+        .status(400)
+        .json({ error: "Choose open or awaiting review requests." });
+    if (queue && !req.user)
+      return res
+        .status(401)
+        .json({ error: "Sign in to open your review queue." });
+    const awaiting =
+      queue === "awaiting" ? awaitingReviewSQL(req.user.id) : null;
+    if (queue) {
+      where.push(
+        "p.kind='review' AND p.status='open' AND p.accepted_reply_id IS NULL AND p.archived_at IS NULL AND p.locked_at IS NULL",
+      );
+      if (awaiting)
+        where.push(`EXISTS(SELECT 1 FROM code_reviews c WHERE ${awaiting})`);
+    }
     const following = req.query.following === "1";
     if (following && !req.user)
       return res
@@ -245,6 +264,7 @@ export function registerDomain(app, db, required, profile) {
       params.push(String(req.query.community));
     } else if (
       !following &&
+      !queue &&
       req.query.author !== "me" &&
       req.query.saved !== "1"
     )
@@ -287,9 +307,32 @@ export function registerDomain(app, db, required, profile) {
     const result = pageRows(
       db,
       req,
-      postSelect + " WHERE " + where.join(" AND ") + order,
+      (awaiting
+        ? postSelect.replace(
+            "SELECT p.*",
+            `SELECT (SELECT c.id FROM code_reviews c WHERE ${awaiting} ORDER BY c.id DESC LIMIT 1) review_target,p.*`,
+          )
+        : postSelect) +
+        " WHERE " +
+        where.join(" AND ") +
+        order,
       params,
     );
+    if (awaiting && result.items.length) {
+      const targets = result.items.map((item) => item.review_target);
+      const replies = new Map(
+        db
+          .prepare(
+            `SELECT review_id,MAX(id) id FROM code_review_replies WHERE deleted_at IS NULL AND review_id IN (${targets.map(() => "?").join(",")}) GROUP BY review_id`,
+          )
+          .all(...targets)
+          .map((r) => [r.review_id, r.id]),
+      );
+      result.items = result.items.map((item) => ({
+        ...item,
+        review_reply_target: replies.get(item.review_target) || null,
+      }));
+    }
     result.pagination.public_total = db
       .prepare(
         "SELECT COUNT(*) n FROM posts WHERE community_id IS NULL AND removed_at IS NULL",
@@ -297,6 +340,7 @@ export function registerDomain(app, db, required, profile) {
       .get().n;
     res.json({
       ...result,
+      ...(queue ? { review_queue: queue } : {}),
       items: decorateList(result.items, req.user),
     });
   });

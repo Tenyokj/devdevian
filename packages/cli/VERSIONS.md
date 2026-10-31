@@ -6,12 +6,22 @@ Every published npm artifact has a unique immutable version. We record each vers
 
 ## Combined GitHub releases
 
+- [0.14.0-alpha.1 — Keep the review moving](https://github.com/Tenyokj/devdevian/releases/tag/cli-v0.14.0-alpha.1): collects CLI 0.11–0.14 and browser/API 0.1.7–0.1.10. [Release notes](../../docs/releases/cli-0.14.0-alpha.1.md).
+
 - [0.10.0-alpha.1 — From pull request to conversation](https://github.com/Tenyokj/devdevian/releases/tag/cli-v0.10.0-alpha.1): collects npm versions 0.7.0-alpha.1–0.10.0-alpha.1 plus website/documentation improvements. [Release notes](../../docs/releases/cli-0.10.0-alpha.1.md).
 - [0.6.1-alpha.1 — First combined public alpha](https://github.com/Tenyokj/devdevian/releases/tag/cli-v0.6.1-alpha.1): collects npm versions 0.1.0-alpha.1–0.6.1-alpha.1.
 
 ## Current milestone
 
-**0.13.0 adds My work and an optional Halloween theme.**
+**0.14.0 adds Review queue and version-aware review continuity.**
+
+## 0.14.0-alpha.1 — Keep the review moving
+
+- Review queue: paginated Open requests and Awaiting you, same account/private permissions and no aggregate client scans. Enter targets one involved open remark and its latest visible reply; scripted `reviews --section open|awaiting --page N --json` is available. Requires API 0.1.10+.
+- Current open/resolved and earlier-version remark totals; G version filter complements F status. Filtered deep-link pagination preserves exact remark targets.
+- Session-only bounded review memory restores line/file, range, focus, horizontal offset and selected remark. Changed snippets and account reset discard old positions. Existing Inbox targets and history remain authoritative.
+- Browser/API 0.1.10 adds compatible queue filtering and feedback summary fields. No schema/dependency change, new GitHub permission or writeback.
+
 
 ## 0.13.0-alpha.1 — Your work, with a little pumpkin glow
 

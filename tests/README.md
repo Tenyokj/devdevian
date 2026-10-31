@@ -35,3 +35,5 @@ The browser runners check static and runtime-rendered/no-JavaScript documents, h
 A passing fixture test does not prove real OAuth, email delivery, hosted storage, backup scheduling or production capacity. Those need deployment-specific verification described in [reliability and recovery](../docs/reliability.md). Local load checks are not a claim that the hosted service supports a particular traffic level.
 
 `review-navigation.test.mjs` checks global offsets across files/pages and safe fallback for malformed or stale patch metadata. The browser runner also publishes line feedback on a multi-file snapshot, jumps across page boundaries, checks mobile/light/dark layouts, and edits the snippet to verify old quotes cannot jump into replacement code.
+
+`review-queue.test.mjs` covers private access, last visible authorship, resolution/paused states, totals and filtered target pages. CLI queue unit/PTY suites cover exact reply opening, file/line continuity, changed-snippet reset, version filters, bounded compact rendering and unchanged credential files.

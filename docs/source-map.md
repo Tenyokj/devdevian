@@ -46,3 +46,5 @@ Read [development](development.md) before running fixtures and [reliability](rel
 
 
 CLI first-run and diagnostics live in [`doctor.mjs`](../packages/cli/lib/doctor.mjs) (bounded, read-only checks), [`starter-view.mjs`](../packages/cli/lib/starter-view.mjs) (responsive guide), and the command/TUI entry points. Keep reports free of credentials/account data and verify both the pipe-friendly command and real terminal using the doctor suites.
+
+Review workflow: `review-queue.mjs` defines the authenticated last-visible-speaker predicate reused by post pagination and selected targets. `code-reviews.mjs` computes disjoint current/earlier totals and filtered target pagination. CLI `lib/review-queue.mjs` owns the bounded session position cache and query capability check. Queue reads reuse the existing `/api/posts` visibility boundary.

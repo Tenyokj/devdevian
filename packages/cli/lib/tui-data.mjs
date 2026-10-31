@@ -1,3 +1,4 @@
+import { loadReviewQueue } from "./review-queue.mjs";
 import { workQuery } from "./my-work.mjs";
 import { starterChoices } from "./doctor.mjs";
 import { githubReader, pullRequestLines } from "./github-reader.mjs";
@@ -32,6 +33,7 @@ export const navigation = [
   ["help", "Help", "Keys & commands"],
   ["start", "Getting started", "Your first few minutes"],
   ["work", "My work", "Your conversations & reviews"],
+  ["reviews", "Review queue", "Open requests & awaiting you"],
 ];
 export async function notificationRoute(api, item) {
   if (item.code_review_id)
@@ -91,6 +93,13 @@ export async function loadPage(api, route, signal) {
   if (isCatalog(route)) return loadCatalog(api, route, signal);
   const get = (path) => api(path, { signal }),
     page = route.page || 1;
+  if (route.view === "reviews")
+    return {
+      ...(await loadReviewQueue(api, route.tab || "open", page, signal)),
+      title: "Review queue",
+      subtitle:
+        "Open requests · Awaiting you: involved open remarks last answered by someone else.",
+    };
   if (route.view === "work")
     return {
       ...(await get(workQuery(route.tab || "mine", page))),
@@ -168,23 +177,27 @@ export async function loadPage(api, route, signal) {
     );
     let items = post.replies,
       pagination = post.reply_pagination;
-    let snippet_hash;
+    let snippet_hash, summary;
     if (route.tab === "feedback") {
       const feedback = await get(
         "/posts/" +
           route.id +
           "/code-reviews?page=" +
           page +
-          (route.status ? "&status=" + route.status : ""),
+          (route.status ? "&status=" + route.status : "") +
+          (route.version ? "&version=" + route.version : "") +
+          (route.targetReview ? "&target_id=" + route.targetReview : ""),
       );
       assertSnippet(post.code, feedback.snippet_hash);
       snippet_hash = feedback.snippet_hash;
+      summary = feedback.summary;
       items = feedback.items;
       pagination = feedback.pagination;
     }
     return {
       post,
       snippet_hash,
+      summary,
       items,
       pagination,
       title: post.title,
@@ -243,6 +256,7 @@ export async function loadPage(api, route, signal) {
       post,
       note,
       snippet_hash: notes.snippet_hash,
+      summary: notes.summary,
       items: [
         { ...note, entryType: "note" },
         ...replies.items.map((item) => ({
@@ -264,6 +278,8 @@ export function contentLines(route, data) {
       "A developer workspace, in your terminal.",
       "",
       "Ctrl+K / /actions Search quick actions, sections and recent views",
+      "/reviews         Open review requests / Awaiting you · ← → sections",
+      "Review summary   Current open/resolved and earlier remarks · G version filter",
       "/work            Mine / Reviews / Saved / Following · ← → tabs · I inbox · D drafts",
       "/start           Getting-started guide and safe first actions",
       "/doctor          Read-only environment and connection checks",

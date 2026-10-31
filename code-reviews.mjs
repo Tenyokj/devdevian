@@ -45,6 +45,20 @@ export function registerCodeReviews(app, db, required) {
       filters.push("c.snippet_hash=?");
       args.push(hash);
     }
+    if (req.query.version === "earlier") {
+      filters.push("c.snippet_hash<>?");
+      args.push(hash);
+    }
+    // Counts cover all live remarks, independently of the selected page/filter.
+    const summary = db
+      .prepare(
+        `SELECT
+      COALESCE(SUM(CASE WHEN snippet_hash=? AND resolved=0 THEN 1 ELSE 0 END),0) open,
+      COALESCE(SUM(CASE WHEN snippet_hash=? AND resolved=1 THEN 1 ELSE 0 END),0) resolved,
+      COALESCE(SUM(CASE WHEN snippet_hash<>? THEN 1 ELSE 0 END),0) earlier
+      FROM code_reviews WHERE post_id=? AND deleted_at IS NULL`,
+      )
+      .get(hash, hash, hash, req.reviewPost.id);
     const query = { ...req.query };
     if (query.target_id) {
       const target = db
@@ -54,9 +68,9 @@ export function registerCodeReviews(app, db, required) {
         query.page = Math.ceil(
           db
             .prepare(
-              "SELECT COUNT(*) n FROM code_reviews WHERE post_id=? AND id>=?",
+              `SELECT COUNT(*) n FROM code_reviews c WHERE ${filters.join(" AND ")} AND c.id>=?`,
             )
-            .get(req.reviewPost.id, target.id).n / 10,
+            .get(...args, target.id).n / 10,
         );
       }
     }
@@ -70,6 +84,7 @@ export function registerCodeReviews(app, db, required) {
     res.json({
       ...page,
       snippet_hash: hash,
+      summary,
       items: page.items.map((row) => ({
         ...row,
         outdated: row.snippet_hash !== hash,

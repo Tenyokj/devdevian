@@ -123,6 +123,7 @@ export function parseCommand(text) {
     [
       "feed",
       "work",
+      "reviews",
       "inbox",
       "communities",
       "search",

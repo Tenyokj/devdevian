@@ -3,6 +3,22 @@
 export const repository = "https://github.com/Tenyokj/devdevian";
 export const updates = [
   {
+    id: "cli-0-14",
+    channel: "CLI",
+    version: "0.14.0-alpha.1",
+    title: "Keep the review moving.",
+    summary:
+      "Review queue brings open requests and discussions awaiting your reply into the terminal, with version-aware remark totals and session reading continuity.",
+    points: [
+      "Open a waiting remark at its latest visible reply. Existing private access, paused and resolved states still apply.",
+      "Return to your code position and selected remark within the session. Changed snippets and account resets discard stale positions.",
+    ],
+    link:
+      repository +
+      "/blob/main/packages/cli/README.md#review-queue-and-continuity",
+    label: "Review queue guide",
+  },
+  {
     id: "browser-review-navigation",
     channel: "Browser",
     version: "0.1.9",

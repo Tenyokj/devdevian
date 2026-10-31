@@ -1,5 +1,12 @@
 # Changelog
 
+## CLI 0.14.0-alpha.1 / Browser & API 0.1.10
+
+- Add a paginated Review queue with Open requests and Awaiting you. Open involved, unresolved remark discussions at the latest visible reply; respect private access, removal, paused conversations and last visible authorship.
+- Add current open/resolved and earlier-version totals, a separate version filter, and filtered target pagination for code feedback.
+- Preserve review code position and selected remark during the terminal session, with bounded memory cleared on account reset and stale-code detection. Keep Inbox deep links and publication gates.
+- Group CLI 0.11–0.14 and browser/API 0.1.7–0.1.10 in the combined GitHub release. No dependency/schema changes or GitHub write permissions.
+
 ## Browser & API 0.1.9
 
 - Add file and hunk navigation for frozen PR review snapshots, with additions/removals and mobile layouts. Keep global published line numbers and existing snippet hashes.
