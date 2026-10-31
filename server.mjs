@@ -1,3 +1,8 @@
+import {
+  prepareWorkspaces,
+  registerReviewRevisions,
+} from "./review-revisions.mjs";
+import { registerWorkspaces } from "./workspaces.mjs";
 import { registerPublicConversations } from "./public-conversations.mjs";
 import { registerCliAuth, cliSessionKey } from "./cli-auth.mjs";
 import { registerFeedback } from "./feedback-discussion.mjs";
@@ -41,7 +46,7 @@ export async function createApp({ migrationOnly = false } = {}) {
   if (!migrationOnly) assertRuntime();
   const db = await openDatabase();
   try {
-    inspectSchema(db, { allowPreparedCli: !migrationOnly });
+    inspectSchema(db, { allowPreparedWorkspaces: !migrationOnly });
     if (!db.schemaCurrent && process.env.VERCEL === "1" && !migrationOnly)
       throw Error(
         "Database schema requires migration before starting this release.",
@@ -491,6 +496,9 @@ export async function createApp({ migrationOnly = false } = {}) {
     registerReplies(app, db);
     registerCodeReviews(app, db, required);
     registerFeedback(app, db, required);
+    if (!db.schemaCurrent) prepareWorkspaces(db);
+    registerReviewRevisions(app, db, required);
+    registerWorkspaces(app, db, required);
     if (!db.schemaCurrent)
       db.exec(`
   CREATE INDEX IF NOT EXISTS memberships_item ON memberships(kind,item,user_id);

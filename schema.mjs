@@ -1,7 +1,7 @@
 // Bump this whenever a migration changes. Requests check one version record;
 // migrations run explicitly before a hosted release, never on a cold start.
-export const SCHEMA_VERSION = 6;
-export function inspectSchema(db, { allowPreparedCli = false } = {}) {
+export const SCHEMA_VERSION = 7;
+export function inspectSchema(db, { allowPreparedWorkspaces = false } = {}) {
   const table = db
     .prepare(
       "SELECT 1 FROM sqlite_master WHERE type='table' AND name='app_schema'",
@@ -11,20 +11,24 @@ export function inspectSchema(db, { allowPreparedCli = false } = {}) {
     ? db.prepare("SELECT version FROM app_schema WHERE id=1").get()?.version
     : null;
   db.schemaCurrent = version === SCHEMA_VERSION;
-  // v6 adds CLI devices and sessions. During a rolling v5 -> v6 deployment the
-  // prepared table allows both releases to run without cold-start DDL/writes.
-  if (
-    !db.schemaCurrent &&
-    SCHEMA_VERSION === 6 &&
-    version === 5 &&
-    allowPreparedCli
-  ) {
-    db.schemaCurrent =
+  // Prepare additive tables while v6 remains live; advance the global marker
+  // only after all instances have moved. Request startup never runs DDL.
+  if (!db.schemaCurrent && version === 6 && allowPreparedWorkspaces) {
+    const tables = db
+      .prepare(
+        "SELECT COUNT(*) n FROM sqlite_master WHERE type='table' AND name IN ('project_work_requests','review_revisions','workspace_schema')",
+      )
+      .get().n;
+    const anchor =
+      tables === 3 &&
       db
-        .prepare(
-          "SELECT COUNT(*) n FROM sqlite_master WHERE type='table' AND name IN ('cli_devices','cli_tokens')",
-        )
-        .get().n === 2;
+        .prepare("PRAGMA table_info(code_reviews)")
+        .all()
+        .some((c) => c.name === "snapshot_id");
+    db.schemaCurrent =
+      !!anchor &&
+      db.prepare("SELECT version FROM workspace_schema WHERE id=1").get()
+        ?.version === 1;
   }
   return db.schemaCurrent;
 }

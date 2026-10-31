@@ -3,7 +3,26 @@
 process.env.VERCEL = "1";
 const { createApp } = await import("../server.mjs");
 try {
-  if (process.argv.includes("--prepare-cli")) {
+  if (process.argv.includes("--prepare-workspaces")) {
+    const { openDatabase } = await import("../database.mjs");
+    const { prepareWorkspaces } = await import("../review-revisions.mjs");
+    const db = await openDatabase();
+    try {
+      if (
+        ![6, 7].includes(
+          db.prepare("SELECT version FROM app_schema WHERE id=1").get()
+            ?.version,
+        )
+      )
+        throw Error("Prepare workspaces requires schema v6 or v7.");
+      prepareWorkspaces(db);
+    } finally {
+      db.close();
+    }
+    console.log(
+      "Workspace tables and retained review snapshots prepared; active schema marker preserved.",
+    );
+  } else if (process.argv.includes("--prepare-cli")) {
     const { openDatabase } = await import("../database.mjs");
     const { prepareCli } = await import("../cli-auth.mjs");
     const db = await openDatabase();

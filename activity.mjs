@@ -1,6 +1,8 @@
+import { consumeBudget } from "./limits.mjs";
 import { notifyMentions } from "./mentions.mjs";
 import { notificationAllowed } from "./preferences.mjs";
-import { details } from "./enhancements.mjs";
+import { captureReviewRevision, revisionHead } from "./review-revisions.mjs";
+import { details, validatedDetails } from "./enhancements.mjs";
 import { scopeSQL, pageRows, canRead } from "./spaces.mjs";
 // In-app activity only. No email, push service, or external delivery.
 export function transaction(db, work) {
@@ -231,7 +233,45 @@ export function registerActivity(app, db, required) {
       return res
         .status(400)
         .json({ error: "Keep a demo link or an attachment on your showcase." });
+    const snapshotChanges =
+      post.kind === "review" &&
+      (code !== (post.code || "") ||
+        review_focus !== (post.review_focus || "") ||
+        repo_url !== (post.repo_url || "") ||
+        (req[validatedDetails] &&
+          JSON.stringify(req[validatedDetails].github_context || null) !==
+            JSON.stringify(
+              details(db, "post", post.id).github_context || null,
+            )));
+    if (
+      snapshotChanges &&
+      (post.archived_at || post.locked_at || post.removed_at)
+    )
+      return res
+        .status(409)
+        .json({ error: "This conversation is paused or removed." });
+    if (snapshotChanges && (revisionHead(db, post.id)?.number || 0) >= 100)
+      return res
+        .status(409)
+        .json({ error: "This review reached its 100-revision limit." });
+    if (post.revision !== version)
+      return res
+        .status(409)
+        .json({ error: "This conversation changed. Reload before editing." });
+    if (snapshotChanges)
+      consumeBudget(db, [
+        { key: `review-revision:${req.user.id}`, max: 5, window: 600000 },
+      ]);
     const result = transaction(db, () => {
+      const current = db.prepare("SELECT * FROM posts WHERE id=?").get(post.id);
+      if (
+        current.revision !== version ||
+        !canRead(db, req.user, current) ||
+        (snapshotChanges &&
+          (current.archived_at || current.locked_at || current.removed_at))
+      )
+        return { changes: 0 };
+      captureReviewRevision(db, current);
       const result = db
         .prepare(
           "UPDATE posts SET title=?,body=?,stack=?,code=?,review_focus=?,repo_url=?,demo_url=?,updated_at=CURRENT_TIMESTAMP,revision=revision+1 WHERE id=? AND revision=?",
@@ -247,13 +287,27 @@ export function registerActivity(app, db, required) {
           post.id,
           version,
         );
-      if (result.changes)
+      if (result.changes) {
+        const nextDetails =
+          req[validatedDetails] || details(db, "post", post.id);
+        captureReviewRevision(
+          db,
+          { ...current, code, review_focus, repo_url },
+          { details: nextDetails },
+        );
+        if (req[validatedDetails]) {
+          db.prepare(
+            "INSERT OR REPLACE INTO entity_details VALUES('post',?,?)",
+          ).run(String(post.id), JSON.stringify(nextDetails));
+          res.locals.detailsSaved = true;
+        }
         notifyMentions(db, {
           post: post.id,
           actor: req.user.id,
           body,
           previous: post.body,
         });
+      }
       return result;
     });
     if (!result.changes)

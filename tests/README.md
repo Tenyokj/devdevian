@@ -39,3 +39,5 @@ A passing fixture test does not prove real OAuth, email delivery, hosted storage
 `review-queue.test.mjs` covers private access, last visible authorship, resolution/paused states, totals and filtered target pages. CLI queue unit/PTY suites cover exact reply opening, file/line continuity, changed-snippet reset, version filters, bounded compact rendering and unchanged credential files.
 
 `npm run test:workspaces` checks the isolated 0.2 concept. Model tests protect revision/quote identity and exact diff reconstruction; `workspace-preview-check.mjs` drives the sample workspace at five viewport sizes and asserts no forum API requests. Fixtures and preview state do not touch the production database.
+
+`workspaces-api.test.mjs` verifies the 0.2 server foundation against disposable databases: project-linked work, viewer-scoped counts/search, ownership/membership, immutable multi-file revisions, legacy clients and historical quotes, stale-version conflicts, quotas, additive v6 preparation and restoration. The production API and prototype UI remain separate until browser integration.

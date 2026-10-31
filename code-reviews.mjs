@@ -1,3 +1,4 @@
+import { revisionHead } from "./review-revisions.mjs";
 import { notifyFeedback } from "./feedback-discussion.mjs";
 import { createHash } from "node:crypto";
 import { canRead, pageRows } from "./spaces.mjs";
@@ -35,6 +36,12 @@ export function registerCodeReviews(app, db, required) {
   };
   app.get("/api/posts/:id/code-reviews", target, (req, res) => {
     const hash = snippetHash(req.reviewPost.code);
+    const head = revisionHead(db, req.reviewPost.id);
+    const snapshotId =
+      head?.code === (req.reviewPost.code || "") ? head.id : -1;
+    // Repeated identical text in v3 is still v3, not a re-anchor of a v1 note.
+    const current =
+      "(COALESCE(c.snapshot_id=?,0) OR (c.snapshot_id IS NULL AND c.snippet_hash=?))";
     const filters = ["c.post_id=?"],
       args = [req.reviewPost.id];
     if (["open", "resolved"].includes(req.query.status)) {
@@ -42,23 +49,31 @@ export function registerCodeReviews(app, db, required) {
       args.push(req.query.status === "resolved" ? 1 : 0);
     }
     if (req.query.version === "current") {
-      filters.push("c.snippet_hash=?");
-      args.push(hash);
+      filters.push(current);
+      args.push(snapshotId, hash);
     }
     if (req.query.version === "earlier") {
-      filters.push("c.snippet_hash<>?");
-      args.push(hash);
+      filters.push("NOT " + current);
+      args.push(snapshotId, hash);
     }
     // Counts cover all live remarks, independently of the selected page/filter.
     const counts = db
       .prepare(
         `SELECT
-      COALESCE(SUM(CASE WHEN snippet_hash=? AND resolved=0 THEN 1 ELSE 0 END),0) open,
-      COALESCE(SUM(CASE WHEN snippet_hash=? AND resolved=1 THEN 1 ELSE 0 END),0) resolved,
-      COALESCE(SUM(CASE WHEN snippet_hash<>? THEN 1 ELSE 0 END),0) earlier
-      FROM code_reviews WHERE post_id=? AND deleted_at IS NULL`,
+      COALESCE(SUM(CASE WHEN ${current} AND c.resolved=0 THEN 1 ELSE 0 END),0) open,
+      COALESCE(SUM(CASE WHEN ${current} AND c.resolved=1 THEN 1 ELSE 0 END),0) resolved,
+      COALESCE(SUM(CASE WHEN NOT ${current} THEN 1 ELSE 0 END),0) earlier
+      FROM code_reviews c WHERE c.post_id=? AND c.deleted_at IS NULL`,
       )
-      .get(hash, hash, hash, req.reviewPost.id);
+      .get(
+        snapshotId,
+        hash,
+        snapshotId,
+        hash,
+        snapshotId,
+        hash,
+        req.reviewPost.id,
+      );
     // libSQL attaches non-column metadata to result rows. Expose only counts.
     const summary = {
       open: Number(counts.open),
@@ -83,17 +98,26 @@ export function registerCodeReviews(app, db, required) {
     const page = pageRows(
       db,
       { ...req, query },
-      `SELECT c.*,u.name,json_extract(d.data,'$.avatar') author_avatar FROM code_reviews c JOIN users u ON u.id=c.user_id LEFT JOIN entity_details d ON d.kind='user' AND d.entity_id=CAST(c.user_id AS TEXT) WHERE ${filters.join(" AND ")} ORDER BY c.id DESC`,
+      `SELECT c.*,snap.files_json snapshot_files,u.name,json_extract(d.data,'$.avatar') author_avatar FROM code_reviews c JOIN users u ON u.id=c.user_id LEFT JOIN review_revisions snap ON snap.id=c.snapshot_id AND snap.post_id=c.post_id LEFT JOIN entity_details d ON d.kind='user' AND d.entity_id=CAST(c.user_id AS TEXT) WHERE ${filters.join(" AND ")} ORDER BY c.id DESC`,
       args,
       10,
     );
     res.json({
       ...page,
       snippet_hash: hash,
+      revision_id: snapshotId > 0 ? snapshotId : null,
       summary,
-      items: page.items.map((row) => ({
+      items: page.items.map(({ snapshot_files, ...row }) => ({
         ...row,
-        outdated: row.snippet_hash !== hash,
+        file_path:
+          JSON.parse(snapshot_files || "[]").find(
+            (f) => row.start_line >= f.start_line && row.end_line <= f.end_line,
+          )?.path || null,
+        outdated:
+          row.snapshot_id != null
+            ? row.snapshot_id !== snapshotId
+            : row.snippet_hash !== hash,
+        snapshot_available: row.snapshot_id != null,
       })),
     });
   });
@@ -106,6 +130,17 @@ export function registerCodeReviews(app, db, required) {
     } = req.body;
     const p = req.reviewPost,
       lines = (p.code || "").split("\n");
+    const head = revisionHead(db, p.id);
+    const snapshotId = head?.code === (p.code || "") ? head.id : null;
+    if (
+      req.body.revision_id !== undefined &&
+      req.body.revision_id !== snapshotId
+    )
+      return res
+        .status(409)
+        .json({
+          error: "The review revision changed. Reload before adding feedback.",
+        });
     if (!p.code)
       return res
         .status(400)
@@ -125,6 +160,21 @@ export function registerCodeReviews(app, db, required) {
         error:
           "Choose up to 50 lines and write feedback between 2 and 5,000 characters.",
       });
+    const file =
+      head &&
+      JSON.parse(head.files_json).find(
+        (f) => start >= f.start_line && end <= f.end_line,
+      );
+    if (req.body.revision_id !== undefined && !file)
+      return res
+        .status(400)
+        .json({ error: "Choose lines within one revision file." });
+    if (req.body.file_path !== undefined && req.body.file_path !== file?.path)
+      return res
+        .status(400)
+        .json({
+          error: "The selected file does not match the feedback range.",
+        });
     if (hash !== snippetHash(p.code))
       return res.status(409).json({
         error: "The snippet changed. Reload it before adding line feedback.",
@@ -140,8 +190,8 @@ export function registerCodeReviews(app, db, required) {
       // A conditional insert guards against an edit/archive between validation and write.
       const result = db
         .prepare(
-          `INSERT INTO code_reviews(post_id,user_id,snippet_hash,start_line,end_line,quote,body)
-        SELECT id,?,?,?,?,?,? FROM posts WHERE id=? AND code=? AND kind='review' AND archived_at IS NULL AND locked_at IS NULL AND removed_at IS NULL
+          `INSERT INTO code_reviews(post_id,user_id,snippet_hash,start_line,end_line,quote,body,snapshot_id)
+        SELECT id,?,?,?,?,?,?,? FROM posts WHERE id=? AND code=? AND revision=? AND kind='review' AND archived_at IS NULL AND locked_at IS NULL AND removed_at IS NULL
         AND (SELECT COUNT(*) FROM code_reviews WHERE post_id=?)<1000
         AND (community_id IS NULL OR EXISTS(SELECT 1 FROM memberships WHERE user_id=? AND kind='group' AND item=posts.community_id))`,
         )
@@ -152,8 +202,10 @@ export function registerCodeReviews(app, db, required) {
           end,
           lines.slice(start - 1, end).join("\n"),
           body.trim(),
+          snapshotId,
           p.id,
           p.code,
+          p.revision,
           p.id,
           req.user.id,
         );

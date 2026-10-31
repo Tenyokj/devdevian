@@ -1,5 +1,6 @@
 import { awaitingReviewSQL } from "./review-queue.mjs";
-import { details } from "./enhancements.mjs";
+import { captureReviewRevision } from "./review-revisions.mjs";
+import { details, validatedDetails } from "./enhancements.mjs";
 import { notifyMentions } from "./mentions.mjs";
 import { notifyTopic } from "./subscriptions.mjs";
 import { InputError } from "./validation.mjs";
@@ -497,6 +498,9 @@ export function registerDomain(app, db, required, profile) {
           demo_url,
         );
       const id = Number(result.lastInsertRowid);
+      captureReviewRevision(db, post(id), {
+        details: req[validatedDetails] || {},
+      });
       attachFiles(db, id, req.user, attachment_ids);
       notifyMentions(db, { post: id, actor: req.user.id, body });
       notifyTopic(db, { id, topic, community_id }, req.user.id);

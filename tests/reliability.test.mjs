@@ -360,22 +360,18 @@ test("schema marker is recorded only explicitly after successful initialization"
   db.close();
 });
 
-test("prepared CLI keeps v5 and v6 requests compatible until migration finalization", async () => {
-  const { prepareCli } = await import("../cli-auth.mjs");
+test("v7 startup rejects an unprepared v6 database without changing it", () => {
   const db = new DatabaseSync(":memory:");
   db.exec(
-    "CREATE TABLE app_schema(id INTEGER PRIMARY KEY,version INTEGER); INSERT INTO app_schema VALUES(1,5)",
+    "CREATE TABLE app_schema(id INTEGER PRIMARY KEY,version INTEGER); INSERT INTO app_schema VALUES(1,6)",
   );
-  assert.equal(inspectSchema(db, { allowPreparedCli: true }), false);
-  prepareCli(db);
-  assert.equal(db.prepare("SELECT version FROM app_schema").get().version, 5);
-  assert.equal(inspectSchema(db), false);
-  assert.equal(inspectSchema(db, { allowPreparedCli: true }), true);
-  // Explicit migration runs strictly and marks completion; request inspection never writes.
-  inspectSchema(db);
-  completeSchema(db);
+  assert.equal(inspectSchema(db, { allowPreparedWorkspaces: true }), false);
   assert.equal(db.prepare("SELECT version FROM app_schema").get().version, 6);
-  assert.equal(inspectSchema(db), true);
+  assert.equal(
+    db.prepare("SELECT COUNT(*) n FROM sqlite_master WHERE type='table'").get()
+      .n,
+    1,
+  );
   db.close();
 });
 

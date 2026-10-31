@@ -28,6 +28,7 @@ Server domain modules currently live at the root. Generated `dist/`, local data,
 | Forum screens, forms or notifications | [`src/main.jsx`](../src/main.jsx), [`src/forms.jsx`](../src/forms.jsx), [`src/activity.jsx`](../src/activity.jsx) | Affected browser flow and mobile layouts |
 | Authentication or provider linking | [`auth.mjs`](../auth.mjs), [`oauth-link.mjs`](../oauth-link.mjs), [`password-reset.mjs`](../password-reset.mjs), [`cli-auth.mjs`](../cli-auth.mjs) | Identity/API suites; real callbacks require provider verification |
 | Posts, replies and accepted answers | [`domain.mjs`](../domain.mjs), [`replies.mjs`](../replies.mjs), [`code-reviews.mjs`](../code-reviews.mjs), [`feedback-discussion.mjs`](../feedback-discussion.mjs) | Permission and feedback regression suites |
+| Project work and immutable review versions (0.2 branch) | [`workspaces.mjs`](../workspaces.mjs), [`review-revisions.mjs`](../review-revisions.mjs), [contract](workspaces-0.2.md) | Workspace API permissions, migration, recovery and compatibility suite |
 | Community membership and visibility | [`spaces.mjs`](../spaces.mjs), [`moderation.mjs`](../moderation.mjs) | Cross-account public/private access checks |
 | Upload bytes and attachment authorization | [`uploads.mjs`](../uploads.mjs), [`object-storage.mjs`](../object-storage.mjs) | Upload tests and isolated S3 fixture |
 | Database/schema or recovery | [`database.mjs`](../database.mjs), [`schema.mjs`](../schema.mjs), [`backup.mjs`](../backup.mjs) | Runtime/recovery suites; explicit migration and restore drill |
