@@ -40,3 +40,7 @@ Render user text through the established Markdown/link components and use safe U
 `public-conversations.mjs` selects and whitelists only public, non-removed content. `public/conversation-server.jsx` renders the same component used by the separate client entry. Render with an explicit UTC timezone first; switch to the viewer timezone after hydration. Do not render viewer-specific account/session information into the seed. Do not add an HTML/content cache without accounting for removal and visibility changes.
 
 Inline sign-in reuses the established forms. OAuth resumes through a short-lived, strictly validated same-tab conversation return path; the App waits for permanent-username completion before returning. A failed authenticated reply can preserve account-scoped text for 15 minutes in session storage. No reply is replayed automatically.
+
+## Review snapshot navigation
+
+`review-navigation.mjs` validates author-provided PR file boundaries and complete hunks before producing a view of the published text. `code-review.jsx` pages within a chosen file while posting global line numbers and the existing server snippet hash. Do not reconstruct the patch or retarget outdated remarks. Invalid metadata falls back to the complete plain snippet.

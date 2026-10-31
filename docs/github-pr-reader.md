@@ -52,3 +52,11 @@ Opening a diff costs three fresh requests (summary, files, summary), even when i
 Private/missing PRs, redirects after repository moves, malformed responses, large bodies, network failures and quota errors produce messages without signing out of Devdevian or discarding a forum draft. GitHub exposes up to 3,000 files through this endpoint; the UI marks truncation and offers the browser URL when that boundary is reached. No GitHub credentials or private-repository authorization are configured in this stage.
 
 Implementation references: [PR endpoints](https://docs.github.com/en/rest/pulls/pulls), [API versions](https://docs.github.com/en/rest/about-the-rest-api/api-versions), [CLI guide](../packages/cli/README.md).
+
+## Browser review workspace
+
+Open the published review in the browser app. **Review file** selects a file from the frozen snapshot; **Review change**, **Previous hunk** and **Next hunk** jump between its selected changes. Additions and removals retain their `+` / `-` markers and use different background colors. Long files show 100 published lines per page, with horizontal scrolling inside the code pane on narrow screens.
+
+Select a numbered line or Shift-click a range, then add a remark (up to 50 lines). Numbers remain global to the exact published patch, including its file and hunk headers. Changing files does not renumber code, reload GitHub or clear your feedback text. **Show in code** returns from a current-version remark to its file, page and selected lines. Cross-file ranges keep their global numbers without a misleading single-file label.
+
+Earlier-version remarks retain their saved quotes and do not offer a jump into changed code. Existing discussion links, status/version filters, replies and resolve/reopen controls continue to work. If author-provided file metadata is missing, malformed or no longer matches the patch, the complete plain snippet remains available with the same line numbers. Private-community permissions and paused-conversation rules are enforced by the existing API.

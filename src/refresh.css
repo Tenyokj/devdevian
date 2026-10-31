@@ -2194,3 +2194,27 @@ main>footer .footer-version { border:1px solid var(--line); border-radius:20px; 
     transition: transform 0.16s;
   }
 }
+
+/* File controls collapse to a single column; only the code pane scrolls sideways. */
+.review-navigation { display: grid; gap: 10px; padding: 14px; margin-top: 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface-soft); }
+.review-navigation .custom-select { min-width: 0; max-width: 100%; }
+.review-navigation .select-trigger { min-width: 0; }
+.review-hunk-controls { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: center; }
+.review-navigation p { margin: 0; font-size: 12px; line-height: 1.6; }
+.review-navigation button:disabled { opacity: .45; cursor: default; }
+.review-feedback-file { overflow-wrap: anywhere; font-size: 12px; }
+.snippet-line.diff-added { background: color-mix(in srgb, #2da06a 13%, var(--surface-soft)); }
+.snippet-line.diff-removed { background: color-mix(in srgb, #d96873 13%, var(--surface-soft)); }
+.snippet-line.diff-header { font-weight: 600; background: color-mix(in srgb, #8570ed 10%, var(--surface-soft)); }
+.snippet-line.selected { background: color-mix(in srgb, #8570ed 24%, var(--surface-soft)); box-shadow: inset 3px 0 var(--accent, #8570ed); }
+.snippet-line button:focus-visible { outline: 2px solid currentColor; outline-offset: -3px; }
+@media (max-width: 600px) {
+  .review-hunk-controls { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .review-hunk-controls .custom-select { grid-column: 1 / -1; grid-row: 1; }
+  .review-hunk-controls button { white-space: normal; }
+  .review-navigation { padding: 10px; }
+}
+.review-navigation .select-trigger,
+.review-navigation .select-popover button { overflow-wrap: anywhere; }
+.review-navigation .select-popover { min-width: 0; }
+.review-navigation svg { flex-shrink: 0; }

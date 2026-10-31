@@ -106,3 +106,7 @@ Selected text/files are previewed before publication. Revoke an individual termi
 Public posts can be shared using `/conversation/:id/:slug`; Share copies this readable URL. Existing `/app#post/:id` links and the full forum workspace still work. Private-community sharing uses the app route and continues to require membership. Public reading needs no account and works without JavaScript; replies are paginated. Nested threads and advanced actions can be opened in the full workspace.
 
 With JavaScript enabled, sign in on the public page to reply. Browser OAuth returns to the same conversation after completing any required permanent username. Replies still obey pauses, membership/visibility, quotas and server validation. A short-lived, account-scoped session draft may restore text when a reply requires sign-in again; it is not synchronized and expires after 15 minutes. Publication always requires an explicit submit and is never retried automatically.
+
+## Reviewing PR snapshots in the browser
+
+For a published GitHub PR review, choose **Review file** and **Review change**, or use **Previous hunk** / **Next hunk**. Select line numbers to add feedback. **Show in code** returns to the exact current snippet lines from a remark; older-version feedback keeps its original quote. These controls work on the published snapshot, without synchronizing GitHub. See the [browser review guide](github-pr-reader.md#browser-review-workspace).

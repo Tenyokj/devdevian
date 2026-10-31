@@ -179,9 +179,9 @@ try {
     "0.13.0-alpha.1",
   );
   await page.getByRole("button", { name: "Browser", exact: true }).click();
-  await expect(page.locator(".update-card:visible")).toHaveCount(7);
+  await expect(page.locator(".update-card:visible")).toHaveCount(8);
   await page.getByRole("button", { name: "All updates" }).click();
-  await expect(page.locator(".update-card:visible")).toHaveCount(17);
+  await expect(page.locator(".update-card:visible")).toHaveCount(18);
   for (const width of [1440, 768, 390]) {
     await page.setViewportSize({ width, height: 900 });
     for (const path of ["faq", "updates"]) {
@@ -1662,7 +1662,20 @@ try {
       kind: "review",
       topic: "web",
       body: "Review this explicit PR patch snapshot.",
-      code: '--- "a/src/retry.ts"\n+++ "b/src/retry.ts"\n@@ -1 +1 @@\n-old\n+new\n--- "a/test/retry.test.ts"\n+++ "b/test/retry.test.ts"\n@@ -1 +1 @@\n-old test\n+new test',
+      code: [
+        '--- "a/src/retry.ts"',
+        '+++ "b/src/retry.ts"',
+        "@@ -1,105 +1,105 @@",
+        ...Array.from({ length: 105 }, (_, i) => ` context ${i}`),
+        "@@ -200 +200 @@",
+        "-old",
+        "+new",
+        '--- "a/test/retry.test.ts"',
+        '+++ "b/test/retry.test.ts"',
+        "@@ -1 +1 @@",
+        "-old test",
+        "+new test",
+      ].join("\n"),
       review_focus: "Check the retry behaviour.",
       details: {
         github_context: {
@@ -1681,14 +1694,14 @@ try {
               hunk_start: 1,
               hunk_end: 2,
               patch_start: 1,
-              patch_end: 5,
+              patch_end: 111,
             },
             {
               path: "test/retry.test.ts",
               hunk_start: 1,
               hunk_end: 1,
-              patch_start: 6,
-              patch_end: 10,
+              patch_start: 112,
+              patch_end: 116,
             },
           ],
         },
@@ -1709,7 +1722,7 @@ try {
     await expect(
       card.getByRole("list", { name: "Selected PR files" }),
     ).toContainText("test/retry.test.ts");
-    await expect(card).toContainText("published lines 6–10");
+    await expect(card).toContainText("published lines 112–116");
     await expect(card).toContainText(
       "Review lines refer to the published patch",
     );
@@ -1725,6 +1738,108 @@ try {
       path: artifacts + "/pr-snapshot-" + viewport.width + ".png",
     });
   }
+  // Jump across a 100-line boundary without changing server anchors or the saved quote.
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto(base + "/app#post/" + prSnapshotId);
+  await page.getByRole("button", { name: "Next hunk", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "Select code line 3", exact: true }),
+  ).toBeFocused();
+  await page.getByRole("button", { name: "Next hunk", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "Select code line 109", exact: true }),
+  ).toBeFocused();
+  await page
+    .getByRole("button", { name: "Select code line 111", exact: true })
+    .click();
+  await page
+    .getByRole("textbox", { name: "What would you change?", exact: true })
+    .fill("Keep this retry bounded to a deadline.");
+  await page
+    .getByRole("button", { name: "Add line feedback", exact: true })
+    .click();
+  const remark = page
+    .locator(".line-feedback-card")
+    .filter({ hasText: "Keep this retry bounded" });
+  await expect(remark).toContainText("Lines 111–111");
+  await expect(remark.locator("pre")).toHaveText("+new");
+  await expect(remark).toContainText("src/retry.ts");
+  await page.getByRole("button", { name: "Review file", exact: true }).click();
+  await page
+    .getByRole("option", { name: "test/retry.test.ts", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Select code line 112", exact: true }),
+  ).toBeFocused();
+  await expect(
+    page.getByRole("button", { name: "Select code line 1", exact: true }),
+  ).toHaveCount(0);
+  await remark
+    .getByRole("button", { name: "Show in code", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Select code line 111", exact: true }),
+  ).toBeFocused();
+  await expect(
+    page.getByRole("spinbutton", { name: "Feedback start line", exact: true }),
+  ).toHaveValue("111");
+  for (const [theme, width] of [
+    ["light", 1440],
+    ["dark", 390],
+    ["light", 360],
+    ["dark", 768],
+  ]) {
+    await page.evaluate(
+      (t) => localStorage.setItem("devdevian-theme", t),
+      theme,
+    );
+    await page.setViewportSize({ width, height: 900 });
+    await page.reload();
+    await page
+      .getByRole("button", { name: "Review file", exact: true })
+      .click();
+    await page
+      .getByRole("option", { name: "test/retry.test.ts", exact: true })
+      .click();
+    await expect(page.locator(".diff-added")).toContainText("+new test");
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBeTruthy();
+    await page.locator(".review-navigation").scrollIntoViewIfNeeded();
+    await page.screenshot({
+      path: artifacts + `/review-navigation-${theme}-${width}.png`,
+    });
+  }
+  // An earlier-version remark must keep its quote and have no jump into new code.
+  const old = await second.request.get(base + "/api/posts/" + prSnapshotId);
+  const snapshotPost = await old.json();
+  const changed = await second.request.patch(
+    base + "/api/posts/" + prSnapshotId,
+    {
+      data: {
+        title: snapshotPost.title,
+        body: snapshotPost.body,
+        code: "const changed = true;",
+        revision: snapshotPost.revision,
+      },
+    },
+  );
+  expect(changed.ok()).toBeTruthy();
+  await page.reload();
+  await expect(remark).toContainText("Earlier snippet version");
+  await expect(remark.locator("pre")).toHaveText("+new");
+  await expect(
+    remark.getByRole("button", { name: "Show in code", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Review file", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Select code line 1", exact: true }),
+  ).toBeVisible();
+  expect(errors).toEqual([]);
   console.log(
     "Browser checks passed: themes, real forms, uploads, catalogs, links, mentions, search, validators, screenshots, teams, account switching, mobile navigation.",
   );

@@ -1,10 +1,12 @@
 import { FeedbackActions, FeedbackReplies } from "./feedback-thread";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo, useRef } from "react";
 import { api, dateStamp } from "./data";
 import { Avatar, MD, ErrorMessage } from "./ui";
 import { Pagination } from "./content";
 import { Select } from "./controls";
 import { CheckCircle2, RotateCcw, MessageSquareCode } from "lucide-react";
+
+import { reviewNavigation, reviewFileForRange } from "./review-navigation.mjs";
 
 export function CodeReview({ post, user, requireUser, go }) {
   const [start, setStart] = useState(1),
@@ -18,6 +20,9 @@ export function CodeReview({ post, user, requireUser, go }) {
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
     [reload, setReload] = useState(0);
+  const [fileIndex, setFileIndex] = useState(0);
+  const [pendingLine, setPendingLine] = useState(null);
+  const snippet = useRef(null);
   const [jumpToTarget, setJumpToTarget] = useState(true);
   const [hash, setHash] = useState(() => window.location.hash);
   useEffect(() => {
@@ -30,7 +35,42 @@ export function CodeReview({ post, user, requireUser, go }) {
     targetReply = parts[4] === "reply" ? parts[5] : null;
   const lines = post.code ? post.code.split("\n") : [],
     paused = !!(post.archived_at || post.locked_at);
+  const files = useMemo(
+    () => reviewNavigation(post.code, post.github_context),
+    [post.code, post.github_context],
+  );
+  const file = files[fileIndex] || files[0];
+  const first = file?.patch_start || 1;
+  const last = file?.patch_end || lines.length;
+  const pageStart = first + (snippetPage - 1) * 100;
+  const hunks = file?.hunks || [];
+  const activeHunk = hunks.findLastIndex((h) => h.line <= start);
+  function showLine(line, endLine = line) {
+    const index = files.findIndex(
+      (f) => line >= f.patch_start && line <= f.patch_end,
+    );
+    setFileIndex(Math.max(0, index));
+    setSnippetPage(
+      Math.floor((line - (files[index]?.patch_start || 1)) / 100) + 1,
+    );
+    setStart(line);
+    setEnd(endLine);
+    setPendingLine(line);
+  }
   useEffect(() => {
+    if (pendingLine === null) return;
+    const button = snippet.current?.querySelector(
+      `[data-line="${pendingLine}"]`,
+    );
+    if (button) {
+      button.scrollIntoView({ block: "nearest", inline: "nearest" });
+      button.focus({ preventScroll: true });
+      setPendingLine(null);
+    }
+  }, [pendingLine, fileIndex, snippetPage]);
+  useEffect(() => {
+    setFileIndex(0);
+    setPendingLine(null);
     setStart(1);
     setEnd(1);
     setPage(1);
@@ -130,26 +170,87 @@ export function CodeReview({ post, user, requireUser, go }) {
         Select a line number. Shift-click another to select a range, or use the
         fields below. Feedback stays attached to this version of the code.
       </p>
+      {file && (
+        <div
+          className="review-navigation"
+          aria-label="Published patch navigation"
+        >
+          <Select
+            aria-label="Review file"
+            value={String(fileIndex)}
+            onChange={(e) =>
+              showLine(files[Number(e.target.value)].patch_start)
+            }
+          >
+            {files.map((f, i) => (
+              <option key={f.path} value={i}>
+                {f.path}
+              </option>
+            ))}
+          </Select>
+          <div className="review-hunk-controls">
+            <button
+              type="button"
+              className="text-button"
+              disabled={activeHunk <= 0}
+              onClick={() => showLine(hunks[activeHunk - 1].line)}
+            >
+              Previous hunk
+            </button>
+            <Select
+              aria-label="Review change"
+              value={activeHunk < 0 ? "" : String(hunks[activeHunk].line)}
+              onChange={(e) => showLine(Number(e.target.value))}
+            >
+              <option value="">Choose a change</option>
+              {hunks.map((h) => (
+                <option key={h.line} value={h.line}>
+                  {h.label}
+                </option>
+              ))}
+            </Select>
+            <button
+              type="button"
+              className="text-button"
+              disabled={activeHunk >= hunks.length - 1}
+              onClick={() => showLine(hunks[activeHunk + 1].line)}
+            >
+              Next hunk
+            </button>
+          </div>
+          <p>
+            Published lines {first}–{last} · + added · − removed. Numbers refer
+            to this snapshot.
+          </p>
+        </div>
+      )}
       <div
         className="numbered-snippet"
+        ref={snippet}
         role="group"
         aria-label="Code snippet lines"
       >
         {lines
-          .slice((snippetPage - 1) * 100, snippetPage * 100)
+          .slice(pageStart - 1, Math.min(pageStart + 99, last))
           .map((line, offset) => {
-            const number = (snippetPage - 1) * 100 + offset + 1;
+            const number = pageStart + offset;
+            const kind = file
+              ? line.startsWith("@@ ") || number < first + 2
+                ? "header"
+                : line.startsWith("+")
+                  ? "added"
+                  : line.startsWith("-")
+                    ? "removed"
+                    : "context"
+              : "plain";
             return (
               <div
                 key={number}
-                className={
-                  number >= start && number <= end
-                    ? "snippet-line selected"
-                    : "snippet-line"
-                }
+                className={`snippet-line diff-${kind}${number >= start && number <= end ? " selected" : ""}`}
               >
                 <button
                   type="button"
+                  data-line={number}
                   aria-label={`Select code line ${number}`}
                   aria-pressed={number >= start && number <= end}
                   onClick={(e) => {
@@ -172,8 +273,8 @@ export function CodeReview({ post, user, requireUser, go }) {
       <Pagination
         meta={{
           page: snippetPage,
-          pages: Math.ceil(lines.length / 100),
-          total: lines.length,
+          pages: Math.ceil((last - first + 1) / 100),
+          total: last - first + 1,
         }}
         onPage={setSnippetPage}
         label="code lines"
@@ -303,6 +404,27 @@ export function CodeReview({ post, user, requireUser, go }) {
               Lines {item.start_line}–{item.end_line}
             </strong>
             <span>{item.resolved ? "Resolved" : "Open"}</span>
+            {!item.outdated &&
+              reviewFileForRange(files, item.start_line, item.end_line) && (
+                <code className="review-feedback-file">
+                  {
+                    reviewFileForRange(files, item.start_line, item.end_line)
+                      .path
+                  }
+                </code>
+              )}
+            {!item.outdated &&
+              !item.deleted_at &&
+              item.start_line >= 1 &&
+              item.end_line <= lines.length && (
+                <button
+                  type="button"
+                  className="text-button"
+                  onClick={() => showLine(item.start_line, item.end_line)}
+                >
+                  Show in code
+                </button>
+              )}
             {item.outdated && (
               <span className="outdated-note">Earlier snippet version</span>
             )}

@@ -6,7 +6,7 @@
   <p>
     <a href="https://github.com/Tenyokj/devdevian/actions/workflows/checks.yml"><img src="https://github.com/Tenyokj/devdevian/actions/workflows/checks.yml/badge.svg" alt="Build and tests" /></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0--only-9e8bff" alt="GPL 3.0 only" /></a>
-    <a href="package.json"><img src="https://img.shields.io/badge/version-0.1.8-7b83ff" alt="Browser/API version 0.1.8" /></a>
+    <a href="package.json"><img src="https://img.shields.io/badge/version-0.1.9-7b83ff" alt="Browser/API version 0.1.9" /></a>
     <a href="https://www.npmjs.com/package/@tenyokjs/devdevian-cli"><img src="https://img.shields.io/badge/CLI-0.13.0--alpha.1-b2a0ff" alt="CLI 0.13.0-alpha.1" /></a>
     <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/Node.js-24%2B-84bc95" alt="Node.js 24 or newer" /></a>
     <img src="https://img.shields.io/badge/status-active_development-b2a0ff" alt="Active development" />

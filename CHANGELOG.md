@@ -1,5 +1,11 @@
 # Changelog
 
+## Browser & API 0.1.9
+
+- Add file and hunk navigation for frozen PR review snapshots, with additions/removals and mobile layouts. Keep global published line numbers and existing snippet hashes.
+- Return from current-version feedback to its file, code page and selected lines. Preserve outdated quotes without linking them into replacement code; fall back to the full snippet when metadata is inconsistent.
+- Add cross-page navigation and feedback regression coverage. CLI remains 0.13.0-alpha.1; no schema, OAuth, dependency or GitHub write changes.
+
 ## CLI 0.13.0-alpha.1
 
 - Add My work with paginated Mine, Reviews, Saved and Following sections plus Inbox/local draft shortcuts. Reuse existing account/private visibility rules; add the script `work` command.

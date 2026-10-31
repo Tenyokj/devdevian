@@ -3,6 +3,22 @@
 export const repository = "https://github.com/Tenyokj/devdevian";
 export const updates = [
   {
+    id: "browser-review-navigation",
+    channel: "Browser",
+    version: "0.1.9",
+    title: "Follow the changes, file by file.",
+    summary:
+      "Browse published PR snapshots by file and change, with readable additions and removals on desktop and mobile.",
+    points: [
+      "Jump from line feedback back to its code, even across long patches. Published line numbers remain unchanged.",
+      "Earlier-version remarks keep their saved quotes. File navigation works on the frozen snapshot without fetching GitHub.",
+    ],
+    link:
+      repository +
+      "/blob/main/docs/github-pr-reader.md#browser-review-workspace",
+    label: "Browser review guide",
+  },
+  {
     id: "cli-0-13",
     channel: "CLI",
     version: "0.13.0-alpha.1",
