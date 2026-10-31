@@ -37,3 +37,5 @@ A passing fixture test does not prove real OAuth, email delivery, hosted storage
 `review-navigation.test.mjs` checks global offsets across files/pages and safe fallback for malformed or stale patch metadata. The browser runner also publishes line feedback on a multi-file snapshot, jumps across page boundaries, checks mobile/light/dark layouts, and edits the snippet to verify old quotes cannot jump into replacement code.
 
 `review-queue.test.mjs` covers private access, last visible authorship, resolution/paused states, totals and filtered target pages. CLI queue unit/PTY suites cover exact reply opening, file/line continuity, changed-snippet reset, version filters, bounded compact rendering and unchanged credential files.
+
+`npm run test:workspaces` checks the isolated 0.2 concept. Model tests protect revision/quote identity and exact diff reconstruction; `workspace-preview-check.mjs` drives the sample workspace at five viewport sizes and asserts no forum API requests. Fixtures and preview state do not touch the production database.

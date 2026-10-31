@@ -37,3 +37,7 @@ Devdevian is an open-source developer forum. The hosted early release is at [dev
 - [Contributing](../CONTRIBUTING.md), [code of conduct](../CODE_OF_CONDUCT.md), and [security reporting](../SECURITY.md).
 
 Documentation describes the current implementation. Free provider quotas, console interfaces, and account approvals can change; check the linked provider documentation for current requirements.
+
+## In development
+
+- [Workspaces 0.2 concept](workspaces-0.2.md): isolated interactive prototype, proposed data/permission contract and delivery stages. This is planned product work, separate from the published browser/API and CLI features above.

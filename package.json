@@ -19,7 +19,9 @@
     "backup": "node scripts/backup.mjs",
     "maintenance": "node scripts/maintenance.mjs",
     "health:check": "node scripts/health-check.mjs",
-    "test:load": "node scripts/load-check.mjs"
+    "test:load": "node scripts/load-check.mjs",
+    "preview:workspaces": "node scripts/workspace-preview.mjs",
+    "test:workspaces": "node --test tests/workspaces-preview.test.mjs && node scripts/workspace-preview-check.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1152.0",
