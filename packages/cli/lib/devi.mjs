@@ -22,7 +22,33 @@ const small = [
   "  /_   _\\ /_____/",
   "    '---'",
 ];
-export function deviArt(compact = false, frame = 0) {
+const pumpkin = [
+  "          __",
+  "         /_/",
+  "     .-'''''-.",
+  "   .'  | | |  '.",
+  "  /  /\\     /\\  \\",
+  " |  /__\\   /__\\  |",
+  " |      ___      |",
+  " |  \\  /_W_\\  /  |",
+  "  \\  '-------'  /",
+  "   '._  | | _.'",
+  "       '---'",
+];
+const smallPumpkin = [
+  "    _",
+  " .-( )-.",
+  "( ^   ^ )",
+  "(  vvv  )",
+  " '-----'",
+];
+export function deviArt(compact = false, frame = 0, variant = "devi") {
+  if (variant === "pumpkin")
+    return (compact ? smallPumpkin : pumpkin).map((line) =>
+      frame % 6 === 4
+        ? line.replace("/\\", "--").replace("^   ^", "-   -")
+        : line,
+    );
   const blink = frame % 6 === 4;
   return (compact ? small : full).map((line) =>
     blink ? line.replace("o  o", "-  -").replace("o o", "- -") : line,
@@ -37,6 +63,7 @@ export function deviLayout({
   footer = [],
   show = true,
   frame = 0,
+  variant = "devi",
 }) {
   width = Math.max(1, width);
   height = Math.max(1, height);
@@ -50,7 +77,7 @@ export function deviLayout({
   let art = [];
   if (show) {
     for (const compact of [false, true]) {
-      const candidate = deviArt(compact, frame);
+      const candidate = deviArt(compact, frame, variant);
       if (
         candidate.every((line) => stringWidth(line) <= width) &&
         candidate.length + title.length + 2 <= remaining
@@ -104,7 +131,11 @@ export function DeviPanel({
   const rows = deviLayout({
     width,
     height,
-    message,
+    message:
+      c.seasonal && message.startsWith("Devi ")
+        ? "A little code. A little pumpkin magic."
+        : message,
+    variant: c.seasonal ? "pumpkin" : "devi",
     status,
     footer,
     show,

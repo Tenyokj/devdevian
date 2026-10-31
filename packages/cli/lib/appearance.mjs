@@ -20,6 +20,7 @@ export const appearanceFields = [
       ["nebula", "Nebula · deep violet"],
       ["daylight", "Daylight · light"],
       ["contrast", "Contrast · high contrast"],
+      ["halloween", "Halloween · pumpkin glow"],
     ],
   },
   {
@@ -30,6 +31,7 @@ export const appearanceFields = [
       ["violet", "Violet"],
       ["cyan", "Cyan"],
       ["rose", "Rose"],
+      ["orange", "Orange"],
     ],
   },
   {

@@ -11,7 +11,14 @@ Every published npm artifact has a unique immutable version. We record each vers
 
 ## Current milestone
 
-**0.12.0 adds a getting-started guide and read-only diagnostics** without changing the shared API or account model.
+**0.13.0 adds My work and an optional Halloween theme.**
+
+## 0.13.0-alpha.1 — Your work, with a little pumpkin glow
+
+- My work combines paginated Mine/Reviews/Saved/Following views using existing scoped API filters. Arrow keys switch sections; Enter/back preserve navigation; I opens Inbox and D opens account/project-local drafts. Script clients use `work --section ... --page ... --json`.
+- Optional Halloween preset: warm dark surfaces, default orange/gold accent, ASCII ornaments and a responsive pumpkin mascot. Theme preview/cancel/save, restart persistence, other accents, reduced motion and mascot hiding reuse existing local preferences. Switching back removes the season; no date-triggered activation or extra decorative timers/requests.
+- Existing private visibility, publication confirmations, drafts and regular themes remain compatible. Contrast checks cover every theme/accent; real terminal checks cover navigation, pagination/back, compact layout, mascot, save and disabling.
+- Browser/API remains 0.1.8, with no schema migration, dependency additions or new GitHub scopes.
 
 ## 0.12.0-alpha.1 — A clearer first few minutes
 

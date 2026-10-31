@@ -3,6 +3,21 @@
 export const repository = "https://github.com/Tenyokj/devdevian";
 export const updates = [
   {
+    id: "cli-0-13",
+    channel: "CLI",
+    version: "0.13.0-alpha.1",
+    title: "Your work, with a little pumpkin glow.",
+    summary:
+      "Find your own conversations, review requests, bookmarks and followed conversations in My work. An optional Halloween theme brings warm orange accents and a terminal-native pumpkin.",
+    points: [
+      "Switch sections, page results and return to Inbox or local drafts without losing your place.",
+      "Preview, save or disable the seasonal theme locally. Reduced motion, mascot hiding and existing privacy rules still apply.",
+    ],
+    link:
+      repository + "/blob/main/packages/cli/README.md#my-work-and-halloween",
+    label: "My work and Halloween guide",
+  },
+  {
     id: "cli-0-12",
     channel: "CLI",
     version: "0.12.0-alpha.1",

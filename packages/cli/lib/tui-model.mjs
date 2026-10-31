@@ -122,6 +122,7 @@ export function parseCommand(text) {
   if (
     [
       "feed",
+      "work",
       "inbox",
       "communities",
       "search",

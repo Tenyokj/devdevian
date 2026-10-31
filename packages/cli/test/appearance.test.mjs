@@ -36,8 +36,14 @@ const ratio = (a, b) =>
   (Math.min(luminance(a), luminance(b)) + 0.05);
 
 test("every theme/accent keeps body, selection and status text readable and styles Markdown consistently", () => {
-  for (const theme of ["midnight", "nebula", "daylight", "contrast"])
-    for (const accent of ["blue", "violet", "cyan", "rose"]) {
+  for (const theme of [
+    "midnight",
+    "nebula",
+    "daylight",
+    "contrast",
+    "halloween",
+  ])
+    for (const accent of ["blue", "violet", "cyan", "rose", "orange"]) {
       const c = themeFor({ theme, accent });
       for (const role of ["text", "muted", "blue", "purple", "green", "red"])
         for (const surface of ["bg", "panel", "selected"])

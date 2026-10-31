@@ -1,5 +1,11 @@
 # Changelog
 
+## CLI 0.13.0-alpha.1
+
+- Add My work with paginated Mine, Reviews, Saved and Following sections plus Inbox/local draft shortcuts. Reuse existing account/private visibility rules; add the script `work` command.
+- Add optional Halloween theme, orange accent, ASCII ornaments and pumpkin mascot. Preserve local preview/cancel/save, reduced motion, hiding and standard themes; add no seasonal requests or decorative timers.
+- Verify contrast, private scopes, terminal navigation, compact layouts and disabling the theme. Browser/API stays 0.1.8; no schema or dependency changes.
+
 ## CLI 0.12.0-alpha.1
 
 - Add read-only `doctor` checks with offline/JSON modes, bounded health/session requests and recovery instructions. Never expose tokens/account data, forward credentials to a host override, repair files or repeat writes.

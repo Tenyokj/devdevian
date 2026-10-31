@@ -7,6 +7,7 @@ import {
   reviewSource,
   readGitHubContext,
 } from "./workspace.mjs";
+import { workTabs, workQuery } from "./my-work.mjs";
 import { DeviPanel } from "./devi.mjs";
 import { WorkspacePicker } from "./picker.mjs";
 import { DraftStore, draftIdentity } from "./drafts.mjs";
@@ -659,7 +660,13 @@ function AppearanceView({ form, active, cursor, width, height }) {
             overflow: "hidden",
           },
           h(Text, { color: c.purple, bold: true }, "LIVE PREVIEW"),
-          h(Text, { color: c.muted }, "Only this terminal changes."),
+          h(
+            Text,
+            { color: c.muted },
+            c.seasonal
+              ? "( ^ v ^ ) Pumpkin glow"
+              : "Only this terminal changes.",
+          ),
           h(Text, null, " "),
           h(
             Text,
@@ -2326,6 +2333,11 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       const parsed = value.startsWith("/")
         ? parseCommand(value)
         : { command: "search", arg: value };
+      if (parsed.command === "work") {
+        workQuery(parsed.arg || "mine");
+        navigate({ view: "work", tab: parsed.arg || "mine", page: 1 });
+        return;
+      }
       if (parsed.command === "doctor") {
         runDiagnostics();
         return;
@@ -3106,6 +3118,32 @@ function App({ initialConfig, flags, root, initialAppearance }) {
         );
       return;
     }
+    if (route.view === "work") {
+      if (input === "i" || input === "I" || input === "d" || input === "D") {
+        navigate({
+          view: input.toLowerCase() === "i" ? "inbox" : "drafts",
+          page: 1,
+        });
+        return;
+      }
+      if (keyEvent.leftArrow || keyEvent.rightArrow) {
+        const index = workTabs.findIndex(
+          ([id]) => id === (route.tab || "mine"),
+        );
+        navigate(
+          {
+            view: "work",
+            tab: workTabs[
+              (index + (keyEvent.rightArrow ? 1 : workTabs.length - 1)) %
+                workTabs.length
+            ][0],
+            page: 1,
+          },
+          { replace: true },
+        );
+        return;
+      }
+    }
     if ((keyEvent.leftArrow || keyEvent.rightArrow) && route.view === "post") {
       const tabs =
           current?.post?.kind === "review"
@@ -3761,6 +3799,10 @@ function App({ initialConfig, flags, root, initialAppearance }) {
             "Nothing here yet.",
             "N starts a conversation. A asks a question.",
           ],
+          work: [
+            "Your work has a home here.",
+            "← → switches sections · I opens Inbox · D opens local drafts.",
+          ],
           search: route.query
             ? [
                 "No conversations matched your search.",
@@ -3831,7 +3873,9 @@ function App({ initialConfig, flags, root, initialAppearance }) {
               ? [["feedback", "Code feedback"]]
               : []),
           ]
-        : [];
+        : route.view === "work" && !form
+          ? workTabs
+          : [];
     const pane = h(
       Box,
       {
@@ -3866,12 +3910,16 @@ function App({ initialConfig, flags, root, initialAppearance }) {
                 {
                   key: id,
                   color:
-                    (route.tab || "overview") === id
+                    (route.tab ||
+                      (route.view === "work" ? "mine" : "overview")) === id
                       ? colors.blue
                       : colors.muted,
-                  bold: (route.tab || "overview") === id,
+                  bold:
+                    (route.tab ||
+                      (route.view === "work" ? "mine" : "overview")) === id,
                   backgroundColor:
-                    (route.tab || "overview") === id
+                    (route.tab ||
+                      (route.view === "work" ? "mine" : "overview")) === id
                       ? colors.selected
                       : undefined,
                 },
@@ -3922,7 +3970,11 @@ function App({ initialConfig, flags, root, initialAppearance }) {
               paddingX: 1,
               overflow: "hidden",
             },
-            h(Text, { color: colors.purple, bold: true }, "YOUR SPACE"),
+            h(
+              Text,
+              { color: colors.purple, bold: true },
+              colors.seasonal ? "{*} YOUR SPACE {*}" : "YOUR SPACE",
+            ),
             h(Text, null, " "),
             ...navigation
               .slice(
@@ -3965,51 +4017,56 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       compact && focus === "nav" ? null : pane,
     );
   }
-  const hint =
-    route.view === "start" && !form && !palette
-      ? "↑↓ choose · Enter continue · /help keys · /doctor connection · Esc feed"
-      : route.view === "pr-diff" && !form && !preview && !palette
-        ? "[ ] hunks · Space range · A add · R basket · C single · U remove · Z clear · Esc files"
-        : route.view === "pr-files" && !form && !palette
-          ? "↑↓ file · Enter diff · [ ] pages · R basket · U remove · Z clear · Esc back"
-          : route.view === "pr" && !form && !reading && !palette
-            ? "↑↓ scroll · F choose file / diff · [ ] pages · X actions · Esc back"
-            : palette
-              ? "Type to filter · ↑↓ choose · Enter open · Esc return"
-              : ["projects", "events"].includes(route.view) &&
-                  !form &&
-                  !preview &&
-                  !picker
-                ? "↑↓ select · Enter open · F filters · N new · [ ] pages · / search"
-                : ["project", "event"].includes(route.view) && !form && !preview
-                  ? "↑↓ scroll · X actions · E edit your publication · Esc back"
-                  : form?.kind === "appearance"
-                    ? "← → choose · Tab next · Ctrl+S save · Esc cancel · 0 default preview"
-                    : actionIndex !== null
-                      ? "Actions are scoped to the selected item · Esc closes"
-                      : reviewing && !form && !preview && !reading
-                        ? "W code / discussion · Space select · C comment · X actions · F filter"
-                        : picker
-                          ? "Project files stay local until publication is confirmed"
-                          : reading
-                            ? readerFind.editing
-                              ? "Find in this text · Enter locate · Esc finish search"
-                              : "↑↓ scroll · / find · n/N match · Home/End · Esc return"
-                            : preview
-                              ? "← → choose · Enter confirm · Esc edit"
-                              : form
-                                ? formNav
-                                  ? `${stepControls(activeSteps, activeStep).find((control) => control.id === formNav)?.label || "Next"} · Enter select · Tab fields · Ctrl+S preview`
-                                  : fieldsFor(form)[field]?.multiline
-                                    ? "Enter new line · Tab next field · Ctrl+N next step · Ctrl+S preview"
-                                    : "Enter/Tab next field · Ctrl+N/P steps · Ctrl+S preview"
-                                : phase !== "ready"
-                                  ? "Enter connect / open browser · Ctrl+C exit"
-                                  : route.view === "feedback"
-                                    ? "↑↓ select · R reply · E edit · D delete · S resolve · ! report"
-                                    : route.view === "post"
-                                      ? "←→ tabs · ↑↓ select · R reply · E edit · D delete · Space read"
-                                      : "↑↓ select · Enter open · Tab sections · [ ] pages · N new · / search";
+  const hint = diagnostic
+    ? "↑↓ scroll · R check again · Esc return"
+    : route.view === "work" && !form && !palette
+      ? "←→ sections · ↑↓ choose · Enter open · [ ] pages · I inbox · D drafts · Esc back"
+      : route.view === "start" && !form && !palette
+        ? "↑↓ choose · Enter continue · /help keys · /doctor connection · Esc feed"
+        : route.view === "pr-diff" && !form && !preview && !palette
+          ? "[ ] hunks · Space range · A add · R basket · C single · U remove · Z clear · Esc files"
+          : route.view === "pr-files" && !form && !palette
+            ? "↑↓ file · Enter diff · [ ] pages · R basket · U remove · Z clear · Esc back"
+            : route.view === "pr" && !form && !reading && !palette
+              ? "↑↓ scroll · F choose file / diff · [ ] pages · X actions · Esc back"
+              : palette
+                ? "Type to filter · ↑↓ choose · Enter open · Esc return"
+                : ["projects", "events"].includes(route.view) &&
+                    !form &&
+                    !preview &&
+                    !picker
+                  ? "↑↓ select · Enter open · F filters · N new · [ ] pages · / search"
+                  : ["project", "event"].includes(route.view) &&
+                      !form &&
+                      !preview
+                    ? "↑↓ scroll · X actions · E edit your publication · Esc back"
+                    : form?.kind === "appearance"
+                      ? "← → choose · Tab next · Ctrl+S save · Esc cancel · 0 default preview"
+                      : actionIndex !== null
+                        ? "Actions are scoped to the selected item · Esc closes"
+                        : reviewing && !form && !preview && !reading
+                          ? "W code / discussion · Space select · C comment · X actions · F filter"
+                          : picker
+                            ? "Project files stay local until publication is confirmed"
+                            : reading
+                              ? readerFind.editing
+                                ? "Find in this text · Enter locate · Esc finish search"
+                                : "↑↓ scroll · / find · n/N match · Home/End · Esc return"
+                              : preview
+                                ? "← → choose · Enter confirm · Esc edit"
+                                : form
+                                  ? formNav
+                                    ? `${stepControls(activeSteps, activeStep).find((control) => control.id === formNav)?.label || "Next"} · Enter select · Tab fields · Ctrl+S preview`
+                                    : fieldsFor(form)[field]?.multiline
+                                      ? "Enter new line · Tab next field · Ctrl+N next step · Ctrl+S preview"
+                                      : "Enter/Tab next field · Ctrl+N/P steps · Ctrl+S preview"
+                                  : phase !== "ready"
+                                    ? "Enter connect / open browser · Ctrl+C exit"
+                                    : route.view === "feedback"
+                                      ? "↑↓ select · R reply · E edit · D delete · S resolve · ! report"
+                                      : route.view === "post"
+                                        ? "←→ tabs · ↑↓ select · R reply · E edit · D delete · Space read"
+                                        : "↑↓ select · Enter open · Tab sections · [ ] pages · N new · / search";
   return h(
     ThemeContext.Provider,
     { value: colors },
@@ -4035,7 +4092,11 @@ function App({ initialConfig, flags, root, initialAppearance }) {
         h(
           Text,
           { color: colors.purple, bold: true },
-          clip("◈ DEVDEVIAN  ·  " + basename(root), Math.max(10, width - 36)),
+          clip(
+            (colors.seasonal ? "{*} DEVDEVIAN · " : "◈ DEVDEVIAN  ·  ") +
+              basename(root),
+            Math.max(10, width - 36),
+          ),
         ),
         h(
           Text,

@@ -28,6 +28,7 @@ import { githubReader, pullRequestLines } from "../lib/github-reader.mjs";
 import { readGitHubContext, workspaceRoot } from "../lib/workspace.mjs";
 import { githubContextLines } from "../lib/github-context.mjs";
 import { conversationLinks } from "../lib/conversation-links.mjs";
+import { workQuery } from "../lib/my-work.mjs";
 import { runDoctor, doctorLines } from "../lib/doctor.mjs";
 import { commandProblemMessage } from "../lib/problems.mjs";
 import { renderHelp } from "../lib/help.mjs";
@@ -36,6 +37,7 @@ const options = {
   host: { type: "string" },
   page: { type: "string" },
   topic: { type: "string" },
+  section: { type: "string" },
   community: { type: "string" },
   title: { type: "string" },
   body: { type: "string" },
@@ -113,6 +115,7 @@ const help = `Devdevian CLI ${version} · alpha
   devdevian appearance             Show local theme and layout preferences
   devdevian appearance --theme daylight --accent violet
   devdevian appearance --reset     Restore the default appearance
+  devdevian work [--section mine|reviews|saved|following] [--page 2]
   devdevian whoami
   devdevian inbox [--page 2]
   devdevian feed [--topic web] [--page 2]
@@ -140,8 +143,8 @@ const help = `Devdevian CLI ${version} · alpha
   Full reply text: / find, n/N matches, Home/End, Esc remembers your place
   N creates · F filters · E edits your publication · X opens context actions
 
-  --theme NAME       midnight | nebula | daylight | contrast
-  --accent NAME      blue | violet | cyan | rose
+  --theme NAME       midnight | nebula | daylight | contrast | halloween
+  --accent NAME      blue | violet | cyan | rose | orange
   --density NAME     comfortable | compact
   --sidebar MODE     auto | hidden (Tab opens navigation)
   --review-layout MODE  auto | stacked
@@ -373,6 +376,10 @@ async function execute(args, flags) {
     );
   const api = client(config.origin, config.token),
     page = positive(flags.page || "1", "Page");
+  if (command === "work") {
+    show(await api(workQuery(flags.section || "mine", page)), flags.json);
+    return;
+  }
   if (command === "logout") {
     try {
       await api("/cli/logout", { method: "POST", body: {} });

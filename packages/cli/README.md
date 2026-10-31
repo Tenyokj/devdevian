@@ -28,6 +28,19 @@ Actual CLI captures from isolated demonstration accounts. Your terminal uses you
 
 Run `devdevian --help` for script commands and workspace shortcuts. Interactive help has a large wordmark and selective accents; `NO_COLOR=1` keeps it uncolored, narrow terminals use a compact heading, and redirected output stays plain.
 
+## My work and Halloween
+
+Open **My work** in navigation or type `/work`. **← / →** switches Mine, Reviews, Saved and Following; **[ / ]** pages results. Enter opens a conversation and Esc returns to its selected page. Reviews contains your own review requests. Following contains posts from your topic/conversation subscriptions, not every conversation you have replied to. Private posts stay subject to the same membership rules as the browser. **I** opens Inbox; **D** opens account/project-scoped local drafts.
+
+```sh
+devdevian work --section reviews --page 1 --json
+devdevian tui --theme halloween
+devdevian appearance --theme halloween
+devdevian appearance --theme midnight
+```
+
+`--theme halloween` previews for this launch; `appearance --theme halloween` persists locally. Or use `/appearance` / comma, choose Halloween and **Ctrl+S** to save; Esc cancels the preview. Pumpkin glow uses a warm dark palette, orange/gold accents when the default Blue accent is selected, ASCII leaf ornaments and a pumpkin instead of Devi. Other explicit accent choices remain available, including Orange. Switching to another theme removes the seasonal decorations and restores Devi. `--welcome off` hides the mascot; `--motion reduced` keeps it static. No date-based activation, extra requests or background decorative animation is added. Standard themes remain the default; `appearance --reset` restores all defaults.
+
 ## First launch and connection checks
 
 Run `devdevian tui --start` for a short interactive guide, or type `/start` in the workspace. Choose with arrows and Enter; Escape returns. Newly connected terminals open the guide after browser approval. Existing signed-in launches keep their usual feed.

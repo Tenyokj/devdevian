@@ -174,14 +174,14 @@ try {
   await expect(page.locator(".expanded-faq details:visible")).toHaveCount(6);
   await page.goto(base + "/updates");
   await page.getByRole("button", { name: "CLI", exact: true }).click();
-  await expect(page.locator(".update-card:visible")).toHaveCount(9);
+  await expect(page.locator(".update-card:visible")).toHaveCount(10);
   await expect(page.locator(".update-card:visible").first()).toContainText(
-    "0.12.0-alpha.1",
+    "0.13.0-alpha.1",
   );
   await page.getByRole("button", { name: "Browser", exact: true }).click();
   await expect(page.locator(".update-card:visible")).toHaveCount(7);
   await page.getByRole("button", { name: "All updates" }).click();
-  await expect(page.locator(".update-card:visible")).toHaveCount(16);
+  await expect(page.locator(".update-card:visible")).toHaveCount(17);
   for (const width of [1440, 768, 390]) {
     await page.setViewportSize({ width, height: 900 });
     for (const path of ["faq", "updates"]) {

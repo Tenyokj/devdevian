@@ -1,3 +1,4 @@
+import { workQuery } from "./my-work.mjs";
 import { starterChoices } from "./doctor.mjs";
 import { githubReader, pullRequestLines } from "./github-reader.mjs";
 import { loadCatalog, isCatalog } from "./catalog.mjs";
@@ -30,6 +31,7 @@ export const navigation = [
   ["github-pr", "GitHub PR", "Read a public pull request"],
   ["help", "Help", "Keys & commands"],
   ["start", "Getting started", "Your first few minutes"],
+  ["work", "My work", "Your conversations & reviews"],
 ];
 export async function notificationRoute(api, item) {
   if (item.code_review_id)
@@ -89,6 +91,13 @@ export async function loadPage(api, route, signal) {
   if (isCatalog(route)) return loadCatalog(api, route, signal);
   const get = (path) => api(path, { signal }),
     page = route.page || 1;
+  if (route.view === "work")
+    return {
+      ...(await get(workQuery(route.tab || "mine", page))),
+      title: "My work",
+      subtitle:
+        "Your account, same access rules. I opens Inbox · D opens local drafts.",
+    };
   if (route.view === "feed")
     return {
       ...(await get("/posts?limit=12&page=" + page)),
@@ -255,6 +264,7 @@ export function contentLines(route, data) {
       "A developer workspace, in your terminal.",
       "",
       "Ctrl+K / /actions Search quick actions, sections and recent views",
+      "/work            Mine / Reviews / Saved / Following · ← → tabs · I inbox · D drafts",
       "/start           Getting-started guide and safe first actions",
       "/doctor          Read-only environment and connection checks",
       "/pr URL          Read a public GitHub PR and paginate changed files",

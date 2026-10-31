@@ -21,6 +21,16 @@ const presets = {
     red: "#ffa6bd",
     selected: "#3c2c59",
   },
+  halloween: {
+    bg: "#130f12",
+    panel: "#1d1618",
+    line: "#705339",
+    muted: "#c4ae94",
+    text: "#fff1dc",
+    green: "#9ed6b1",
+    red: "#ff9e9c",
+    selected: "#38291f",
+  },
   daylight: {
     bg: "#f2f5ff",
     panel: "#ffffff",
@@ -51,15 +61,28 @@ export function themeFor(value = {}) {
         violet: ["#6b36b6", "#3154b8"],
         cyan: ["#006b80", "#6b36b6"],
         rose: ["#9b246c", "#3154b8"],
+        orange: ["#8c4000", "#6b36b6"],
       }
     : {
         blue: ["#86baff", "#b5a0ff"],
         violet: ["#c0a6ff", "#86baff"],
         cyan: ["#74d5ed", "#b5a0ff"],
         rose: ["#f4a6cf", "#86baff"],
+        orange: ["#ffb86b", "#e6cb85"],
       };
-  const [blue, purple] = accents[settings.accent];
-  return { ...presets[settings.theme], blue, purple, frame: settings.frame };
+  const [blue, purple] =
+    accents[
+      settings.theme === "halloween" && settings.accent === "blue"
+        ? "orange"
+        : settings.accent
+    ];
+  return {
+    ...presets[settings.theme],
+    blue,
+    purple,
+    frame: settings.frame,
+    seasonal: settings.theme === "halloween",
+  };
 }
 export const colors = Object.freeze(themeFor());
 export const ThemeContext = createContext(colors);
