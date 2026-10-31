@@ -43,3 +43,6 @@ Server domain modules currently live at the root. Generated `dist/`, local data,
 - Document non-obvious reasons and invariants in code. Comments should explain access boundaries, lifecycle, compatibility or failure handling rather than repeat syntax.
 
 Read [development](development.md) before running fixtures and [reliability](reliability.md) before working with migrations or backups. Neither tests nor a configuration check establish that hosted backups or third-party delivery are working.
+
+
+CLI first-run and diagnostics live in [`doctor.mjs`](../packages/cli/lib/doctor.mjs) (bounded, read-only checks), [`starter-view.mjs`](../packages/cli/lib/starter-view.mjs) (responsive guide), and the command/TUI entry points. Keep reports free of credentials/account data and verify both the pipe-friendly command and real terminal using the doctor suites.

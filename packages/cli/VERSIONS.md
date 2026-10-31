@@ -11,7 +11,14 @@ Every published npm artifact has a unique immutable version. We record each vers
 
 ## Current milestone
 
-**0.11.0 adds multiple PR files in one review**, with frozen source ranges shared by the terminal and browser.
+**0.12.0 adds a getting-started guide and read-only diagnostics** without changing the shared API or account model.
+
+## 0.12.0-alpha.1 — A clearer first few minutes
+
+- `devdevian doctor` checks Node.js, terminal size, workspace availability, Git, saved credential validation, public server health and the current session. `--offline` stays local; `--json` emits a bounded, sanitized report. Failures exit 1; warnings alone exit 0.
+- Two bounded GETs at most, five-second network deadlines, no redirects/retries, and no credential forwarding across host overrides or after failed health checks. Reports omit credentials, account identity, local file contents and response bodies; no automatic repairs or writes.
+- `/start` or `tui --start` opens a selectable guide; new browser-connected terminals land there. `/doctor` opens a cancellable live diagnostic panel; D also works on the sign-in/connection screen. Keyboard help covers the multi-file PR workflow.
+- Script errors give shell commands for recovery, and malformed credential JSON never echoes fragments of its contents. Existing files and drafts are preserved. Browser/API remains 0.1.8; no dependencies, schema changes or additional GitHub permissions.
 
 ## 0.11.0-alpha.1 — One PR, multiple files, one conversation
 

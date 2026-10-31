@@ -3,6 +3,20 @@
 export const repository = "https://github.com/Tenyokj/devdevian";
 export const updates = [
   {
+    id: "cli-0-12",
+    channel: "CLI",
+    version: "0.12.0-alpha.1",
+    title: "A clearer first few minutes.",
+    summary:
+      "A short interactive guide and read-only diagnostics help you find your way from installation to a first conversation.",
+    points: [
+      "Open /start to explore the feed, ask a question or review a public PR with guidance.",
+      "Run devdevian doctor or /doctor to check your environment and connection. Settings and credentials stay unchanged.",
+    ],
+    link: repository + "/blob/main/docs/cli-diagnostics.md",
+    label: "First launch and diagnostics",
+  },
+  {
     id: "cli-0-11",
     channel: "CLI",
     version: "0.11.0-alpha.1",

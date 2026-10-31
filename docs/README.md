@@ -19,6 +19,7 @@ Devdevian is an open-source developer forum. The hosted early release is at [dev
 ## Terminal client
 
 - [CLI guide](../packages/cli/README.md): installation, login, workspace, reviews and local drafts.
+- [First launch and diagnostics](cli-diagnostics.md): read-only connection checks, safe reports and recovery.
 - [Public GitHub PR reader](github-pr-reader.md): current public PR metadata and changed files from the terminal.
 - [GitHub review context](github-context.md): opt-in repository/branch/commit metadata, PR links and their limits.
 - [CLI versions and roadmap](../packages/cli/VERSIONS.md): each npm version, compatibility notes and combined release policy.

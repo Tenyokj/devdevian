@@ -1,3 +1,4 @@
+import { starterChoices } from "./doctor.mjs";
 import { githubReader, pullRequestLines } from "./github-reader.mjs";
 import { loadCatalog, isCatalog } from "./catalog.mjs";
 import { createHash } from "node:crypto";
@@ -28,6 +29,7 @@ export const navigation = [
   ["appearance", "Appearance", "Themes & layout"],
   ["github-pr", "GitHub PR", "Read a public pull request"],
   ["help", "Help", "Keys & commands"],
+  ["start", "Getting started", "Your first few minutes"],
 ];
 export async function notificationRoute(api, item) {
   if (item.code_review_id)
@@ -63,6 +65,8 @@ export async function notificationRoute(api, item) {
       };
 }
 export async function loadPage(api, route, signal) {
+  if (route.view === "start")
+    return { title: "Getting started", items: starterChoices };
   if (route.view === "pr-diff")
     return githubReader.loadDiff(route.url, {
       page: route.page || 1,
@@ -251,7 +255,11 @@ export function contentLines(route, data) {
       "A developer workspace, in your terminal.",
       "",
       "Ctrl+K / /actions Search quick actions, sections and recent views",
+      "/start           Getting-started guide and safe first actions",
+      "/doctor          Read-only environment and connection checks",
       "/pr URL          Read a public GitHub PR and paginate changed files",
+      "PR diff          A adds hunks; R reviews basket; U removes; Z clears",
+      "Review files     { / } switches files in a published review",
       "Tab              Switch navigation / content / command bar",
       "↑ ↓              Select a section, conversation or reply",
       "Enter            Open the selected item",

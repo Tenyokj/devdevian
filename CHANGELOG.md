@@ -1,5 +1,11 @@
 # Changelog
 
+## CLI 0.12.0-alpha.1
+
+- Add read-only `doctor` checks with offline/JSON modes, bounded health/session requests and recovery instructions. Never expose tokens/account data, forward credentials to a host override, repair files or repeat writes.
+- Add a selectable getting-started guide (`/start`, `tui --start`, new terminal sign-in), live `/doctor` panel and pre-login D diagnostics; adapt to compact terminals and restore the previous view.
+- Improve shell error guidance and prevent malformed credential JSON from leaking through parser messages. Browser/API stays 0.1.8; no schema, dependency or GitHub scope changes.
+
 ## CLI 0.11.0-alpha.1 / Browser & API 0.1.8
 
 - Update the server’s locked `body-parser` dependency to 2.4.0, which fixes GHSA-27r3-jxmh-p828 (compressed-body denial of service).

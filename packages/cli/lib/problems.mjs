@@ -27,3 +27,25 @@ export function problemMessage(error) {
     return detail + " Shift+R retries a view. Your draft remains editable.";
   return detail;
 }
+
+// Script commands need shell instructions, not shortcuts for the live workspace.
+export function commandProblemMessage(error) {
+  const detail = clean(error.message || "Unexpected error.");
+  if (error.status === 401)
+    return "Session expired or revoked. Run devdevian login to reconnect; local drafts are kept.";
+  if (
+    error.code === "NETWORK" ||
+    error.code === "TIMEOUT" ||
+    error.status >= 500
+  )
+    return (
+      detail +
+      " Run devdevian doctor to check the connection. Before retrying a write, check whether it was already published."
+    );
+  if (error.status === 429)
+    return (
+      detail +
+      " Wait before trying again. Requests are not retried automatically."
+    );
+  return detail;
+}

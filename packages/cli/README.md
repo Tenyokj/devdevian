@@ -28,6 +28,18 @@ Actual CLI captures from isolated demonstration accounts. Your terminal uses you
 
 Run `devdevian --help` for script commands and workspace shortcuts. Interactive help has a large wordmark and selective accents; `NO_COLOR=1` keeps it uncolored, narrow terminals use a compact heading, and redirected output stays plain.
 
+## First launch and connection checks
+
+Run `devdevian tui --start` for a short interactive guide, or type `/start` in the workspace. Choose with arrows and Enter; Escape returns. Newly connected terminals open the guide after browser approval. Existing signed-in launches keep their usual feed.
+
+```sh
+devdevian doctor
+devdevian doctor --offline
+devdevian doctor --json
+```
+
+Doctor only reads the environment, validates saved credentials, then checks server health and the session. It changes no files/settings, repairs nothing automatically, and never repeats a publication. `/doctor` opens the same report inside the TUI; **D** on the sign-in/connection screen checks problems before login. Escape cancels; **R** explicitly checks again. [Diagnostic details and recovery](https://github.com/Tenyokj/devdevian/blob/main/docs/cli-diagnostics.md).
+
 ## GitHub PR → human review
 
 Open `/pr https://github.com/owner/repo/pull/42`, press **F**, choose a file and press **Enter**. **[ / ]** chooses a hunk; **Space** anchors a range. **C** starts a review from just those changes. Add context/focus, then **Ctrl+S** previews before explicit publication. No local repository is required. [Full PR/diff guide](https://github.com/Tenyokj/devdevian/blob/main/docs/github-pr-reader.md).

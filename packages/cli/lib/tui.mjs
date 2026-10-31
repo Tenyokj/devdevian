@@ -69,6 +69,8 @@ import {
 } from "./pr-diff.mjs";
 import { PRFiles, PRDiff } from "./pr-diff-view.mjs";
 import { conversationLinks } from "./conversation-links.mjs";
+import { runDoctor, doctorLines } from "./doctor.mjs";
+import { StarterView } from "./starter-view.mjs";
 import { problemMessage } from "./problems.mjs";
 import { ReviewWorkspace, codeRange } from "./review-workspace.mjs";
 import {
@@ -690,9 +692,13 @@ function App({ initialConfig, flags, root, initialAppearance }) {
     ),
     [user, setUser] = useState(null),
     [device, setDevice] = useState(null),
+    [diagnostic, setDiagnostic] = useState(null),
     [authVersion, setAuthVersion] = useState(0),
     [booting, setBooting] = useState(true);
-  const [route, setRoute] = useState({ view: "feed", page: 1 }),
+  const [route, setRoute] = useState({
+      view: flags.start ? "start" : "feed",
+      page: 1,
+    }),
     [data, setData] = useState(null),
     [loading, setLoading] = useState(false),
     [refresh, setRefresh] = useState(0),
@@ -772,6 +778,8 @@ function App({ initialConfig, flags, root, initialAppearance }) {
     bodyHeight = Math.max(1, height - (editingForm ? 6 : 9)),
     contentWidth = Math.max(1, width - sidebar - 6),
     contentHeight = Math.max(1, bodyHeight - 6);
+  const diagnosticController = useRef(null);
+  const diagnosticScroll = useRef(0);
   const key = JSON.stringify(route),
     current = data?.key === key ? data : null;
   const selected = current?.items?.[index];
@@ -792,6 +800,7 @@ function App({ initialConfig, flags, root, initialAppearance }) {
     current,
     index,
     blocked: !!(
+      diagnostic ||
       form ||
       preview ||
       picker ||
@@ -868,6 +877,8 @@ function App({ initialConfig, flags, root, initialAppearance }) {
     seenSnippet.current = { id: post.id, code: post.code };
   }, [current?.post?.id, current?.post?.code]);
   const resetAccount = () => {
+    diagnosticController.current?.abort();
+    setDiagnostic(null);
     setPRBasket([]);
     cache.current.clear();
     history.current = [];
@@ -1201,6 +1212,7 @@ function App({ initialConfig, flags, root, initialAppearance }) {
     return () => {
       alive.current = false;
       authController.current?.abort();
+      diagnosticController.current?.abort();
     };
   }, []);
   useEffect(() => {
@@ -1332,7 +1344,11 @@ function App({ initialConfig, flags, root, initialAppearance }) {
           setConfig(saved);
           setBooting(true);
           setPhase("checking");
-          setNotice("Terminal connected.");
+          if (!initialConfig || flags.start)
+            setRoute({ view: "start", page: 1 });
+          setNotice(
+            "Terminal connected. /start opens the guide; /doctor checks the connection.",
+          );
           return;
         }
         if (!controller.signal.aborted)
@@ -1366,6 +1382,27 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       setAuthVersion((v) => v + 1);
       if (!flags["no-open"]) openBrowser(result.verification_uri);
     });
+  }
+  async function runDiagnostics() {
+    if (!diagnostic) diagnosticScroll.current = scroll;
+    diagnosticController.current?.abort();
+    const controller = new AbortController();
+    diagnosticController.current = controller;
+    setDiagnostic({ loading: true });
+    setScroll(0);
+    try {
+      const report = await runDoctor({
+        host: flags.host || config?.origin,
+        project: root,
+        terminal: { tty: true, columns: width, rows },
+        signal: controller.signal,
+      });
+      if (!controller.signal.aborted && alive.current)
+        setDiagnostic({ report });
+    } catch {
+      if (!controller.signal.aborted && alive.current)
+        setDiagnostic({ failed: true });
+    }
   }
   async function chooseNav(i) {
     const name = navigation[i]?.[0];
@@ -1974,6 +2011,16 @@ function App({ initialConfig, flags, root, initialAppearance }) {
     });
   }
   async function openSelected() {
+    if (route.view === "start") {
+      if (selected?.id === "doctor") runDiagnostics();
+      else if (selected?.id === "ask") composePublication("question");
+      else if (selected?.id === "pr") {
+        setFocus("prompt");
+        setCommand("/pr ");
+        setCommandCursor(4);
+      } else if (selected) navigate({ view: selected.id, page: 1 });
+      return;
+    }
     if (route.view === "pr-files") {
       if (selected)
         navigate({
@@ -2279,6 +2326,10 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       const parsed = value.startsWith("/")
         ? parseCommand(value)
         : { command: "search", arg: value };
+      if (parsed.command === "doctor") {
+        runDiagnostics();
+        return;
+      }
       if (parsed.command === "quit") {
         askQuit();
         return;
@@ -2404,7 +2455,44 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       }
       return;
     }
+    if (diagnostic) {
+      if (keyEvent.escape) {
+        diagnosticController.current?.abort();
+        setDiagnostic(null);
+        setScroll(diagnosticScroll.current);
+      } else if ((input === "r" || input === "R") && !diagnostic.loading)
+        runDiagnostics();
+      else if (
+        keyEvent.upArrow ||
+        keyEvent.downArrow ||
+        keyEvent.pageUp ||
+        keyEvent.pageDown
+      ) {
+        const length = diagnostic.report
+          ? doctorLines(diagnostic.report).flatMap((s) => wrap(s, width - 6))
+              .length
+          : 1;
+        const step =
+          keyEvent.pageUp || keyEvent.pageDown
+            ? Math.max(1, bodyHeight - 4)
+            : 1;
+        setScroll((v) =>
+          Math.max(
+            0,
+            Math.min(
+              Math.max(0, length - bodyHeight + 4),
+              v + (keyEvent.upArrow || keyEvent.pageUp ? -step : step),
+            ),
+          ),
+        );
+      }
+      return;
+    }
     if (phase !== "ready") {
+      if ((input === "d" || input === "D") && phase !== "pending") {
+        runDiagnostics();
+        return;
+      }
       if (keyEvent.escape && phase === "pending") {
         authController.current?.abort();
         setPhase("auth");
@@ -3155,7 +3243,41 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       h(Text, null, "Enlarge this terminal to at least 60 × 18."),
       h(Text, null, "Q or Ctrl+C exits."),
     );
-  else if (picker)
+  else if (diagnostic) {
+    const lines = diagnostic.loading
+      ? [
+          "Checking the environment and connection…",
+          "Esc cancels without changing settings.",
+        ]
+      : diagnostic.report
+        ? doctorLines(diagnostic.report)
+        : [
+            "Diagnostic could not finish. Run devdevian doctor outside the live workspace.",
+          ];
+    center = h(
+      Box,
+      {
+        borderStyle: colors.frame,
+        borderColor: colors.purple,
+        paddingX: 1,
+        height: bodyHeight,
+        flexDirection: "column",
+        overflow: "hidden",
+      },
+      h(Text, { color: colors.purple, bold: true }, "Connection check"),
+      h(FrameRows, {
+        rows: lines.flatMap((line) => wrap(line, width - 6)),
+        width: width - 6,
+        height: Math.max(1, bodyHeight - 4),
+        offset: scroll,
+      }),
+      h(
+        Text,
+        { color: colors.muted },
+        "↑↓ scroll · R check again · Esc return",
+      ),
+    );
+  } else if (picker)
     center = h(WorkspacePicker, {
       root,
       width,
@@ -3227,10 +3349,14 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       phase === "pending"
         ? ["Enter reopens the browser · Esc cancels"]
         : phase === "checking"
-          ? [error ? "R or Enter retries · Ctrl+C exits" : "Ctrl+C exits"]
+          ? [
+              error
+                ? "R or Enter retries · D diagnoses · Ctrl+C exits"
+                : "D checks connection · Ctrl+C exits",
+            ]
           : [
               "Enter connects this terminal through your browser.",
-              "Q or Ctrl+C exits.",
+              "D checks the connection · Q or Ctrl+C exits.",
             ];
     center = h(
       Box,
@@ -3544,7 +3670,13 @@ function App({ initialConfig, flags, root, initialAppearance }) {
             ),
           ),
       );
-    } else if (route.view === "pr-files" && current)
+    } else if (route.view === "start" && current)
+      body = h(StarterView, {
+        index,
+        width: contentWidth,
+        height: contentHeight,
+      });
+    else if (route.view === "pr-files" && current)
       body = h(PRFiles, {
         data: current,
         basket: prBasket,
@@ -3834,48 +3966,50 @@ function App({ initialConfig, flags, root, initialAppearance }) {
     );
   }
   const hint =
-    route.view === "pr-diff" && !form && !preview && !palette
-      ? "[ ] hunks · Space range · A add · R basket · C single · U remove · Z clear · Esc files"
-      : route.view === "pr-files" && !form && !palette
-        ? "↑↓ file · Enter diff · [ ] pages · R basket · U remove · Z clear · Esc back"
-        : route.view === "pr" && !form && !reading && !palette
-          ? "↑↓ scroll · F choose file / diff · [ ] pages · X actions · Esc back"
-          : palette
-            ? "Type to filter · ↑↓ choose · Enter open · Esc return"
-            : ["projects", "events"].includes(route.view) &&
-                !form &&
-                !preview &&
-                !picker
-              ? "↑↓ select · Enter open · F filters · N new · [ ] pages · / search"
-              : ["project", "event"].includes(route.view) && !form && !preview
-                ? "↑↓ scroll · X actions · E edit your publication · Esc back"
-                : form?.kind === "appearance"
-                  ? "← → choose · Tab next · Ctrl+S save · Esc cancel · 0 default preview"
-                  : actionIndex !== null
-                    ? "Actions are scoped to the selected item · Esc closes"
-                    : reviewing && !form && !preview && !reading
-                      ? "W code / discussion · Space select · C comment · X actions · F filter"
-                      : picker
-                        ? "Project files stay local until publication is confirmed"
-                        : reading
-                          ? readerFind.editing
-                            ? "Find in this text · Enter locate · Esc finish search"
-                            : "↑↓ scroll · / find · n/N match · Home/End · Esc return"
-                          : preview
-                            ? "← → choose · Enter confirm · Esc edit"
-                            : form
-                              ? formNav
-                                ? `${stepControls(activeSteps, activeStep).find((control) => control.id === formNav)?.label || "Next"} · Enter select · Tab fields · Ctrl+S preview`
-                                : fieldsFor(form)[field]?.multiline
-                                  ? "Enter new line · Tab next field · Ctrl+N next step · Ctrl+S preview"
-                                  : "Enter/Tab next field · Ctrl+N/P steps · Ctrl+S preview"
-                              : phase !== "ready"
-                                ? "Enter connect / open browser · Ctrl+C exit"
-                                : route.view === "feedback"
-                                  ? "↑↓ select · R reply · E edit · D delete · S resolve · ! report"
-                                  : route.view === "post"
-                                    ? "←→ tabs · ↑↓ select · R reply · E edit · D delete · Space read"
-                                    : "↑↓ select · Enter open · Tab sections · [ ] pages · N new · / search";
+    route.view === "start" && !form && !palette
+      ? "↑↓ choose · Enter continue · /help keys · /doctor connection · Esc feed"
+      : route.view === "pr-diff" && !form && !preview && !palette
+        ? "[ ] hunks · Space range · A add · R basket · C single · U remove · Z clear · Esc files"
+        : route.view === "pr-files" && !form && !palette
+          ? "↑↓ file · Enter diff · [ ] pages · R basket · U remove · Z clear · Esc back"
+          : route.view === "pr" && !form && !reading && !palette
+            ? "↑↓ scroll · F choose file / diff · [ ] pages · X actions · Esc back"
+            : palette
+              ? "Type to filter · ↑↓ choose · Enter open · Esc return"
+              : ["projects", "events"].includes(route.view) &&
+                  !form &&
+                  !preview &&
+                  !picker
+                ? "↑↓ select · Enter open · F filters · N new · [ ] pages · / search"
+                : ["project", "event"].includes(route.view) && !form && !preview
+                  ? "↑↓ scroll · X actions · E edit your publication · Esc back"
+                  : form?.kind === "appearance"
+                    ? "← → choose · Tab next · Ctrl+S save · Esc cancel · 0 default preview"
+                    : actionIndex !== null
+                      ? "Actions are scoped to the selected item · Esc closes"
+                      : reviewing && !form && !preview && !reading
+                        ? "W code / discussion · Space select · C comment · X actions · F filter"
+                        : picker
+                          ? "Project files stay local until publication is confirmed"
+                          : reading
+                            ? readerFind.editing
+                              ? "Find in this text · Enter locate · Esc finish search"
+                              : "↑↓ scroll · / find · n/N match · Home/End · Esc return"
+                            : preview
+                              ? "← → choose · Enter confirm · Esc edit"
+                              : form
+                                ? formNav
+                                  ? `${stepControls(activeSteps, activeStep).find((control) => control.id === formNav)?.label || "Next"} · Enter select · Tab fields · Ctrl+S preview`
+                                  : fieldsFor(form)[field]?.multiline
+                                    ? "Enter new line · Tab next field · Ctrl+N next step · Ctrl+S preview"
+                                    : "Enter/Tab next field · Ctrl+N/P steps · Ctrl+S preview"
+                                : phase !== "ready"
+                                  ? "Enter connect / open browser · Ctrl+C exit"
+                                  : route.view === "feedback"
+                                    ? "↑↓ select · R reply · E edit · D delete · S resolve · ! report"
+                                    : route.view === "post"
+                                      ? "←→ tabs · ↑↓ select · R reply · E edit · D delete · Space read"
+                                      : "↑↓ select · Enter open · Tab sections · [ ] pages · N new · / search";
   return h(
     ThemeContext.Provider,
     { value: colors },

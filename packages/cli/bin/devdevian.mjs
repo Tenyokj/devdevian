@@ -28,6 +28,8 @@ import { githubReader, pullRequestLines } from "../lib/github-reader.mjs";
 import { readGitHubContext, workspaceRoot } from "../lib/workspace.mjs";
 import { githubContextLines } from "../lib/github-context.mjs";
 import { conversationLinks } from "../lib/conversation-links.mjs";
+import { runDoctor, doctorLines } from "../lib/doctor.mjs";
+import { commandProblemMessage } from "../lib/problems.mjs";
 import { renderHelp } from "../lib/help.mjs";
 const version = packageInfo.version;
 const options = {
@@ -57,6 +59,8 @@ const options = {
   editor: { type: "boolean" },
   "no-open": { type: "boolean" },
   "no-live": { type: "boolean" },
+  offline: { type: "boolean" },
+  start: { type: "boolean" },
   ...Object.fromEntries(
     appearanceFields.map((field) => [
       field.key === "reviewLayout" ? "review-layout" : field.key,
@@ -102,6 +106,8 @@ const help = `Devdevian CLI ${version} · alpha
   devdevian                       Live terminal workspace
   devdevian tui                   Live workspace in this terminal
   devdevian open                  Open the workspace in a new terminal window
+  devdevian doctor [--offline] [--json]  Read-only environment and connection checks
+  devdevian tui --start           Open the getting-started guide
   devdevian login                 Authorize in your browser
   devdevian logout                Revoke this terminal
   devdevian appearance             Show local theme and layout preferences
@@ -276,7 +282,9 @@ async function login(flags) {
       token: result.access_token,
       expires_at: result.expires_at,
     });
-    out("Connected. Run devdevian to open your workspace.");
+    out(
+      "Connected. Run devdevian to open your workspace. New here? Run devdevian tui --start.",
+    );
     return;
   }
   throw Error("Login expired. Run devdevian login again.");
@@ -299,6 +307,20 @@ async function execute(args, flags) {
     return;
   }
   const command = args[0];
+  if (command === "doctor") {
+    const report = await runDoctor({
+      host: flags.host,
+      offline: !!flags.offline,
+      project: flags.project,
+    });
+    if (flags.json)
+      process.stdout.write(
+        JSON.stringify({ cli_version: version, ...report }) + "\n",
+      );
+    else out(`Devdevian CLI ${version}\n\n` + doctorLines(report).join("\n"));
+    if (!report.ok) process.exitCode = 1;
+    return;
+  }
   if (command === "github" && args[1] === "diff") {
     const data = await githubReader.loadDiff(args[2], {
       page: positive(flags.page || "1", "Page"),
@@ -654,13 +676,14 @@ try {
       if (values[key]) args.push("--" + key, values[key]);
     if (values["no-open"]) args.push("--no-open");
     if (values["no-live"]) args.push("--no-live");
+    if (values.start) args.push("--start");
     await (
       await import("../lib/window.mjs")
     ).openWindow({ entry: fileURLToPath(import.meta.url), args });
     out("Devdevian opened in a separate terminal window.");
   } else await execute(positionals, values);
 } catch (e) {
-  process.stderr.write("Devdevian: " + clean(e.message) + "\n");
+  process.stderr.write("Devdevian: " + commandProblemMessage(e) + "\n");
   process.exitCode = 1;
 } finally {
   terminal?.close();

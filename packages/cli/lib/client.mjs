@@ -57,6 +57,10 @@ export async function loadConfig() {
     return config;
   } catch (e) {
     if (e.code === "ENOENT") return null;
+    if (e instanceof SyntaxError)
+      throw Error(
+        "Invalid saved CLI credentials. Sign in again; the existing file was left unchanged.",
+      );
     throw e;
   }
 }
