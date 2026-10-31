@@ -1,7 +1,7 @@
 // Explicit additive schema migration, outside the request execution time limit.
 // Do not load production credentials implicitly: the operator selects the env.
 process.env.VERCEL = "1";
-const { createApp } = await import("../server.mjs");
+process.env.DEVDEVIAN_EXPLICIT_ENV = "1";
 try {
   if (process.argv.includes("--prepare-workspaces")) {
     const { openDatabase } = await import("../database.mjs");
@@ -91,6 +91,7 @@ try {
       "Subscriptions prepared. Existing schema marker preserved for the active release.",
     );
   } else {
+    const { createApp } = await import("../server.mjs");
     await createApp({ migrationOnly: true });
     console.log("Database schema is current. No application data was reset.");
   }

@@ -95,7 +95,7 @@ Publishing revisions is bounded to five per author per ten minutes across both A
 
 ## Additive migration and recovery
 
-This is an operator procedure for the eventual 0.2 deployment, **not a request to migrate production now**. Use an explicitly selected environment; never load developer credentials or overwrite `.env` files as part of preparation.
+This is an operator procedure for the eventual 0.2 deployment, **not a request to migrate production now**. Use an explicitly selected environment. The migration CLI skips implicit `.env` loading for both preparation and finalization; it neither reads developer credentials from a local file nor overwrites environment files. A separate fixture verifies this with deliberately invalid local settings.
 
 1. Create and verify a database/file backup. Rehearse on a restored disposable copy first.
 2. Run `node scripts/migrate.mjs --prepare-workspaces` while release 0.1.10/schema 6 remains active. It creates association/snapshot tables, a nullable feedback anchor/index and an immutable-update guard. It backfills the currently retained review code in bounded keyset batches, and records readiness only when preparation finishes. The main schema marker remains 6.

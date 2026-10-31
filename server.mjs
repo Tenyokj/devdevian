@@ -23,7 +23,11 @@ import { assertRuntime, allowedOrigin } from "./runtime-config.mjs";
 import { preferences, validUsername } from "./preferences.mjs";
 import { existsSync } from "node:fs";
 // Isolated tests supply their own environment and must never read developer secrets.
-if (process.env.NODE_ENV !== "test" && existsSync(".env"))
+if (
+  process.env.NODE_ENV !== "test" &&
+  process.env.DEVDEVIAN_EXPLICIT_ENV !== "1" &&
+  existsSync(".env")
+)
   process.loadEnvFile(".env");
 import { registerAuth } from "./auth.mjs";
 import {

@@ -1,3 +1,6 @@
+import { writeFile } from "node:fs/promises";
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { DatabaseSync } from "node:sqlite";
@@ -746,6 +749,50 @@ test("GitHub multi-file provenance stays frozen with the exact revision and reje
     );
     const post = (await author(root)).data;
     assert.equal(post.github_context.commit, "c".repeat(40));
+  } finally {
+    await f.close();
+  }
+});
+
+test("migration CLI uses only the operator-selected environment and preserves active v6 during preparation", async () => {
+  const f = await startTestServer();
+  try {
+    const db = new DatabaseSync(f.path);
+    db.exec("UPDATE app_schema SET version=6");
+    // This is a disposable fixture file, never the developer's environment.
+    // Importing server bootstrap used to implicitly load it for migrations.
+    await writeFile(
+      join(f.directory, ".env"),
+      "TURSO_DATABASE_URL=invalid:fixture-only\nTURSO_AUTH_TOKEN=fixture-only\n",
+    );
+    const run = (args) =>
+      spawnSync(
+        process.execPath,
+        [
+          fileURLToPath(new URL("../scripts/migrate.mjs", import.meta.url)),
+          ...args,
+        ],
+        {
+          cwd: f.directory,
+          timeout: 10000,
+          encoding: "utf8",
+          env: {
+            PATH: process.env.PATH,
+            NODE_ENV: "production",
+            DB_PATH: f.path,
+            UPLOAD_DRIVER: "local",
+            DB_DRIVER: process.env.DB_DRIVER || "",
+          },
+        },
+      );
+    let result = run(["--prepare-workspaces"]);
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(db.prepare("SELECT version FROM app_schema").get().version, 6);
+    assert.equal(inspectSchema(db, { allowPreparedWorkspaces: true }), true);
+    result = run([]);
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(db.prepare("SELECT version FROM app_schema").get().version, 7);
+    db.close();
   } finally {
     await f.close();
   }
