@@ -2,7 +2,8 @@ import { createHash } from "node:crypto";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
-import { spawn } from "node:child_process";
+import { spawn, execFile } from "node:child_process";
+import { promisify } from "node:util";
 import { mkdtemp, writeFile, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -112,6 +113,15 @@ test(
       const bin =
         process.env.CLI_TEST_BIN ||
         fileURLToPath(new URL("../bin/devdevian.mjs", import.meta.url));
+      const scripted = await promisify(execFile)(
+        process.execPath,
+        [bin, "reviews", "--section", "awaiting", "--json"],
+        {
+          cwd: directory,
+          env: { ...process.env, DEVDEVIAN_CONFIG_DIR: directory },
+        },
+      );
+      assert.equal(JSON.parse(scripted.stdout).review_queue, "awaiting");
       child = spawn(
         "python3",
         [

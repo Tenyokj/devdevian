@@ -50,7 +50,7 @@ export function registerCodeReviews(app, db, required) {
       args.push(hash);
     }
     // Counts cover all live remarks, independently of the selected page/filter.
-    const summary = db
+    const counts = db
       .prepare(
         `SELECT
       COALESCE(SUM(CASE WHEN snippet_hash=? AND resolved=0 THEN 1 ELSE 0 END),0) open,
@@ -59,6 +59,12 @@ export function registerCodeReviews(app, db, required) {
       FROM code_reviews WHERE post_id=? AND deleted_at IS NULL`,
       )
       .get(hash, hash, hash, req.reviewPost.id);
+    // libSQL attaches non-column metadata to result rows. Expose only counts.
+    const summary = {
+      open: Number(counts.open),
+      resolved: Number(counts.resolved),
+      earlier: Number(counts.earlier),
+    };
     const query = { ...req.query };
     if (query.target_id) {
       const target = db
