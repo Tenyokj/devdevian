@@ -67,7 +67,7 @@ Private GitHub repositories, GitHub writeback, arbitrary code execution, realtim
 
 `npm run test:workspaces` checks immutable revision behavior and exact comparison reconstruction, then drives the interactive concept in Chromium. The browser scenario covers requests/replies surviving dialog navigation, revision/quote boundaries, decisions, activity, terminal selection, keyboard navigation, reset and 1440/1024/768/390/360px layouts. It asserts that no forum API requests occur. Ordinary production checks remain required before integrating the interface.
 
-## Server contract on this branch
+## Shared API contract
 
 Existing Projects and conversations keep their IDs and routes. Nothing creates a second project or private-membership system. The implementation is in [`workspaces.mjs`](../workspaces.mjs) and [`review-revisions.mjs`](../review-revisions.mjs).
 
@@ -107,7 +107,7 @@ The backup schema copier includes snapshot tables, anchors, indexes and triggers
 
 `tests/workspaces-api.test.mjs` covers ownership, private-list/search/count boundaries, revoked membership, workflow/version conflicts (including detach/relink), multi-file offsets and exact bytes, repeated-code identities, old-client edits, stale requests, paused states, revision budgets/caps, interrupted-write rollback, repeatable v6 preparation and snapshot recovery. The visual concept's separate tests still assert zero forum API calls.
 
-## Real browser workflow on this branch
+## Browser workflow
 
 Use Projects → **Open workspace**, or `/app#workspace/PROJECT_ID`. The project introduction also links to its workspace. Overview shows actual project context and viewer-scoped workflow counts; Work requests supports bounded search/paging, status changes and explicit link/unlink. Code review opens a linked review at `/app#workspace/PROJECT_ID/review/POST_ID`. Its Full conversation link retains all existing replies and publication actions. A linked ordinary conversation points back to its project. No placeholder decisions, activity or terminal-workspace commands are advertised as implemented features.
 
@@ -131,7 +131,7 @@ This builds the real app, starts a loopback server and prints its URL. It create
 
 `npm run test:workspaces:app` builds the app, runs model/API tests and drives the real multi-account browser flow. `scripts/workspace-browser-check.mjs` covers creation, drafts, uncertain-link retry without duplicates, unlink/relink, exact old code/quotes/comparison, stale-editor recovery, account switching, private/guest permissions, keyboard close and five widths in both themes. Artifacts live under ignored `.test-data/workspaces-browser/`. The production migration and CLI companion are still separate future stages.
 
-## CLI companion on this branch
+## CLI companion
 
 The terminal extends the same project IDs and APIs. `packages/cli/lib/project-workspace.mjs` contains local binding, bounded project reads, association plans, immutable revision preparation and two-phase creation recovery. It is separate from the existing `workspace.mjs` filesystem/Git picker. No repository configuration file is created; settings are scoped to origin/account/canonical directory outside the repository.
 
@@ -141,9 +141,9 @@ Feedback reads check both code hash and conversation revision; writes include sn
 
 Request creation saves a known new post ID before linking it. A failed association retry reuses that ID; an unknown POST outcome is not replayed. Retrying an already-published request links its original content, rather than implying that later form edits changed the published post. Unlinking only removes the association, not the conversation.
 
-`packages/cli/test/project-workspace*.test.mjs` covers scoped settings, explicit file selection, duplicate/secret/traversal boundaries, recovery, history, exact previews, conflict retention and compact real PTY layout. `tests/workspaces-cli.test.mjs` drives script commands against an isolated real API: browser feedback → CLI revision → original snapshot/old feedback, current feedback anchors, workflow changes and private access denial. Production rollout and a hosted restore rehearsal have not occurred.
+`packages/cli/test/project-workspace*.test.mjs` covers scoped settings, explicit file selection, duplicate/secret/traversal boundaries, recovery, history, exact previews, conflict retention and compact real PTY layout. `tests/workspaces-cli.test.mjs` drives script commands against an isolated real API: browser feedback → CLI revision → original snapshot/old feedback, current feedback anchors, workflow changes and private access denial. Fixture checks do not replace the operator rollout procedure or establish that a hosted restore drill has occurred.
 
-Local verification for the CLI companion: 168 tests in the combined sequential suite and 99 isolated libSQL/S3 fixtures passed. The package dry run includes the companion module; no package version was assigned or published. CI results are tracked separately from local verification.
+Local verification for the CLI companion: 168 tests in the combined sequential suite and 99 isolated libSQL/S3 fixtures passed. The package dry run includes the companion module; npm publication is a separate operator step. CI results are tracked separately from local verification.
 
 ## Release-candidate audit
 
@@ -151,6 +151,6 @@ The operator rehearsal and expanded regression checks are described in [reliabil
 
 Both browser and CLI persist uncertain creation intent before POST, preventing a reload or killed terminal from silently replaying an unknown outcome. Known published IDs remain separate from link retries. Browser tests also confirm that a definitive quota refusal unlocks editing without losing text.
 
-The expanded load fixture exercises project/revision reads and private aggregates alongside existing feed/feedback endpoints. Production migration/deploy and a new npm/GitHub release remain separate, unperformed steps. Existing decisions/activity concepts remain outside the implemented core; this audit does not advertise them as shipping features.
+The expanded load fixture exercises project/revision reads and private aggregates alongside existing feed/feedback endpoints. Production migration/deploy and package publication follow the operator procedure; a combined GitHub release is recorded separately. Existing decisions/activity concepts remain outside the implemented core; this audit does not advertise them as shipping features.
 
 The final local audit passed 173 tests, 103 isolated libSQL/S3 fixtures, the expanded responsive browser workflow and the bounded load fixture (300 reads / concurrency 10 / zero errors). The encrypted restore rehearsal uses fictional fixture data; hosted restore/deployment and package publication are not implied by these results.

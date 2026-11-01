@@ -40,4 +40,4 @@ Documentation describes the current implementation. Free provider quotas, consol
 
 ## In development
 
-- [Workspaces 0.2](workspaces-0.2.md): development branch with server contracts, real browser and CLI workflows, isolated demos, migration/recovery plan and release-candidate stages. See the release guide for rollout status and compatibility.
+- [Workspaces 0.2](workspaces-0.2.md): server contracts, real browser and CLI workflows, isolated demos, migration/recovery plan and release-candidate stages. See the release guide for rollout status and compatibility.

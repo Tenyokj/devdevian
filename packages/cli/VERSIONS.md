@@ -20,7 +20,7 @@ Companion to browser/API 0.2.0. npm alpha publication is independent of the comb
 - Snapshot/file-aware feedback and session positions, same-code identity checks, retained revision drafts and CAS conflict handling. Two-phase request creation preserves known post IDs and never automatically replays an uncertain creation.
 - Uses the matching Workspaces backend and existing private/community permissions. No new dependencies, GitHub write permissions or automatic uploads.
 
-## Current published milestone
+## Previous milestone
 
 **0.14.0 adds Review queue and version-aware review continuity.**
 
