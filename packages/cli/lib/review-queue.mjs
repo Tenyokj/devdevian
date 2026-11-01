@@ -32,13 +32,21 @@ export class ReviewMemory {
   save(post, position) {
     if (!post?.code) return;
     this.#items.delete(post.id);
-    this.#items.set(post.id, { hash: this.#hash(post.code), ...position });
+    this.#items.set(post.id, {
+      hash: this.#hash(post.code),
+      snapshot: post.review_revision_id ?? null,
+      ...position,
+    });
     if (this.#items.size > 30)
       this.#items.delete(this.#items.keys().next().value);
   }
   restore(post) {
     const item = this.#items.get(post?.id);
-    if (!item || item.hash !== this.#hash(post.code || "")) {
+    if (
+      !item ||
+      item.hash !== this.#hash(post.code || "") ||
+      item.snapshot !== (post.review_revision_id ?? null)
+    ) {
       this.#items.delete(post?.id);
       return null;
     }

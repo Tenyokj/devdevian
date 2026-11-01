@@ -40,4 +40,4 @@ Documentation describes the current implementation. Free provider quotas, consol
 
 ## In development
 
-- [Workspaces 0.2 concept](workspaces-0.2.md): isolated interactive prototype, proposed data/permission contract and delivery stages. This is planned product work, separate from the published browser/API and CLI features above.
+- [Workspaces 0.2](workspaces-0.2.md): development branch with server contracts, real browser and CLI workflows, isolated demos, migration/recovery plan and release-candidate stages. These changes are not yet deployed or npm-published.

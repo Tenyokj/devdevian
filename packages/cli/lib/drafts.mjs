@@ -57,6 +57,7 @@ export class DraftStore {
       Date.now() - record.savedAt > TTL ||
       record.savedAt > Date.now() + 60000 ||
       ![
+        "revision",
         "publication",
         "reply",
         "line",

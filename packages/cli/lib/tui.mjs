@@ -1,4 +1,15 @@
 import {
+  ProjectBinding,
+  loadWorkspace,
+  requestPlan,
+  revisionBase,
+  revisionFiles,
+  revisionPlan,
+  feedbackAnchor,
+  workspaceId,
+  publishWorkRequest,
+} from "./project-workspace.mjs";
+import {
   reviewQueueTabs,
   reviewQueueQuery,
   ReviewMemory,
@@ -98,7 +109,7 @@ const stamp = (value) => {
     typeof value === "number"
       ? value
       : String(value || "").replace(" ", "T") +
-          (/Z$|[+-]\d\d:\d\d$/.test(value || "") ? "" : "Z"),
+        (/Z$|[+-]\d\d:\d\d$/.test(value || "") ? "" : "Z"),
   );
   return Number.isNaN(date.getTime())
     ? ""
@@ -148,6 +159,24 @@ function fieldsFor(form) {
       : fields;
   }
   if (form.kind === "appearance") return appearanceFields;
+  if (form.kind === "revision")
+    return [
+      {
+        key: "file",
+        label: "Code file / Git diff",
+        min: 1,
+        max: 1500,
+        hint: "Ctrl+O file explorer · Ctrl+G Git diff. Only the selected code is shared.",
+      },
+      { key: "lines", label: "File lines (optional)", max: 30 },
+      {
+        key: "review_focus",
+        label: "Review focus",
+        min: 10,
+        max: 1500,
+        multiline: true,
+      },
+    ];
   if (form.kind === "publication")
     return [
       {
@@ -495,6 +524,13 @@ function listRows(route, data, index, width, colors, density = "comfortable") {
       title = item.name;
       meta = `${item.stage} · #${item.topic} · ${item.founder_name}`;
       body = item.tagline || item.description;
+    } else if (route.view === "workspace") {
+      meta = `${item.state.replaceAll("_", " ")} · ${item.kind} · ${item.author_name}`;
+      body = item.excerpt;
+    } else if (route.view === "versions") {
+      title = `Revision v${item.number}${item.id === data.current_revision_id ? " · current" : ""}`;
+      meta = `${stamp(item.created)} · ${item.files.length} file(s) · snapshot #${item.id}`;
+      body = item.review_focus;
     } else if (route.view === "events") {
       title = (item.cancelled_at ? "[Cancelled] " : "") + item.title;
       meta = `${stamp(item.start_at)} · ${item.organizer_name}`;
@@ -785,6 +821,13 @@ function App({ initialConfig, flags, root, initialAppearance }) {
     () => (config ? client(config.origin, config.token) : null),
     [config?.origin, config?.token],
   );
+  const binding = useMemo(
+    () =>
+      config && user
+        ? new ProjectBinding({ origin: config.origin, userId: user.id, root })
+        : null,
+    [config?.origin, user?.id, root],
+  );
   const effectiveAppearance =
     form?.kind === "appearance" ? normalizeAppearance(form.values) : appearance;
   const colors = useMemo(
@@ -889,7 +932,8 @@ function App({ initialConfig, flags, root, initialAppearance }) {
     if (!post?.code) return;
     if (
       seenSnippet.current?.id === post.id &&
-      seenSnippet.current.code !== post.code
+      (seenSnippet.current.code !== post.code ||
+        seenSnippet.current.snapshot !== post.review_revision_id)
     ) {
       setReviewLine(0);
       setReviewAnchor(null);
@@ -921,8 +965,17 @@ function App({ initialConfig, flags, root, initialAppearance }) {
         if (selected >= 0) setIndex(selected);
       }
     }
-    seenSnippet.current = { id: post.id, code: post.code };
-  }, [current?.key, current?.post?.id, current?.post?.code]);
+    seenSnippet.current = {
+      id: post.id,
+      code: post.code,
+      snapshot: post.review_revision_id,
+    };
+  }, [
+    current?.key,
+    current?.post?.id,
+    current?.post?.code,
+    current?.post?.review_revision_id,
+  ]);
   const resetAccount = () => {
     diagnosticController.current?.abort();
     setDiagnostic(null);
@@ -1016,12 +1069,14 @@ function App({ initialConfig, flags, root, initialAppearance }) {
     };
     if (history.current.length > 30) history.current.shift();
     setReading(null);
-    if (!(
-      replace &&
-      reviewing &&
-      next.view === route.view &&
-      next.id === route.id
-    )) {
+    if (
+      !(
+        replace &&
+        reviewing &&
+        next.view === route.view &&
+        next.id === route.id
+      )
+    ) {
       setReviewLine(0);
       setReviewAnchor(null);
       setReviewHorizontal(0);
@@ -1499,6 +1554,17 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       setCommandCursor(4);
       return;
     }
+    if (name === "workspace") {
+      try {
+        await openProjectWorkspace();
+      } catch (e) {
+        setError(e.message);
+        setFocus("prompt");
+        setCommand("/workspace ");
+        setCommandCursor(11);
+      }
+      return;
+    }
     if (name === "appearance") return openAppearance();
     if (name === "ask" || name === "review")
       return composePublication(name === "review" ? "review" : "question");
@@ -1712,8 +1778,16 @@ function App({ initialConfig, flags, root, initialAppearance }) {
         route.view === "community" && current?.community?.is_member
           ? route.id
           : "";
+      if (
+        route.view === "workspace" &&
+        !current?.workspace?.permissions?.manage_requests
+      )
+        throw Error(
+          "Only the project owner can create and link a work request here. You can still reply to existing requests.",
+        );
       openForm({
         kind: "publication",
+        ...(route.view === "workspace" ? { workspaceProject: route.id } : {}),
         ...(prSelection ? { prSelection } : {}),
         title:
           kind === "review" ? "Request a code review" : "Start a conversation",
@@ -1845,6 +1919,8 @@ function App({ initialConfig, flags, root, initialAppearance }) {
         audience: p.community_id ? "Private community" : "Public feed",
         postId: p.id,
         snippetHash: notes.snippet_hash,
+        anchor: feedbackAnchor(p, notes, range.start, range.end),
+        files: notes.files,
         lineCount: p.code.split("\n").length,
         values: {
           start_line: String(range.start),
@@ -1934,11 +2010,49 @@ function App({ initialConfig, flags, root, initialAppearance }) {
         setYes(false);
         return;
       }
+      if (form.kind === "revision") {
+        const files = await revisionFiles(root, {
+          source: form.source,
+          file: form.values.file,
+          lines: form.values.lines,
+        });
+        const plan = revisionPlan(
+          form.postId,
+          form.base,
+          files,
+          form.values.review_focus,
+        );
+        setPreview({
+          ...plan,
+          payload: {
+            ...plan.payload,
+            community_id: form.base.post.community_id || null,
+          },
+        });
+        setScroll(0);
+        setYes(false);
+        return;
+      }
       let payload,
         method = "POST",
         url,
         title = form.title;
       if (form.kind === "publication") {
+        if (form.workspaceProgress?.postId) {
+          setPreview({
+            payload: form.workspaceProgress.payload,
+            method: "POST",
+            url: "/posts",
+            title: `Link already-published post #${form.workspaceProgress.postId} · project #${form.workspaceProject} · content below is the published original`,
+          });
+          setScroll(0);
+          setYes(false);
+          return;
+        }
+        if (form.workspaceProgress?.uncertain)
+          throw Error(
+            "Publication outcome is unknown. Check My work before retrying. Draft retained.",
+          );
         payload = {
           kind: form.values.kind,
           title: form.values.title.trim(),
@@ -2030,7 +2144,16 @@ function App({ initialConfig, flags, root, initialAppearance }) {
           end_line: end,
           body: form.values.body,
           snippet_hash: form.snippetHash,
+          ...(form.anchor || {}),
         };
+        if (form.anchor?.revision_id) {
+          const file = form.files?.find(
+            (f) => start >= f.start_line && end <= f.end_line,
+          );
+          if (!file)
+            throw Error("Select lines within one file in this revision.");
+          payload.file_path = file.path;
+        }
         url = `/posts/${form.postId}/code-reviews`;
       } else if (form.kind === "edit") {
         payload = { body: form.values.body, revision: form.revision };
@@ -2040,7 +2163,19 @@ function App({ initialConfig, flags, root, initialAppearance }) {
         payload = { reason: form.values.reason, reply_id: form.replyId || 0 };
         url = form.url;
       }
-      setPreview({ payload, method, url, title });
+      setPreview({
+        payload,
+        method,
+        url,
+        title: form.workspaceProject
+          ? title +
+            " · project #" +
+            form.workspaceProject +
+            (form.workspaceProgress?.postId
+              ? " · link existing post #" + form.workspaceProgress.postId
+              : "")
+          : title,
+      });
       setScroll(0);
       setYes(false);
       setError("");
@@ -2050,21 +2185,33 @@ function App({ initialConfig, flags, root, initialAppearance }) {
     if (!preview) return;
     await task(async () => {
       let working = form;
-      const response = preview.catalog
-        ? await publishCatalog(
+      const response = form.workspaceProject
+        ? await publishWorkRequest(
             api,
-            preview.catalog,
-            form.catalogProgress,
+            form.workspaceProject,
+            preview.payload,
+            form.workspaceProgress,
             async (progress) => {
-              working = { ...working, catalogProgress: progress };
+              working = { ...working, workspaceProgress: progress };
               setForm(working);
-              await queueDraft(() => drafts.save(working));
+              if (drafts) await queueDraft(() => drafts.save(working));
             },
           )
-        : await api(preview.url, {
-            method: preview.method,
-            body: preview.payload,
-          });
+        : preview.catalog
+          ? await publishCatalog(
+              api,
+              preview.catalog,
+              form.catalogProgress,
+              async (progress) => {
+                working = { ...working, catalogProgress: progress };
+                setForm(working);
+                await queueDraft(() => drafts.save(working));
+              },
+            )
+          : await api(preview.url, {
+              method: preview.method,
+              body: preview.payload,
+            });
       cache.current.clear();
       let localWarning = "";
       try {
@@ -2076,7 +2223,14 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       setPreview(null);
       setForm(null);
       setScroll(0);
-      if (preview.catalog)
+      if (form.workspaceProject)
+        navigate({ view: "workspace", id: form.workspaceProject, page: 1 });
+      else if (form.kind === "revision")
+        navigate(
+          { view: "post", id: form.postId, tab: "feedback", page: 1 },
+          { replace: true },
+        );
+      else if (preview.catalog)
         navigate({ view: form.entity, id: response.id, page: 1 });
       else if (preview.url === "/posts")
         navigate({ view: "post", id: response.id, tab: "overview", page: 1 });
@@ -2097,6 +2251,21 @@ function App({ initialConfig, flags, root, initialAppearance }) {
     });
   }
   async function openSelected() {
+    if (route.view === "versions") {
+      if (selected)
+        navigate({ view: "snapshot", postId: route.postId, id: selected.id });
+      return;
+    }
+    if (route.view === "workspace") {
+      if (selected)
+        navigate({
+          view: "post",
+          id: selected.id,
+          tab: selected.kind === "review" ? "feedback" : "overview",
+          page: 1,
+        });
+      return;
+    }
     if (route.view === "start") {
       if (selected?.id === "doctor") runDiagnostics();
       else if (selected?.id === "ask") composePublication("question");
@@ -2378,6 +2547,34 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       catalogAction(id.slice(8));
       return;
     }
+    if (id === "workspace") {
+      navigate({ view: "workspace", id: route.id, page: 1 });
+      return;
+    }
+    if (id === "versions") {
+      navigate({ view: "versions", postId: current.post.id, page: 1 });
+      return;
+    }
+    if (id === "revision") {
+      composeRevision(current.post.id);
+      return;
+    }
+    if (id === "original") {
+      const note = route.view === "feedback" ? current.note : selected;
+      if (note?.snapshot_id && note.snapshot_available)
+        navigate({
+          view: "snapshot",
+          postId: current.post.id,
+          id: note.snapshot_id,
+        });
+      return;
+    }
+    if (id === "request-state") {
+      setFocus("prompt");
+      setCommand(`/state ${selected.id} `);
+      setCommandCursor(graphemes(`/state ${selected.id} `).length);
+      return;
+    }
     if (id === "read") {
       if (current?.post) {
         readItem(selected);
@@ -2416,6 +2613,56 @@ function App({ initialConfig, flags, root, initialAppearance }) {
         invalidate("Received notifications marked as read.");
       });
   }
+  async function composeRevision(postId) {
+    await task(async () => {
+      const base = await revisionBase(api, postId);
+      if (base.post.user_id !== user.id)
+        throw Error("Only the conversation author can share a revision.");
+      if (base.post.archived_at || base.post.locked_at)
+        throw Error("Replies are paused.");
+      openForm({
+        kind: "revision",
+        postId,
+        title: "Share review revision",
+        base,
+        audience: base.post.community_id ? "Private community" : "Public feed",
+        values: {
+          file: "",
+          lines: "",
+          review_focus: base.post.review_focus || "",
+        },
+      });
+    });
+  }
+  async function openProjectWorkspace(value) {
+    const id = value ? workspaceId(value) : await binding.read();
+    if (!id)
+      throw Error(
+        "No project linked here. Use /bind PROJECT_ID first, or /workspace PROJECT_ID.",
+      );
+    navigate({ view: "workspace", id, page: 1 });
+  }
+  async function changeRequest(postId, state) {
+    await task(async () => {
+      const id = route.view === "workspace" ? route.id : await binding.read();
+      if (!id)
+        throw Error("Open /workspace PROJECT_ID or bind a project first.");
+      const plan = await requestPlan(api, id, postId, state || "open");
+      if (state && plan.method !== "PATCH")
+        throw Error("Link this conversation first with /request ID.");
+      askConfirm(
+        plan.title,
+        plan.audience + " · " + JSON.stringify(plan.payload),
+        () =>
+          task(async () => {
+            await api(plan.url, { method: plan.method, body: plan.payload });
+            cache.current.clear();
+            navigate({ view: "workspace", id, page: 1 });
+            setRefresh((v) => v + 1);
+          }),
+      );
+    });
+  }
   async function runCommand(override) {
     const value = (override ?? command).trim();
     if (!value) return;
@@ -2426,6 +2673,54 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       const parsed = value.startsWith("/")
         ? parseCommand(value)
         : { command: "search", arg: value };
+      if (parsed.command === "workspace") {
+        await openProjectWorkspace(parsed.arg);
+        return;
+      }
+      if (parsed.command === "bind") {
+        await task(async () => {
+          const data = await loadWorkspace(api, parsed.arg);
+          askConfirm(
+            "Associate this directory?",
+            root +
+              " → " +
+              data.workspace.project.name +
+              " · local only; no files uploaded",
+            () =>
+              task(async () => {
+                await binding.save(parsed.arg);
+                navigate({ view: "workspace", id: parsed.arg, page: 1 });
+                setNotice(
+                  "Directory linked locally for this account and server. No repository file was created.",
+                );
+              }),
+          );
+        });
+        return;
+      }
+      if (parsed.command === "unbind") {
+        await binding.remove();
+        setNotice("Local association removed. Server data is unchanged.");
+        return;
+      }
+      if (parsed.command === "request") {
+        await changeRequest(parsed.arg);
+        return;
+      }
+      if (parsed.command === "state") {
+        const match = /^([1-9]\d*) (open|in_progress|ready)$/.exec(parsed.arg);
+        if (!match) throw Error("Use /state POST_ID open|in_progress|ready.");
+        await changeRequest(workspaceId(match[1]), match[2]);
+        return;
+      }
+      if (parsed.command === "versions") {
+        navigate({ view: "versions", postId: parsed.arg, page: 1 });
+        return;
+      }
+      if (parsed.command === "revision") {
+        await composeRevision(parsed.arg);
+        return;
+      }
       if (parsed.command === "reviews") {
         reviewQueueQuery(parsed.arg || "open");
         navigate({ view: "reviews", tab: parsed.arg || "open", page: 1 });
@@ -2808,9 +3103,9 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       if (
         keyEvent.ctrl &&
         ["o", "g"].includes(input) &&
-        form.kind === "publication" &&
+        ["publication", "revision"].includes(form.kind) &&
         !formNav &&
-        form.values.kind === "review" &&
+        (form.kind === "revision" || form.values.kind === "review") &&
         !form.prSelection
       ) {
         setPicker(input === "g" ? "changes" : "files");
@@ -2989,12 +3284,39 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       setActionIndex(0);
       return;
     }
+    if (input.toLowerCase() === "h" && current?.post?.code) {
+      navigate({ view: "versions", postId: current.post.id, page: 1 });
+      return;
+    }
+    if (input.toLowerCase() === "u" && current?.post?.code) {
+      composeRevision(current.post.id);
+      return;
+    }
+    if (input.toLowerCase() === "b" && reviewing) {
+      const note = route.view === "feedback" ? current.note : selected;
+      if (note?.snapshot_id && note.snapshot_available)
+        navigate({
+          view: "snapshot",
+          postId: current.post.id,
+          id: note.snapshot_id,
+        });
+      else
+        setNotice(
+          "Full original code unavailable. The saved quote remains visible.",
+        );
+      return;
+    }
+    if (input.toLowerCase() === "w" && route.view === "project") {
+      navigate({ view: "workspace", id: route.id, page: 1 });
+      return;
+    }
     if ((input === "v" || input === "V") && current?.post?.code) {
       navigate({ view: "post", id: current.post.id, tab: "feedback", page: 1 });
       return;
     }
     if (reviewing && (input === "{" || input === "}")) {
-      const files = current?.post?.github_context?.files;
+      const files =
+        current?.post?.review_files || current?.post?.github_context?.files;
       if (files?.length) {
         const index = Math.max(
           0,
@@ -3204,7 +3526,7 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       route.view === "help" ||
       (route.view === "post" && (!route.tab || route.tab === "overview")) ||
       (route.view === "community" && !current?.community?.is_member) ||
-      ["project", "event"].includes(route.view);
+      ["project", "event", "snapshot"].includes(route.view);
     if (
       keyEvent.upArrow ||
       keyEvent.downArrow ||
@@ -3231,6 +3553,23 @@ function App({ initialConfig, flags, root, initialAppearance }) {
         setIndex((v) =>
           Math.max(0, Math.min((current?.items?.length || 1) - 1, v + delta)),
         );
+      return;
+    }
+    if (
+      route.view === "workspace" &&
+      (keyEvent.leftArrow || keyEvent.rightArrow)
+    ) {
+      const states = ["", "open", "in_progress", "ready"],
+        index = states.indexOf(route.state || "");
+      navigate(
+        {
+          ...route,
+          state:
+            states[(index + (keyEvent.rightArrow ? 1 : 3)) % states.length],
+          page: 1,
+        },
+        { replace: true },
+      );
       return;
     }
     if (
@@ -3747,6 +4086,13 @@ function App({ initialConfig, flags, root, initialAppearance }) {
                 : ["No new images"]),
             ]
           : []),
+        ...(payload.files
+          ? [
+              "",
+              `BASE SNAPSHOT #${payload.base_revision_id} · POST REVISION ${payload.expected_revision}`,
+              ...payload.files.flatMap((file) => ["", file.path, file.code]),
+            ]
+          : []),
         ...(payload.code ? ["", "CODE TO PUBLISH", payload.code] : []),
         ...(payload.review_focus
           ? ["", "REVIEW FOCUS", payload.review_focus]
@@ -4007,7 +4353,14 @@ function App({ initialConfig, flags, root, initialAppearance }) {
           ? workTabs
           : route.view === "reviews" && !form
             ? reviewQueueTabs
-            : [];
+            : route.view === "workspace" && !form
+              ? [
+                  ["all", "All requests"],
+                  ["open", "Open"],
+                  ["in_progress", "In progress"],
+                  ["ready", "Ready"],
+                ]
+              : [];
     const pane = h(
       Box,
       {
@@ -4042,7 +4395,9 @@ function App({ initialConfig, flags, root, initialAppearance }) {
                 {
                   key: id,
                   color:
-                    (route.tab ||
+                    ((route.view === "workspace"
+                      ? route.state || "all"
+                      : route.tab) ||
                       (route.view === "work"
                         ? "mine"
                         : route.view === "reviews"
@@ -4051,14 +4406,18 @@ function App({ initialConfig, flags, root, initialAppearance }) {
                       ? colors.blue
                       : colors.muted,
                   bold:
-                    (route.tab ||
+                    ((route.view === "workspace"
+                      ? route.state || "all"
+                      : route.tab) ||
                       (route.view === "work"
                         ? "mine"
                         : route.view === "reviews"
                           ? "open"
                           : "overview")) === id,
                   backgroundColor:
-                    (route.tab ||
+                    ((route.view === "workspace"
+                      ? route.state || "all"
+                      : route.tab) ||
                       (route.view === "work"
                         ? "mine"
                         : route.view === "reviews"

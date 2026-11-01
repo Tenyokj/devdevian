@@ -28,6 +28,32 @@ Actual CLI captures from isolated demonstration accounts. Your terminal uses you
 
 Run `devdevian --help` for script commands and workspace shortcuts. Interactive help has a large wordmark and selective accents; `NO_COLOR=1` keeps it uncolored, narrow terminals use a compact heading, and redirected output stays plain.
 
+## Workspaces 0.2 — development branch
+
+The following workflow is implemented on `workspaces-0.2`, **not in the currently published npm alpha or hosted API**. It requires the matching prepared Workspaces backend. Package versions remain unchanged while the combined milestone is being validated.
+
+Open a project with `/workspace PROJECT_ID`, or use **W** / context actions from its project page. **← / →** filters All / Open / In progress / Ready; **[ / ]** pages requests; Enter opens the selected conversation. **N** creates a conversation with an explicit preview and links it to this project, for its owner. `/request POST_ID` links an existing conversation; `/state POST_ID ready` changes its state with confirmation. Both operations require ownership of the project and conversation; team credits grant no permissions. A failed link retains a known published post ID instead of creating a duplicate. An unknown creation outcome stops automatic retries and asks you to inspect My work.
+
+`/bind PROJECT_ID` explicitly associates the canonical current directory with a project. The association is stored outside the repository, scoped to account/server/directory; it uploads no files and grants no access. `/workspace` opens that association, and `/unbind` removes only the local setting. A public project still shows only the requests you are allowed to read.
+
+In a review, **H** opens immutable history, **U** starts a new revision, and **B** on a remark opens its original snapshot when retained. The same actions appear in **X / Ctrl+K**. **Ctrl+O** chooses a file/range, **Ctrl+G** chooses local Git changes, **Ctrl+S** previews exact code/focus/base snapshot, and a separate confirmation publishes. A conflict preserves the draft and preview; no silent rebase or merge occurs. Review revision drafts restore from Local drafts. Old remarks remain attached to their own snapshot, even if another revision has identical text. Historical snapshots are read-only; legacy quote-only feedback is labeled accordingly. New local revisions do not inherit old GitHub provenance automatically.
+
+```sh
+devdevian workspace bind PROJECT_ID
+devdevian workspace --state open --page 1 --json
+devdevian workspace link POST_ID
+devdevian workspace state POST_ID --state in_progress
+devdevian workspace unlink POST_ID
+devdevian review versions POST_ID
+devdevian review snapshot POST_ID SNAPSHOT_ID
+devdevian review revise POST_ID --file src/retry.ts --lines 1:40 --focus "Check retry limits and cancellation."
+devdevian review revise POST_ID --selections files.json --focus "Check the queue and its tests together."
+```
+
+For **review revise**, the explicit manifest is an ordered JSON array such as `[{"path":"src/retry.ts","start":1,"end":40},{"path":"test/retry.test.ts"}]`. This differs from the GitHub PR hunk manifest: paths/ranges refer to selected local text files inside `--project PATH` (the current directory by default). Up to ten unique files and 20,000 combined characters are accepted. Environment/credential/key files, symlinks, traversal and binary content stay excluded. Scripted writes require an interactive confirmation or explicit `--yes`; `--json` alone never confirms a write.
+
+See the [Workspaces contract and migration plan](../../docs/workspaces-0.2.md). Project decisions and a dedicated activity/seen feed remain future work.
+
 ## My work and Halloween
 
 Open **My work** in navigation or type `/work`. **← / →** switches Mine, Reviews, Saved and Following; **[ / ]** pages results. Enter opens a conversation and Esc returns to its selected page. Reviews contains your own review requests. Following contains posts from your topic/conversation subscriptions, not every conversation you have replied to. Private posts stay subject to the same membership rules as the browser. **I** opens Inbox; **D** opens account/project-scoped local drafts.

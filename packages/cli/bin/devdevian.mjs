@@ -1,4 +1,14 @@
 #!/usr/bin/env node
+import {
+  ProjectBinding,
+  loadWorkspace,
+  requestPlan,
+  revisionBase,
+  revisionFiles,
+  revisionPlan,
+  feedbackAnchor,
+  workspaceId,
+} from "../lib/project-workspace.mjs";
 import { loadReviewQueue } from "../lib/review-queue.mjs";
 import { fileURLToPath } from "node:url";
 import packageInfo from "../package.json" with { type: "json" };
@@ -39,6 +49,8 @@ const options = {
   page: { type: "string" },
   topic: { type: "string" },
   section: { type: "string" },
+  state: { type: "string" },
+  query: { type: "string" },
   community: { type: "string" },
   title: { type: "string" },
   body: { type: "string" },
@@ -118,6 +130,16 @@ const help = `Devdevian CLI ${version} · alpha
   devdevian appearance --reset     Restore the default appearance
   devdevian reviews [--section open|awaiting] [--page 2]
   devdevian work [--section mine|reviews|saved|following] [--page 2]
+  devdevian workspace [PROJECT_ID] [--state open|in_progress|ready]
+  devdevian workspace bind PROJECT_ID     Link this directory locally (explicit confirmation)
+  devdevian workspace unbind              Remove only the local association
+  devdevian workspace link POST_ID [--state open]
+  devdevian workspace state POST_ID --state ready
+  devdevian workspace unlink POST_ID
+  devdevian review versions POST_ID [--page 2]
+  devdevian review snapshot POST_ID SNAPSHOT_ID
+  devdevian review revise POST_ID --file src/retry.ts --focus "..."
+  devdevian review revise POST_ID --selections files.json --focus "..."
   devdevian whoami
   devdevian inbox [--page 2]
   devdevian feed [--topic web] [--page 2]
@@ -209,6 +231,14 @@ function show(data, json, kind = "posts") {
         out(
           `#${item.id} · ${item.resolved ? "resolved" : "open"} · lines ${item.start_line}–${item.end_line}${item.outdated ? " · earlier snippet" : ""}\n${item.deleted_at ? "[deleted]" : item.body}\n${item.quote || ""}`,
         );
+      else if (kind === "revisions")
+        out(
+          `v${item.number} · snapshot #${item.id} · ${item.files.length} file(s) · ${item.created}\n${item.review_focus || ""}`,
+        );
+      else if (kind === "workspace")
+        out(
+          `#${item.id} ${item.title} · ${item.state.replaceAll("_", " ")} · ${item.kind}`,
+        );
       else if (kind === "replies")
         out(
           `#${item.id} · ${item.name || ""}\n${item.deleted_at ? "[deleted]" : item.body}`,
@@ -234,15 +264,23 @@ async function confirm(payload, flags) {
   if (flags.yes) return;
   out("\nPublication preview");
   out(JSON.stringify(payload, null, 2));
-  out(
-    "Audience: " +
-      (payload.community_id
-        ? "private community " + payload.community_id
-        : "PUBLIC feed"),
-  );
+  if (!payload.local_only)
+    out(
+      "Audience: " +
+        (payload.audience ||
+          (payload.community_id
+            ? "private community " + payload.community_id
+            : "PUBLIC feed")),
+    );
   if (
-    (await prompt("Publish this content? (yes/no)", "no")).toLowerCase() !==
-    "yes"
+    (
+      await prompt(
+        payload.local_only
+          ? "Save this local association? (yes/no)"
+          : "Confirm this change? (yes/no)",
+        "no",
+      )
+    ).toLowerCase() !== "yes"
   )
     throw Error("Cancelled. Nothing was published.");
 }
@@ -378,6 +416,127 @@ async function execute(args, flags) {
     );
   const api = client(config.origin, config.token),
     page = positive(flags.page || "1", "Page");
+  if (command === "workspace") {
+    const me = await api("/me"),
+      root = await workspaceRoot(flags.project);
+    const binding = new ProjectBinding({
+      origin: config.origin,
+      userId: me.user.id,
+      root,
+    });
+    const action = args[1];
+    if (action === "unbind") {
+      await binding.remove();
+      out("Local project association removed. Server data is unchanged.");
+      return;
+    }
+    if (action === "bind") {
+      const id = workspaceId(args[2]),
+        data = await loadWorkspace(api, id);
+      await confirm(
+        {
+          local_only: true,
+          directory: root,
+          project_id: id,
+          project_name: data.workspace.project.name,
+        },
+        flags,
+      );
+      await binding.save(id);
+      show({ project_id: id, local_only: true }, flags.json);
+      return;
+    }
+    const id = /^[1-9]\d*$/.test(action || "")
+      ? workspaceId(action)
+      : await binding.read();
+    if (!id)
+      throw Error(
+        "No project linked here. Run devdevian workspace bind PROJECT_ID.",
+      );
+    if (["link", "state", "unlink"].includes(action)) {
+      if (action === "state" && !flags.state)
+        throw Error("Choose --state open, in_progress or ready.");
+      const plan = await requestPlan(
+        api,
+        id,
+        args[2],
+        flags.state || "open",
+        action === "unlink",
+      );
+      if (action === "state" && plan.method !== "PATCH")
+        throw Error("Link this conversation first.");
+      await confirm(
+        {
+          ...plan.payload,
+          project_id: id,
+          post_id: workspaceId(args[2]),
+          operation: action,
+          audience: plan.audience,
+        },
+        flags,
+      );
+      show(
+        await api(plan.url, { method: plan.method, body: plan.payload }),
+        flags.json,
+      );
+      return;
+    }
+    if (action && !/^[1-9]\d*$/.test(action))
+      throw Error("Use workspace [ID], bind, unbind, link, state or unlink.");
+    const data = await loadWorkspace(api, id, {
+      page,
+      state: flags.state,
+      query: flags.query,
+    });
+    if (!flags.json)
+      out(data.title + " · " + JSON.stringify(data.workspace.counts));
+    show(data, flags.json, "workspace");
+    return;
+  }
+  if (
+    command === "review" &&
+    ["versions", "snapshot", "revise"].includes(args[1])
+  ) {
+    const id = workspaceId(args[2]);
+    if (args[1] === "versions") {
+      show(
+        await api(`/posts/${id}/revisions?page=${page}`),
+        flags.json,
+        "revisions",
+      );
+      return;
+    }
+    if (args[1] === "snapshot") {
+      show(
+        await api(`/posts/${id}/revisions/${workspaceId(args[3])}`),
+        flags.json,
+      );
+      return;
+    }
+    // Capture the base before reading files; never silently rebase after confirmation.
+    const base = await revisionBase(api, id);
+    if (!flags.file && !flags.selections)
+      throw Error("Explicitly choose --file or --selections files.json.");
+    const files = await revisionFiles(await workspaceRoot(flags.project), {
+      file: flags.file,
+      lines: flags.lines,
+      selections: flags.selections,
+    });
+    const plan = revisionPlan(id, base, files, flags.focus);
+    await confirm(
+      {
+        post_id: id,
+        community_id: base.post.community_id || null,
+        ...plan.payload,
+      },
+      flags,
+    );
+    show(
+      await api(plan.url, { method: plan.method, body: plan.payload }),
+      flags.json,
+    );
+    return;
+  }
   if (command === "reviews") {
     show(await loadReviewQueue(api, flags.section || "open", page), flags.json);
     return;
@@ -608,6 +767,10 @@ async function execute(args, flags) {
           snippet_hash: current.snippet_hash,
         };
       const parent = await api("/posts/" + post);
+      Object.assign(
+        payload,
+        feedbackAnchor(parent, current, payload.start_line, payload.end_line),
+      );
       await confirm(
         {
           post_id: post,

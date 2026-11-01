@@ -1,3 +1,8 @@
+import {
+  loadWorkspace,
+  requireWorkspace,
+  revisionFileRanges,
+} from "./project-workspace.mjs";
 import { loadReviewQueue } from "./review-queue.mjs";
 import { workQuery } from "./my-work.mjs";
 import { starterChoices } from "./doctor.mjs";
@@ -34,6 +39,7 @@ export const navigation = [
   ["start", "Getting started", "Your first few minutes"],
   ["work", "My work", "Your conversations & reviews"],
   ["reviews", "Review queue", "Open requests & awaiting you"],
+  ["workspace", "Project workspace", "Linked directory & work requests"],
 ];
 export async function notificationRoute(api, item) {
   if (item.code_review_id)
@@ -69,6 +75,37 @@ export async function notificationRoute(api, item) {
       };
 }
 export async function loadPage(api, route, signal) {
+  if (route.view === "workspace")
+    return loadWorkspace(api, route.id, {
+      page: route.page || 1,
+      state: route.state,
+      query: route.query,
+      signal,
+    });
+  if (route.view === "versions") {
+    const history = requireWorkspace(
+      await api(`/posts/${route.postId}/revisions?page=${route.page || 1}`, {
+        signal,
+      }),
+      "review_revisions",
+    );
+    return {
+      ...history,
+      title: "Review revisions",
+      subtitle: "Immutable snapshots · Enter opens exact original code",
+    };
+  }
+  if (route.view === "snapshot") {
+    const snapshot = await api(`/posts/${route.postId}/revisions/${route.id}`, {
+      signal,
+    });
+    return {
+      snapshot,
+      items: [],
+      title: `Revision v${snapshot.number}`,
+      subtitle: "Immutable original · read only · Esc returns",
+    };
+  }
   if (route.view === "start")
     return { title: "Getting started", items: starterChoices };
   if (route.view === "pr-diff")
@@ -177,7 +214,7 @@ export async function loadPage(api, route, signal) {
     );
     let items = post.replies,
       pagination = post.reply_pagination;
-    let snippet_hash, summary;
+    let snippet_hash, summary, revision_id, revision_files;
     if (route.tab === "feedback") {
       const feedback = await get(
         "/posts/" +
@@ -191,6 +228,13 @@ export async function loadPage(api, route, signal) {
       assertSnippet(post.code, feedback.snippet_hash);
       snippet_hash = feedback.snippet_hash;
       summary = feedback.summary;
+      if (
+        feedback.post_revision !== undefined &&
+        feedback.post_revision !== post.revision
+      )
+        throw Error("Code changed while loading. Refresh before reviewing.");
+      revision_id = feedback.revision_id;
+      revision_files = feedback.files;
       items = feedback.items;
       pagination = feedback.pagination;
     }
@@ -198,6 +242,17 @@ export async function loadPage(api, route, signal) {
       post,
       snippet_hash,
       summary,
+      revision_id,
+      revision_files,
+      ...(revision_files
+        ? {
+            post: {
+              ...post,
+              review_revision_id: revision_id,
+              review_files: revisionFileRanges({ files: revision_files }),
+            },
+          }
+        : {}),
       items,
       pagination,
       title: post.title,
@@ -247,13 +302,24 @@ export async function loadPage(api, route, signal) {
       get(`/posts/${route.postId}/code-reviews?target_id=${route.id}`),
     ]);
     assertSnippet(post.code, notes.snippet_hash);
+    if (
+      notes.post_revision !== undefined &&
+      notes.post_revision !== post.revision
+    )
+      throw Error("Code changed while loading. Refresh before reviewing.");
     const note = notes.items.find((item) => item.id === Number(route.id));
     if (!note) throw Error("This feedback is no longer available.");
     const replies = await get(
       `/posts/${route.postId}/code-reviews/${route.id}/replies?page=${page}${route.targetReply ? "&target_id=" + route.targetReply : ""}`,
     );
     return {
-      post,
+      post: {
+        ...post,
+        review_revision_id: notes.revision_id,
+        review_files: revisionFileRanges(notes),
+      },
+      revision_id: notes.revision_id,
+      revision_files: notes.files,
       note,
       snippet_hash: notes.snippet_hash,
       summary: notes.summary,
@@ -273,11 +339,32 @@ export async function loadPage(api, route, signal) {
 }
 export function contentLines(route, data) {
   if (route.view === "pr") return pullRequestLines(data);
+  if (route.view === "snapshot" && data.snapshot)
+    return [
+      `Revision v${data.snapshot.number} · ${data.snapshot.created}`,
+      data.snapshot.review_focus || "",
+      "",
+      ...data.snapshot.files.flatMap((f) => [
+        f.path + ` · lines ${f.start_line}–${f.end_line}`,
+        ...f.code
+          .split("\n")
+          .map((line, i) => String(f.start_line + i).padStart(4) + "  " + line),
+        "",
+      ]),
+    ];
   if (route.view === "help")
     return [
       "A developer workspace, in your terminal.",
       "",
       "Ctrl+K / /actions Search quick actions, sections and recent views",
+      "/workspace [ID]  Project work requests; uses this directory’s explicit binding",
+      "/bind ID         Associate this directory locally (confirmation required)",
+      "/unbind          Remove only the local association",
+      "/request ID      Link an existing conversation to the open workspace",
+      "/state ID ready  Change linked request state (open/in_progress/ready)",
+      "/versions ID     Immutable history; Enter opens a snapshot",
+      "/revision ID     Preview and publish a new file/diff revision",
+      "H / U in review History / share revision · B on old remark opens original",
       "/reviews         Open review requests / Awaiting you · ← → sections",
       "Review summary   Current open/resolved and earlier remarks · G version filter",
       "/work            Mine / Reviews / Saved / Following · ← → tabs · I inbox · D drafts",

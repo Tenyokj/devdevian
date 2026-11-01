@@ -121,6 +121,9 @@ export function parseCommand(text) {
   if (cmd === "pr") return { command: "pr", arg };
   if (
     [
+      "workspace",
+      "unbind",
+      "state",
       "feed",
       "work",
       "reviews",
@@ -142,7 +145,15 @@ export function parseCommand(text) {
   )
     return { command: cmd, arg };
   if (
-    ["open", "project", "event"].includes(cmd) &&
+    [
+      "open",
+      "project",
+      "event",
+      "bind",
+      "request",
+      "revision",
+      "versions",
+    ].includes(cmd) &&
     /^[1-9]\d*$/.test(arg) &&
     Number.isSafeInteger(Number(arg))
   )

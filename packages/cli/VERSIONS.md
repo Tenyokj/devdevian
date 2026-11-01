@@ -11,7 +11,16 @@ Every published npm artifact has a unique immutable version. We record each vers
 - [0.10.0-alpha.1 — From pull request to conversation](https://github.com/Tenyokj/devdevian/releases/tag/cli-v0.10.0-alpha.1): collects npm versions 0.7.0-alpha.1–0.10.0-alpha.1 plus website/documentation improvements. [Release notes](../../docs/releases/cli-0.10.0-alpha.1.md).
 - [0.6.1-alpha.1 — First combined public alpha](https://github.com/Tenyokj/devdevian/releases/tag/cli-v0.6.1-alpha.1): collects npm versions 0.1.0-alpha.1–0.6.1-alpha.1.
 
-## Current milestone
+## Unreleased — Workspaces 0.2 companion
+
+Development branch only; no new npm version or combined GitHub release is assigned yet. Published alpha remains 0.14.0-alpha.1.
+
+- Explicit account/server/directory-scoped project binding, project work requests with status filters/paging, linking/status changes and owner-only creation using the existing conversation API.
+- Immutable review history and original snapshot reads, file/Git-diff revision preparation, exact preview and separate publication confirmation. Script clients support ordered multi-file manifests.
+- Snapshot/file-aware feedback and session positions, same-code identity checks, retained revision drafts and CAS conflict handling. Two-phase request creation preserves known post IDs and never automatically replays an uncertain creation.
+- Uses the matching Workspaces backend and existing private/community permissions. No new dependencies, GitHub write permissions, automatic uploads or package publication.
+
+## Current published milestone
 
 **0.14.0 adds Review queue and version-aware review continuity.**
 

@@ -4,6 +4,21 @@ export function contextActions({ route, data, selected, user, live }) {
   const actions = catalogActions(route, data, user),
     post = data?.post;
   const add = (id, label) => actions.push({ id, label });
+  if (route.view === "project") add("workspace", "Open project workspace");
+  if (
+    route.view === "workspace" &&
+    selected &&
+    data?.workspace?.permissions?.manage_requests
+  )
+    add("request-state", "Change selected work-request state");
+  if (post?.code) {
+    add("versions", "Review revision history");
+    if (user?.id === post.user_id && !post.archived_at && !post.locked_at)
+      add("revision", "Share another review revision");
+    const note = route.view === "feedback" ? data.note : selected;
+    if (note?.snapshot_available)
+      add("original", "View remark’s original revision");
+  }
   const feedback =
     route.view === "feedback" ||
     (route.view === "post" && route.tab === "feedback");

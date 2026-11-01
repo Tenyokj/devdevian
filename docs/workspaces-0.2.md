@@ -1,6 +1,6 @@
 # Devdevian 0.2 — Workspaces
 
-**Status: browser core workflow and server foundation implemented on `workspaces-0.2`.** The published application remains browser/API 0.1.10 and CLI 0.14. The branch includes additive schema v7, project work requests and real browser review revisions; these have not been migrated or deployed to production. No new npm release is introduced. The original isolated visual concept remains available separately.
+**Status: browser core workflow, server foundation and CLI companion implemented on `workspaces-0.2`; combined release-candidate checks are next.** The published application remains browser/API 0.1.10 and CLI 0.14. The branch includes additive schema v7, project work requests and real browser review revisions; these have not been migrated or deployed to production. No new npm release is introduced. The original isolated visual concept remains available separately.
 
 Workspaces extends the existing Projects into a place to keep work requests, review iterations, decisions and activity together. The main user journey is a review that continues after the code changes, available through the browser and the terminal.
 
@@ -58,7 +58,7 @@ The prototype views the sample as its owner and does not implement these backend
 1. **Concept:** validate project navigation, work requests, repeated review, old quotes and phone/desktop use. This branch currently implements this step.
 2. **Data contract:** implemented on this branch: additive project associations, immutable review snapshots, migration/backfill, capability responses, permission checks and compatibility/recovery tests. Keep old quotes and URLs readable.
 3. **Browser integration:** core workflow implemented on this branch: real Project workspace navigation, visible work requests with search/paging/status/link/unlink, multi-file revision publication preview, original snapshot viewing and comparison, pending/error states and tab-scoped drafts. Project decisions and a dedicated activity/seen feed remain later work; existing introduction/updates/discussion links stay available.
-4. **CLI companion:** explicit linking of the current directory to an existing project, project-scoped navigation, revision preview/publication and the same version/permission rules. No automatic repository upload or code execution.
+4. **CLI companion:** implemented on this branch: explicit linking of the current directory to an existing project, project-scoped navigation, revision preview/publication and the same version/permission rules. No automatic repository upload or code execution.
 5. **Release candidate:** multi-account/private-access tests, recovery and failure paths, migrations/rollback rehearsal, query/request budgets, mobile/keyboard checks and actual browser↔terminal continuity. Ship a combined 0.2 milestone when this complete workflow is ready.
 
 Private GitHub repositories, GitHub writeback, arbitrary code execution, realtime collaborative editing and a new role/membership system are outside the first milestone. Workspace CLI versions remain separately versioned alpha packages; this concept does not assign a stable CLI 1.0 label.
@@ -130,3 +130,17 @@ npm run preview:workspaces:app
 This builds the real app, starts a loopback server and prints its URL. It creates a disposable temporary database, two sample accounts, an Orbit Queue project, an original remark and a second multi-file revision. The terminal prints sample-only sign-in details. Stopping the preview removes its own temporary database. It does not load a developer `.env`, inherit a cloud database or send OAuth/email requests. The existing `npm run preview:workspaces` remains the separate session-only visual concept.
 
 `npm run test:workspaces:app` builds the app, runs model/API tests and drives the real multi-account browser flow. `scripts/workspace-browser-check.mjs` covers creation, drafts, uncertain-link retry without duplicates, unlink/relink, exact old code/quotes/comparison, stale-editor recovery, account switching, private/guest permissions, keyboard close and five widths in both themes. Artifacts live under ignored `.test-data/workspaces-browser/`. The production migration and CLI companion are still separate future stages.
+
+## CLI companion on this branch
+
+The terminal extends the same project IDs and APIs. `packages/cli/lib/project-workspace.mjs` contains local binding, bounded project reads, association plans, immutable revision preparation and two-phase creation recovery. It is separate from the existing `workspace.mjs` filesystem/Git picker. No repository configuration file is created; settings are scoped to origin/account/canonical directory outside the repository.
+
+The live UI adds project request navigation, workflow filters, confirmed links/status changes, owner creation, paginated revision history and read-only original snapshots. Authors prepare another revision with the existing file/range or Git-diff picker, inspect exact code and confirm publication. Script commands also accept ordered local multi-file manifests. Existing selected-code restrictions remain in force. See the [CLI guide](../packages/cli/README.md#workspaces-02--development-branch) for commands and keys.
+
+Feedback reads check both code hash and conversation revision; writes include snapshot ID and one file boundary. Session position memory includes snapshot identity, preventing identical-code revisions from inheriting an old position. Publication uses the baseline captured before selection; conflicts retain the draft/preview and never silently rebase. Old feedback targets and notification routes remain compatible, and quote-only historical feedback stays explicitly labeled.
+
+Request creation saves a known new post ID before linking it. A failed association retry reuses that ID; an unknown POST outcome is not replayed. Retrying an already-published request links its original content, rather than implying that later form edits changed the published post. Unlinking only removes the association, not the conversation.
+
+`packages/cli/test/project-workspace*.test.mjs` covers scoped settings, explicit file selection, duplicate/secret/traversal boundaries, recovery, history, exact previews, conflict retention and compact real PTY layout. `tests/workspaces-cli.test.mjs` drives script commands against an isolated real API: browser feedback → CLI revision → original snapshot/old feedback, current feedback anchors, workflow changes and private access denial. Production rollout and a hosted restore rehearsal have not occurred.
+
+Local verification for the CLI companion: 168 tests in the combined sequential suite and 99 isolated libSQL/S3 fixtures passed. The package dry run includes the companion module; no package version was assigned or published. CI results are tracked separately from local verification.

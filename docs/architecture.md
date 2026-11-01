@@ -52,3 +52,7 @@ Paginated endpoints return items and pagination metadata; `src/data.js` normaliz
 ## Verification limits
 
 Local fixtures verify behavior, not provider availability or deployment correctness. After configuration changes, verify real OAuth callbacks, code delivery, cloud persistence across redeploys, private downloads from another account, and representative mobile layouts on the hosted deployment. The project has not received an independent security audit.
+
+### Workspaces development branch
+
+`workspaces.mjs` and `review-revisions.mjs` extend existing Projects and conversations with owner-controlled associations and immutable review snapshots. `src/workspaces.jsx` / `src/review-versions.jsx` implement the browser workflow. The CLI companion in `packages/cli/lib/project-workspace.mjs` handles explicit local project binding, request plans and revision preparation; `workspace.mjs` remains the separate filesystem/Git picker. Both clients inherit parent conversation visibility and optimistic version checks. See [the 0.2 contract](workspaces-0.2.md) for the staged migration and current development/publication boundary.

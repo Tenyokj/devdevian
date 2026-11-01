@@ -46,7 +46,7 @@ export function paletteItems({
         .includes(word),
     ),
   );
-  const direct = q.match(/^(?:open|project|event)\s+([1-9]\d*)$/i);
+  const direct = q.match(/^(?:open|project|event|workspace|bind|request|revision|versions)\s+([1-9]\d*)$/i);
   if (direct && Number.isSafeInteger(Number(direct[1])))
     result.unshift({
       id: "command",

@@ -51,7 +51,7 @@ export function ReviewWorkspace({
       : Math.max(0, (selectedNote?.start_line || 1) - 1);
   const sourceFile =
     !excerpt.old &&
-    post?.github_context?.files?.find(
+    (post?.review_files || post?.github_context?.files)?.find(
       (f) => target + 1 >= f.patch_start && target + 1 <= f.patch_end,
     );
   const header = height >= 4 ? 2 : 1,
