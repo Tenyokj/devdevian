@@ -3,6 +3,16 @@ on:
   schedule:
     - cron: '17 2 * * *'
   workflow_dispatch:
+    inputs:
+      workspace_action:
+        description: 'After verified backup: prepare or finalize the Workspaces rollout'
+        type: choice
+        required: true
+        default: none
+        options:
+          - none
+          - prepare
+          - finalize
 permissions:
   contents: read
 concurrency:
@@ -46,3 +56,19 @@ jobs:
           path: backups/nightly.ddb
           if-no-files-found: error
           retention-days: 7
+      # Manual rollout actions run only after the encrypted archive is verified
+      # and uploaded. Daily backups never perform schema migrations.
+      - name: Prepare additive Workspaces schema
+        if: github.event_name == 'workflow_dispatch' && inputs.workspace_action == 'prepare'
+        env:
+          TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
+          TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
+        run: node scripts/migrate.mjs --prepare-workspaces
+      - name: Finalize schema after production health check
+        if: github.event_name == 'workflow_dispatch' && inputs.workspace_action == 'finalize'
+        env:
+          TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
+          TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
+        run: |
+          node --input-type=module -e 'const r = await fetch("https://devdevian.vercel.app/api/health", {signal: AbortSignal.timeout(20000)}); if (!r.ok || (await r.json()).version !== "0.2.0") throw Error("Production 0.2.0 must be healthy before finalization")'
+          node scripts/migrate.mjs

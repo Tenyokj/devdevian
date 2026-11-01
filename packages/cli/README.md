@@ -28,9 +28,9 @@ Actual CLI captures from isolated demonstration accounts. Your terminal uses you
 
 Run `devdevian --help` for script commands and workspace shortcuts. Interactive help has a large wordmark and selective accents; `NO_COLOR=1` keeps it uncolored, narrow terminals use a compact heading, and redirected output stays plain.
 
-## Workspaces 0.2 — development branch
+## Workspaces 0.2
 
-The following workflow is implemented on `workspaces-0.2`, **not in the currently published npm alpha or hosted API**. It requires the matching prepared Workspaces backend. Package versions remain unchanged while the combined milestone is being validated.
+Available in CLI **0.15.0-alpha.1** with browser/API **0.2.0**. The server requires the prepared Workspaces schema; older servers remain usable for existing commands but do not expose these capabilities.
 
 Open a project with `/workspace PROJECT_ID`, or use **W** / context actions from its project page. **← / →** filters All / Open / In progress / Ready; **[ / ]** pages requests; Enter opens the selected conversation. **N** creates a conversation with an explicit preview and links it to this project, for its owner. `/request POST_ID` links an existing conversation; `/state POST_ID ready` changes its state with confirmation. Both operations require ownership of the project and conversation; team credits grant no permissions. A failed link retains a known published post ID instead of creating a duplicate. Creation intent is saved before POST, so a killed terminal or unknown outcome stops automatic retries and asks you to inspect My work. A definitive validation/quota refusal permits correction.
 

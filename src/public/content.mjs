@@ -3,6 +3,34 @@
 export const repository = "https://github.com/Tenyokj/devdevian";
 export const updates = [
   {
+    id: "cli-workspaces-0-15",
+    channel: "CLI",
+    version: "0.15.0-alpha.1",
+    title: "Your project. Your terminal. One workspace.",
+    summary:
+      "Link a directory to a project, follow its work requests and share another immutable review revision from selected files or Git changes.",
+    points: [
+      "Browse original snapshots and keep earlier feedback attached to its exact code.",
+      "Preview every publication; drafts survive conflicts and interrupted creation is not silently replayed.",
+    ],
+    link: repository + "/blob/main/packages/cli/README.md#workspaces-02",
+    label: "CLI Workspaces guide",
+  },
+  {
+    id: "workspaces-0-2",
+    channel: "Browser",
+    version: "0.2.0",
+    title: "Give your work a place to move forward.",
+    summary:
+      "Project workspaces bring requests, review iterations and their original feedback together in the browser and terminal.",
+    points: [
+      "Organize requests as Open, In progress or Ready without changing conversation visibility.",
+      "Compare immutable revisions and open the original code behind an earlier remark. Private communities stay private.",
+    ],
+    link: repository + "/blob/main/docs/workspaces-0.2.md",
+    label: "Explore Workspaces",
+  },
+  {
     id: "cli-0-14",
     channel: "CLI",
     version: "0.14.0-alpha.1",

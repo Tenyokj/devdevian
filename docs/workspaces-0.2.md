@@ -1,6 +1,6 @@
 # Devdevian 0.2 — Workspaces
 
-**Status: browser core workflow, server foundation and CLI companion implemented on `workspaces-0.2`; release-candidate audit implemented and locally verified; CI is tracked separately.** The published application remains browser/API 0.1.10 and CLI 0.14. The branch includes additive schema v7, project work requests and real browser review revisions; these have not been migrated or deployed to production. No new npm release is introduced. The original isolated visual concept remains available separately.
+**Release: browser/API 0.2.0 and CLI 0.15.0-alpha.1.** Workspaces adds project requests and immutable review revisions to the real browser and terminal clients. The release-candidate audit passed; production rollout status is tracked separately from source/package versions. The original isolated visual concept remains available as a design demonstration.
 
 Workspaces extends the existing Projects into a place to keep work requests, review iterations, decisions and activity together. The main user journey is a review that continues after the code changes, available through the browser and the terminal.
 
@@ -135,7 +135,7 @@ This builds the real app, starts a loopback server and prints its URL. It create
 
 The terminal extends the same project IDs and APIs. `packages/cli/lib/project-workspace.mjs` contains local binding, bounded project reads, association plans, immutable revision preparation and two-phase creation recovery. It is separate from the existing `workspace.mjs` filesystem/Git picker. No repository configuration file is created; settings are scoped to origin/account/canonical directory outside the repository.
 
-The live UI adds project request navigation, workflow filters, confirmed links/status changes, owner creation, paginated revision history and read-only original snapshots. Authors prepare another revision with the existing file/range or Git-diff picker, inspect exact code and confirm publication. Script commands also accept ordered local multi-file manifests. Existing selected-code restrictions remain in force. See the [CLI guide](../packages/cli/README.md#workspaces-02--development-branch) for commands and keys.
+The live UI adds project request navigation, workflow filters, confirmed links/status changes, owner creation, paginated revision history and read-only original snapshots. Authors prepare another revision with the existing file/range or Git-diff picker, inspect exact code and confirm publication. Script commands also accept ordered local multi-file manifests. Existing selected-code restrictions remain in force. See the [CLI guide](../packages/cli/README.md#workspaces-02) for commands and keys.
 
 Feedback reads check both code hash and conversation revision; writes include snapshot ID and one file boundary. Session position memory includes snapshot identity, preventing identical-code revisions from inheriting an old position. Publication uses the baseline captured before selection; conflicts retain the draft/preview and never silently rebase. Old feedback targets and notification routes remain compatible, and quote-only historical feedback stays explicitly labeled.
 

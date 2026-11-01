@@ -1,5 +1,14 @@
 # Changelog
 
+## Workspaces 0.2.0 / CLI 0.15.0-alpha.1
+
+- Extend Projects with scoped work requests, explicit linking, Open/In progress/Ready workflow, search and pagination. Existing private community permissions remain authoritative.
+- Retain immutable multi-file review revisions, original remark/code identity and exact comparisons. Old feedback, replies and resolution remain available as code evolves.
+- Add explicit local directory/project binding, workspace navigation, revision history and selected file/Git diff publication in the CLI. Preview and confirmation gate writes; local manifests support multiple files.
+- Preserve drafts through conflicts and persist creation intent before POST, preventing silent duplicates after a lost response, reload or interrupted terminal.
+- Harden explicit migrations, prepared-schema readiness and future-version refusal. Rehearse encrypted database/file recovery and expand scoped load and browser/CLI regression checks.
+- Schema v7 uses additive preparation while v6 stays active. No data reset, new GitHub permissions, private PR access or GitHub writeback.
+
 ## CLI 0.14.0-alpha.1 / Browser & API 0.1.10
 
 - Add a paginated Review queue with Open requests and Awaiting you. Open involved, unresolved remark discussions at the latest visible reply; respect private access, removal, paused conversations and last visible authorship.
