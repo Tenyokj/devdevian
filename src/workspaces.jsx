@@ -85,12 +85,22 @@ function RequestDialog({ project, user, communities, close, done }) {
       (draft.code?.trim().length >= 10 &&
         draft.review_focus?.trim().length >= 10));
   async function publish() {
-    if (busy || (!preview && !draft.created_id)) return;
+    if (
+      busy ||
+      (draft.publication_pending && !draft.created_id) ||
+      (!preview && !draft.created_id)
+    )
+      return;
     setBusy(true);
     setError("");
     let created = draft.created_id;
     try {
       if (!created) {
+        // Persist before the request: a hard reload or lost response cannot
+        // turn an unknown publication outcome into an automatic duplicate.
+        const pending = { ...draft, publication_pending: true };
+        persist(pending);
+        setDraft(pending);
         const post = await api("/posts", {
           method: "POST",
           body: {
@@ -106,13 +116,13 @@ function RequestDialog({ project, user, communities, close, done }) {
         created = post.id;
         // Record the published ID before linking. A link failure must never
         // turn the next click into another conversation publication.
-        const next = { ...draft, created_id: created };
+        const next = {
+          ...draft,
+          created_id: created,
+          publication_pending: false,
+        };
         setDraft(next);
-        try {
-          saveWorkspaceDraft(sessionStorage, key, next);
-        } catch {
-          /* Kept in editor memory. */
-        }
+        persist(next);
       }
       const association = await api(
         `/projects/${project.id}/work-requests/${created}`,
@@ -129,6 +139,11 @@ function RequestDialog({ project, user, communities, close, done }) {
       }
       if (alive.current) done(created, draft.kind);
     } catch (e) {
+      if (!created && e.status >= 400 && e.status < 500 && e.status !== 408) {
+        const next = { ...draft, publication_pending: false };
+        persist(next);
+        if (alive.current) setDraft(next);
+      }
       if (alive.current)
         setError(
           (created
@@ -154,7 +169,7 @@ function RequestDialog({ project, user, communities, close, done }) {
           ? "Draft saved in this browser tab for this account."
           : "Tab storage is unavailable. Keep the editor open to retain your draft."}
       </p>
-      {!draft.created_id && (
+      {!draft.created_id && !draft.publication_pending && (
         <button
           className="text-button"
           disabled={busy}
@@ -177,7 +192,28 @@ function RequestDialog({ project, user, communities, close, done }) {
           Discard request draft
         </button>
       )}
-      {draft.created_id ? (
+      {draft.publication_pending && !draft.created_id ? (
+        <div className="dw-notice" role="status">
+          <p>
+            {busy
+              ? "Publishing… Keep this editor open until the server confirms the result."
+              : "Publication outcome is unknown. Your conversation may already exist. Check your conversations and use Link a conversation if it was published. Your draft is kept; sending again could create a duplicate."}
+          </p>
+          <button
+            className="button secondary"
+            disabled={busy}
+            onClick={() => {
+              const next = { ...draft, publication_pending: false };
+              persist(next);
+              setDraft(next);
+              setPreview(false);
+              setError("");
+            }}
+          >
+            I checked my conversations; return to draft
+          </button>
+        </div>
+      ) : draft.created_id ? (
         <div className="dw-notice">
           <CheckCircle2 size={18} />
           <p>
@@ -319,26 +355,31 @@ function RequestDialog({ project, user, communities, close, done }) {
         </section>
       )}
       <ErrorMessage error={error} />
-      {(preview || draft.created_id) && (
-        <div className="dw-toolbar dw-bottom">
-          {!draft.created_id && (
+      {(!draft.publication_pending || draft.created_id) &&
+        (preview || draft.created_id) && (
+          <div className="dw-toolbar dw-bottom">
+            {!draft.created_id && (
+              <button
+                className="button secondary"
+                disabled={busy}
+                onClick={() => setPreview(false)}
+              >
+                Back to editing
+              </button>
+            )}
             <button
-              className="button secondary"
+              className="button primary"
               disabled={busy}
-              onClick={() => setPreview(false)}
+              onClick={publish}
             >
-              Back to editing
+              {busy
+                ? "Saving…"
+                : draft.created_id
+                  ? "Retry linking request"
+                  : "Publish and link request"}
             </button>
-          )}
-          <button className="button primary" disabled={busy} onClick={publish}>
-            {busy
-              ? "Saving…"
-              : draft.created_id
-                ? "Retry linking request"
-                : "Publish and link request"}
-          </button>
-        </div>
-      )}
+          </div>
+        )}
     </Modal>
   );
 }

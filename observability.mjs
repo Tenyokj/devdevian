@@ -9,7 +9,11 @@ export function failureKind(error) {
   if (/UNAUTHORIZED|AUTH_FAILED|unauthorized|token.*expired/i.test(text))
     return "database_auth";
   if (/timeout|timed out|ETIMEDOUT/i.test(text)) return "dependency_timeout";
-  if (/configure|is required|requires|schema.*migration/i.test(text))
+  if (
+    /configure|is required|requires|schema.*(?:migration|newer|downgrade)/i.test(
+      text,
+    )
+  )
     return "configuration";
   return "internal";
 }

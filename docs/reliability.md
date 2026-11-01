@@ -4,7 +4,7 @@ Version 0.1.1 adds recovery and operational safeguards. Passing automated tests 
 
 ## Database migrations and release order
 
-Hosted request handlers **do not migrate the database**. A cold function checks the schema version and reuses one initialized app. A missing/outdated schema returns JSON 503 with a request ID. This avoids repeating catalog imports and schema writes across cold instances when database capacity is limited.
+Hosted request handlers **do not migrate the database**. The same rule applies to any production process and any cloud database connection, including a developer shell outside Vercel. Only local development/test databases initialize automatically. A cold function checks the schema version and reuses one initialized app. A missing/outdated schema returns JSON 503 with a request ID. This avoids repeating catalog imports and schema writes across cold instances when database capacity is limited.
 
 1. Verify a complete encrypted backup of the existing database and files.
 2. Run isolated tests against local fixtures, never against production resources.
@@ -16,6 +16,8 @@ Hosted request handlers **do not migrate the database**. A cold function checks 
 
 4. Deploy, then check `/api/health`, a signed-out feed, a signed-in profile, password recovery, and private attachment access.
 5. Keep preview credentials separate. Do not run fixture seeding or local data resets with production credentials.
+
+A database marker newer than this code is rejected rather than downgraded. The migration command accepts either no arguments (full migration/finalization) or one recognized preparation action; typos and combined actions fail before opening the database. For the additive Workspaces v6/v7 rollout, follow the [0.2 migration sequence](workspaces-0.2.md#additive-migration-and-recovery) rather than prematurely finalizing the marker. Prepared v6 readiness requires the immutable-update trigger and pagination/feedback indexes as well as the tables, feedback anchor and completion record.
 
 The version marker is written only after all migrations complete. Existing module migrations remain idempotent so an interrupted migration can be retried. Run one migration operator at a time. The committed Vercel region is `dub1`, matching the original deployment's Ireland database; independent deployments should choose a region near their own primary database.
 
@@ -85,3 +87,11 @@ These limits protect specific paid/quota-sensitive operations. They are not glob
 `npm test` covers recovery-code expiry/replay/attempt caps, session revocation, backup tampering/wrong keys/missing objects, restoration, schema markers, quota atomicity, API errors, existing private-space boundaries, and ordinary forum behavior. The libSQL/S3 fixture matrix exercises the cloud adapter contract. `npm run test:browser` covers desktop, tablet, mobile navigation, dialogs, media and recovery UI.
 
 `npm run test:load` uses a disposable local database with 500 posts and 1,500 replies and sends 210 requests with concurrency 10. It cannot contact production database or storage. Measure actual hosted latency separately with a small read-only smoke check; do not stress the live free-tier service or create fake public activity.
+
+## Workspaces release-candidate rehearsal
+
+`tests/workspaces-rc.test.mjs` checks future-schema refusal, preparation flag mistakes, damaged readiness and non-Vercel production startup without DDL. Its encrypted archive round trip includes project associations, immutable multi-file snapshots, original feedback/replies and a private attachment. It boots a restored prepared-v6 copy, requires fresh login, verifies private access/revocation and simulates legacy writes in the pre-finalization rollback window before re-preparing/finalizing. This is a simulation of old-writer SQL behavior, not execution of an old production binary or a hosted database restore. The source fixture stays unchanged.
+
+The Workspace browser runner commits a request but drops its response: the saved uncertain outcome survives reload and no POST is replayed automatically. Definitive quota refusal remains editable. CLI creation also records intent before sending and stops if intent cannot be saved. A known published post ID is reused for linking; neither client silently merges or retries an uncertain mutation.
+
+The local load fixture now includes 499 project work requests (50 private), 100 immutable revisions, 1,000 remarks and 1,500 replies. It checks private aggregate exclusion, bounded pages, indexed request pagination and 300 reads at concurrency 10. These are regression budgets for isolated fixtures, not production capacity or availability guarantees.

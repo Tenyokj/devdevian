@@ -3,6 +3,18 @@
 process.env.VERCEL = "1";
 process.env.DEVDEVIAN_EXPLICIT_ENV = "1";
 try {
+  const actions = new Set([
+    "--prepare-workspaces",
+    "--prepare-cli",
+    "--prepare-feedback",
+    "--prepare-code-reviews",
+    "--prepare-subscriptions",
+  ]);
+  const args = process.argv.slice(2);
+  if (args.length > 1 || args.some((arg) => !actions.has(arg)))
+    throw Error(
+      "Use no argument to finalize, or one supported --prepare-* action. No migration was run.",
+    );
   if (process.argv.includes("--prepare-workspaces")) {
     const { openDatabase } = await import("../database.mjs");
     const { prepareWorkspaces } = await import("../review-revisions.mjs");

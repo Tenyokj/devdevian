@@ -173,3 +173,42 @@ test("link retry reuses published post and uncertain publication is not replayed
     /does not support/,
   );
 });
+
+test("creation intent is durable before sending, while a definitive refusal allows correction", async () => {
+  let stored,
+    calls = 0;
+  const save = async (value) => {
+    stored = value;
+  };
+  await assert.rejects(
+    publishWorkRequest(
+      async () => {
+        calls++;
+        assert.equal(stored.uncertain, true);
+        throw Object.assign(Error("Quota reached"), { status: 429 });
+      },
+      1,
+      { title: "Intent fixture" },
+      {},
+      save,
+    ),
+    /Quota/,
+  );
+  assert.deepEqual(stored, {});
+  assert.equal(calls, 1);
+  await assert.rejects(
+    publishWorkRequest(
+      async () => {
+        calls++;
+      },
+      1,
+      {},
+      {},
+      async () => {
+        throw Error("Disk unavailable");
+      },
+    ),
+    /Disk unavailable/,
+  );
+  assert.equal(calls, 1, "No POST when durable intent cannot be recorded");
+});

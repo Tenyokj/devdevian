@@ -11,7 +11,7 @@ cp .env.example .env
 npm run dev
 ```
 
-The landing runs at `http://127.0.0.1:4173/`, the app at `/app`, and the API under `/api`. Keep browser origin and `APP_URL` identical. The default database is `data/arc.sqlite`; uploads are in `data/uploads`. `DB_PATH` selects a separate database and its adjacent uploads folder. Schema bootstrap/migrations run at startup. The ordinary empty checkout has no fake feed fallback or seeded accounts.
+The landing runs at `http://127.0.0.1:4173/`, the app at `/app`, and the API under `/api`. Keep browser origin and `APP_URL` identical. The default database is `data/arc.sqlite`; uploads are in `data/uploads`. `DB_PATH` selects a separate database and its adjacent uploads folder. Schema bootstrap/migrations run at startup only for local development/test databases. Production processes and all cloud database connections require an explicit migration, even outside Vercel. The ordinary empty checkout has no fake feed fallback or seeded accounts.
 
 Keep `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` empty and `UPLOAD_DRIVER=local` for isolated development. **Do not place production credentials in the auto-loaded `.env`.** The application does not automatically load `.env.production.local`; that ignored file can hold operator configuration separately. All `.env*` files except the blank `.env.example` are excluded from Git and deployment uploads.
 

@@ -3,13 +3,15 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createServer } from "node:net";
-export async function startTestServer() {
+export async function startTestServer({ databasePath } = {}) {
   const directory = await mkdtemp(join(tmpdir(), "devdevian-http-"));
   const probe = createServer();
   await new Promise((r) => probe.listen(0, "127.0.0.1", r));
   const port = probe.address().port;
   await new Promise((r) => probe.close(r));
-  const path = join(directory, "fixture.sqlite");
+  // A restore rehearsal can reuse its own disposable restored DB/files.
+  // Cleanup still removes only the directory allocated by this fixture.
+  const path = databasePath || join(directory, "fixture.sqlite");
   const server = spawn(process.execPath, ["server.mjs"], {
     env: {
       ...process.env,

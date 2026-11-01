@@ -267,11 +267,13 @@ export async function publishWorkRequest(
     );
   let id = progress.postId;
   if (!id) {
+    // Persist before POST, so a killed terminal cannot replay an unknown result.
+    await save({ uncertain: true, payload });
     let result;
     try {
       result = await api("/posts", { method: "POST", body: payload });
     } catch (e) {
-      if (!e.status || e.status >= 500) await save({ uncertain: true });
+      if (e.status >= 400 && e.status < 500 && e.status !== 408) await save({});
       throw e;
     }
     id = workspaceId(result.id);

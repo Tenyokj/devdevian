@@ -10,6 +10,10 @@ export function inspectSchema(db, { allowPreparedWorkspaces = false } = {}) {
   const version = table
     ? db.prepare("SELECT version FROM app_schema WHERE id=1").get()?.version
     : null;
+  if (Number.isFinite(version) && version > SCHEMA_VERSION)
+    throw Error(
+      "Database schema is newer than this release. Refusing to downgrade it.",
+    );
   db.schemaCurrent = version === SCHEMA_VERSION;
   // Prepare additive tables while v6 remains live; advance the global marker
   // only after all instances have moved. Request startup never runs DDL.
@@ -25,8 +29,15 @@ export function inspectSchema(db, { allowPreparedWorkspaces = false } = {}) {
         .prepare("PRAGMA table_info(code_reviews)")
         .all()
         .some((c) => c.name === "snapshot_id");
-    db.schemaCurrent =
+    const guards =
       !!anchor &&
+      db
+        .prepare(
+          "SELECT COUNT(*) n FROM sqlite_master WHERE (type='trigger' AND name='review_revisions_immutable') OR (type='index' AND name IN ('project_work_requests_project','code_reviews_snapshot'))",
+        )
+        .get().n === 3;
+    db.schemaCurrent =
+      !!guards &&
       db.prepare("SELECT version FROM workspace_schema WHERE id=1").get()
         ?.version === 1;
   }

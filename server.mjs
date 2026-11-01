@@ -19,7 +19,11 @@ import {
 } from "./limits.mjs";
 import { inspectSchema, completeSchema } from "./schema.mjs";
 import { requestContext, apiError } from "./observability.mjs";
-import { assertRuntime, allowedOrigin } from "./runtime-config.mjs";
+import {
+  assertRuntime,
+  allowedOrigin,
+  requiresExplicitMigration,
+} from "./runtime-config.mjs";
 import { preferences, validUsername } from "./preferences.mjs";
 import { existsSync } from "node:fs";
 // Isolated tests supply their own environment and must never read developer secrets.
@@ -51,7 +55,7 @@ export async function createApp({ migrationOnly = false } = {}) {
   const db = await openDatabase();
   try {
     inspectSchema(db, { allowPreparedWorkspaces: !migrationOnly });
-    if (!db.schemaCurrent && process.env.VERCEL === "1" && !migrationOnly)
+    if (!db.schemaCurrent && requiresExplicitMigration() && !migrationOnly)
       throw Error(
         "Database schema requires migration before starting this release.",
       );

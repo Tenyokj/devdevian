@@ -104,3 +104,20 @@ test("workspace tab drafts isolate accounts and contexts, expire and reject unsa
     false,
   );
 });
+
+test("uncertain browser publication survives reload without retaining credentials", () => {
+  const entries = new Map(),
+    storage = {
+      getItem: (key) => entries.get(key),
+      setItem: (key, value) => entries.set(key, value),
+    };
+  const key = workspaceDraftKey(1, "request:8");
+  saveWorkspaceDraft(storage, key, {
+    title: "Unknown publication",
+    body: "Do not send twice.",
+    publication_pending: true,
+    token: "never-store",
+  });
+  assert.equal(readWorkspaceDraft(storage, key).publication_pending, true);
+  assert.equal(readWorkspaceDraft(storage, key).token, undefined);
+});

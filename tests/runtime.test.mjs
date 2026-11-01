@@ -1,6 +1,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { assertRuntime, allowedOrigin } from "../runtime-config.mjs";
+import {
+  assertRuntime,
+  allowedOrigin,
+  requiresExplicitMigration,
+} from "../runtime-config.mjs";
 test("production rejects demo accounts, verification bypass and ephemeral Vercel storage", () => {
   assert.doesNotThrow(() => assertRuntime({ NODE_ENV: "development" }));
   assert.doesNotThrow(() =>
@@ -79,4 +83,18 @@ test("hosted runtime requires complete private storage configuration", () => {
     () => assertRuntime({ ...env, S3_ENDPOINT: "http://objects.example" }),
     /HTTPS/,
   );
+});
+
+test("production and every cloud connection require explicit migrations, including developer shells", () => {
+  for (const env of [
+    { VERCEL: "1" },
+    { NODE_ENV: "production" },
+    { NODE_ENV: "development", TURSO_DATABASE_URL: "libsql://fixture.invalid" },
+  ])
+    assert.equal(requiresExplicitMigration(env), true);
+  assert.equal(
+    requiresExplicitMigration({ NODE_ENV: "test", DB_DRIVER: "libsql" }),
+    false,
+  );
+  assert.equal(requiresExplicitMigration({ NODE_ENV: "development" }), false);
 });

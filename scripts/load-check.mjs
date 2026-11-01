@@ -1,3 +1,4 @@
+import { captureReviewRevision } from "../review-revisions.mjs";
 import { snippetHash } from "../code-reviews.mjs";
 import { spawn } from "node:child_process";
 import { mkdtemp, rm } from "node:fs/promises";
@@ -70,6 +71,40 @@ try {
     db.prepare(
       "INSERT INTO subscriptions(user_id,kind,item) VALUES(1,'post',?)",
     ).run(String(i));
+  db.prepare(
+    "INSERT INTO projects(id,user_id,post_id,name,description,topic,stage,help) VALUES(1,1,500,'Load workspace','Isolated workload','web','Prototype','Review bounded requests')",
+  ).run();
+  db.prepare(
+    "INSERT INTO private_communities(id,owner_id,name,description) VALUES('load-private',1,'Load private team','Isolated private fixture')",
+  ).run();
+  db.prepare(
+    "INSERT INTO memberships(user_id,kind,item) VALUES(1,'group','load-private')",
+  ).run();
+  db.exec(
+    "UPDATE posts SET community_id='load-private' WHERE id BETWEEN 450 AND 499",
+  );
+  const link = db.prepare(
+    "INSERT INTO project_work_requests(post_id,project_id,state,created_by) VALUES(?,1,?,1)",
+  );
+  for (let id = 1; id < 500; id++)
+    link.run(id, ["open", "in_progress", "ready"][id % 3]);
+  const review = db.prepare("SELECT * FROM posts WHERE id=1").get();
+  const original = captureReviewRevision(db, review);
+  let latest = original;
+  for (let i = 1; i < 100; i++)
+    latest = captureReviewRevision(db, review, { force: true });
+  db.prepare(
+    "UPDATE code_reviews SET snapshot_id=CASE WHEN id<=500 THEN ? ELSE ? END WHERE post_id=1",
+  ).run(original.id, latest.id);
+  const plan = db
+    .prepare(
+      "EXPLAIN QUERY PLAN SELECT post_id FROM project_work_requests WHERE project_id=1 AND linked=1 ORDER BY post_id DESC LIMIT 12",
+    )
+    .all();
+  assert.ok(
+    plan.some((row) => row.detail.includes("project_work_requests_project")),
+    "Project pagination must use its index",
+  );
   db.exec("COMMIT");
   db.close();
   server = run("server.mjs");
@@ -85,6 +120,12 @@ try {
   }
   assert.match(logs, /Devdevian is ready/);
   const endpoints = [
+    "/projects/1/workspace",
+    "/projects/1/work-requests?page=20&state=ready",
+    "/projects/1/work-requests?q=question&limit=12",
+    "/posts/1/revisions?page=5",
+    `/posts/1/revisions/${original.id}`,
+    `/posts/1/revisions/${latest.id}`,
     "/posts?limit=12",
     "/posts?limit=12&page=20",
     "/posts?following=1&limit=12",
@@ -97,12 +138,21 @@ try {
     "/events?limit=12",
     "/communities?limit=12",
   ];
+  const guest = await fetch(base + "/api/projects/1/workspace");
+  assert.equal(
+    (await guest.json()).counts.total,
+    449,
+    "Workspace counts must exclude fifty private requests",
+  );
+  const privatePage = await fetch(base + "/api/projects/1/work-requests?q=499");
+  assert.equal((await privatePage.json()).pagination.total, 0);
   const times = [];
+  let maxResponseBytes = 0;
   let counter = 0;
   const worker = async () => {
     for (;;) {
       const index = counter++;
-      if (index >= 210) return;
+      if (index >= 300) return;
       const started = performance.now();
       const response = await fetch(
         base + "/api" + endpoints[index % endpoints.length],
@@ -112,7 +162,11 @@ try {
         },
       );
       assert.equal(response.status, 200, "Load request must succeed");
-      await response.json();
+      const text = await response.text();
+      maxResponseBytes = Math.max(maxResponseBytes, Buffer.byteLength(text));
+      const data = JSON.parse(text);
+      if (data.pagination)
+        assert.ok(data.items.length <= 30, "List payloads stay bounded");
       times.push(performance.now() - started);
     }
   };
@@ -122,6 +176,10 @@ try {
   const report = {
     environment: "isolated local database; not a production capacity guarantee",
     requests: times.length,
+    workspace_requests: 499,
+    private_workspace_requests: 50,
+    immutable_revisions: 100,
+    max_response_bytes: maxResponseBytes,
     concurrency: 10,
     posts: 500,
     replies: 1500,

@@ -90,6 +90,7 @@ export function readWorkspaceDraft(storage, key) {
     // Only text and published conversation/revision IDs. Never credentials or
     // upload handles. A tab-scoped, account/project-specific draft is not sent.
     const result = {};
+    if (data.publication_pending === true) result.publication_pending = true;
     for (const [field, max] of Object.entries({
       title: 160,
       body: 15000,

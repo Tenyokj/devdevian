@@ -140,6 +140,117 @@ try {
     `/projects/${project.id}/work-requests?q=Document`,
   );
   expect(check.pagination.total).toBe(1);
+  {
+    const owner = await browser.newContext();
+    const signup = await owner.request.post(f.base + "/api/register", {
+      data: {
+        name: "Recovery Browser",
+        username: "rc_browser_recovery",
+        email: "rc_browser_recovery@fixture.test",
+        password: "Fixture-password123",
+      },
+    });
+    expect(signup.status()).toBe(200);
+    const project = await post(owner, "/projects", {
+      name: "Recovery workspace",
+      description: "A separate fixture for uncertain creation recovery.",
+      topic: "web",
+      stage: "Prototype",
+      help: "Keep lost-response retries safe and explicit.",
+    });
+    const page = await owner.newPage();
+    // The server commits but its response is lost: retain an uncertain draft,
+    // including on immediate reload, and never silently replay the POST.
+    await page.goto(f.base + `/app#workspace/${project.id}`);
+    await page
+      .getByRole("button", { name: "New work request", exact: true })
+      .click();
+    await page
+      .getByLabel("Work request title")
+      .fill("Lost response recovery request");
+    await page
+      .getByLabel("Work request message")
+      .fill("Keep this request unique even if its creation response is lost.");
+    await page
+      .getByRole("button", { name: "Preview request", exact: true })
+      .click();
+    let lostPublications = 0;
+    await page.route("**/api/posts", async (route) => {
+      if (route.request().method() !== "POST") return route.continue();
+      lostPublications++;
+      const committed = await route.fetch();
+      expect(committed.status()).toBe(201);
+      return route.abort("failed");
+    });
+    await page
+      .getByRole("button", { name: "Publish and link request", exact: true })
+      .click();
+    await expect(
+      page.getByText(/Publication outcome is unknown/),
+    ).toBeVisible();
+    await page.reload();
+    await page
+      .getByRole("button", { name: "New work request", exact: true })
+      .click();
+    await expect(
+      page.getByText(/Publication outcome is unknown/),
+    ).toBeVisible();
+    expect(
+      await page
+        .getByRole("button", { name: "Publish and link request", exact: true })
+        .count(),
+    ).toBe(0);
+    expect(lostPublications).toBe(1);
+    const recovered = await get(
+      owner,
+      "/posts?author=me&q=Lost%20response%20recovery%20request",
+    );
+    expect(recovered.pagination.total).toBe(1);
+    await page.unroute("**/api/posts");
+    await page
+      .getByRole("button", {
+        name: "I checked my conversations; return to draft",
+        exact: true,
+      })
+      .click();
+    await expect(page.getByLabel("Work request title")).toHaveValue(
+      "Lost response recovery request",
+    );
+    await page
+      .getByRole("button", { name: "Preview request", exact: true })
+      .click();
+    await page.route("**/api/posts", (route) =>
+      route.request().method() === "POST"
+        ? route.fulfill({
+            status: 429,
+            json: { error: "Fixture quota reached." },
+          })
+        : route.continue(),
+    );
+    await page
+      .getByRole("button", { name: "Publish and link request", exact: true })
+      .click();
+    await expect(page.getByRole("alert")).toContainText(
+      "Fixture quota reached.",
+    );
+    expect(await page.getByText(/Publication outcome is unknown/).count()).toBe(
+      0,
+    );
+    await page
+      .getByRole("button", { name: "Back to editing", exact: true })
+      .click();
+    await expect(page.getByLabel("Work request title")).toHaveValue(
+      "Lost response recovery request",
+    );
+    await page.unroute("**/api/posts");
+    await page
+      .getByRole("button", { name: "Discard request draft", exact: true })
+      .click();
+    await page
+      .getByRole("button", { name: "Close dialog", exact: true })
+      .click();
+    await owner.close();
+  }
   // A failed link preserves its already-published ID; retry must not publish twice.
   await page.goto(f.base + `/app#workspace/${project.id}`);
   await page
@@ -469,7 +580,7 @@ try {
   );
   expect(errors).toEqual([]);
   console.log(
-    "Workspace browser flow passed: real project links, request drafts/retry without duplication, ownership/private/guest access, multi-file revisions, exact old quotes/comparison, conflicts, tab drafts, keyboard and five widths in both themes.",
+    "Workspace browser flow passed: real project links, request drafts/lost responses/retry without duplication, ownership/private/guest access, multi-file revisions, exact old quotes/comparison, conflicts, tab drafts, keyboard and five widths in both themes.",
   );
 } catch (e) {
   for (const context of browser?.contexts() || [])

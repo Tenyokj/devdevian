@@ -57,3 +57,13 @@ export function allowedOrigin(req, env = process.env) {
     ? new URL(env.APP_URL).origin
     : `${req.protocol}://${req.headers.host}`;
 }
+
+// Automatic initialization is only for local development/test databases.
+// A developer shell pointed at cloud storage is still a hosted-data boundary.
+export function requiresExplicitMigration(env = process.env) {
+  return (
+    env.VERCEL === "1" ||
+    env.NODE_ENV === "production" ||
+    !!env.TURSO_DATABASE_URL
+  );
+}
