@@ -157,12 +157,32 @@ test("workspace links, workflow CAS and every aggregate respect the parent conve
       (await other(root + "/workspace")).data.permissions.manage_requests,
       false,
     );
+    assert.equal((await guest(link(publicPost))).data.linked, true);
+    assert.equal((await guest(link(privatePost))).status, 404);
+    assert.equal(
+      (await guest(`/posts/${publicPost.data.id}`)).data.work_request
+        .project_id,
+      pr.data.id,
+    );
+    assert.equal(
+      (await guest(root + "/work-requests?kind=review")).data.pagination.total,
+      1,
+    );
+    assert.equal(
+      (await guest(root + "/work-requests?kind=invalid")).status,
+      400,
+    );
     assert.equal(
       (await owner(link(publicPost), { expected_version: 2 }, "DELETE")).status,
       200,
     );
     assert.equal((await owner(`/posts/${publicPost.data.id}`)).status, 200);
     assert.equal((await guest(root + "/workspace")).data.counts.total, 0);
+    assert.equal((await guest(link(publicPost))).status, 404);
+    assert.equal(
+      (await guest(`/posts/${publicPost.data.id}`)).data.work_request,
+      null,
+    );
     const detached = (await owner(link(publicPost))).data;
     assert.equal(detached.linked, false);
     assert.equal(detached.version, 3);

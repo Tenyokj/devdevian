@@ -1,3 +1,4 @@
+import { Workspace } from "./workspaces";
 import { takeConversationReturn } from "./auth-return";
 import { conversationPath } from "../conversation-url.mjs";
 import PublicPage from "./public/pages";
@@ -498,19 +499,21 @@ export function App() {
       }),
     );
   const title =
-    page === "subscriptions"
-      ? "Subscriptions"
-      : page === "moderation"
-        ? "Moderation"
-        : page === "community"
-          ? community?.name || "Community"
-          : page === "post"
-            ? "Conversation"
-            : page === "member"
-              ? "Developer profile"
-              : page === "profile"
-                ? "Your profile"
-                : navigation.find((n) => n[0] === page)?.[1] || "Saved posts";
+    page === "workspace"
+      ? "Workspace"
+      : page === "subscriptions"
+        ? "Subscriptions"
+        : page === "moderation"
+          ? "Moderation"
+          : page === "community"
+            ? community?.name || "Community"
+            : page === "post"
+              ? "Conversation"
+              : page === "member"
+                ? "Developer profile"
+                : page === "profile"
+                  ? "Your profile"
+                  : navigation.find((n) => n[0] === page)?.[1] || "Saved posts";
   return (
     <div
       className={
@@ -567,6 +570,7 @@ export function App() {
               className={
                 "nav-item " +
                 (page === key ||
+                (key === "projects" && page === "workspace") ||
                 (key === "following" && page === "subscriptions") ||
                 (key === "communities" && page === "community")
                   ? "active"
@@ -793,6 +797,17 @@ export function App() {
                   requireUser={authorized}
                   onRefresh={refresh}
                   go={go}
+                />
+              )}
+              {page === "workspace" && (
+                <Workspace
+                  key={`${user?.id || "guest"}:${id}`}
+                  id={id}
+                  route={route}
+                  user={user}
+                  requireUser={authorized}
+                  go={go}
+                  communities={joinedCommunities}
                 />
               )}
               {isFeed && (
@@ -1169,6 +1184,12 @@ export function App() {
                             </span>
                             <p>{p.help}</p>
                           </div>
+                          <a
+                            className="button secondary"
+                            href={"#workspace/" + p.id}
+                          >
+                            Open workspace <ArrowUpRight size={15} />
+                          </a>
                           <div className="project-footer">
                             <button onClick={() => go("member/" + p.user_id)}>
                               <Avatar name={p.founder_name} size="small" />
@@ -1473,6 +1494,7 @@ export function App() {
                 "community",
                 "communities",
                 "projects",
+                "workspace",
                 "events",
                 "post",
                 "profile",
@@ -1943,6 +1965,9 @@ function PostDetail({
         </button>
         {p.project && (
           <>
+            <a className="button secondary" href={"#workspace/" + p.project.id}>
+              Open workspace <ArrowUpRight size={15} />
+            </a>
             <Carousel images={p.project.screenshots} />
             <EntityLinks links={p.project.links} />
             {p.project.tagline && <h3>{p.project.tagline}</h3>}
@@ -1976,6 +2001,15 @@ function PostDetail({
             )}
           </>
         )}
+        {p.work_request && (
+          <div className="dw-notice">
+            <FolderGit2 size={18} />
+            <a href={"#workspace/" + p.work_request.project_id}>
+              Part of {p.work_request.project_name} workspace{" "}
+              <ArrowUpRight size={14} />
+            </a>
+          </div>
+        )}
         <MD>{p.body}</MD>
         <GitHubContext value={p.github_context} />
         {p.kind === "review" && (
@@ -1984,11 +2018,12 @@ function PostDetail({
             <h3>What to review</h3>
             <MD>{p.review_focus}</MD>
             <CodeReview
-              key={p.id}
+              key={`${p.id}:${user?.id || "guest"}`}
               post={p}
               user={user}
               requireUser={requireUser}
               go={go}
+              onPublished={() => refresh().catch((e) => toast(e.message))}
             />
             {p.repo_url && !p.links?.length && (
               <a

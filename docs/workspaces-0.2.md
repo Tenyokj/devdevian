@@ -1,6 +1,6 @@
 # Devdevian 0.2 — Workspaces
 
-**Status: interactive concept and server data foundation, in development on `workspaces-0.2`.** The published application remains browser/API 0.1.10 and CLI 0.14. The branch includes additive schema v7 and workspace/revision APIs; these have not been migrated or deployed to production. The visual concept still uses sample data until the next integration stage. No new npm release is introduced.
+**Status: browser core workflow and server foundation implemented on `workspaces-0.2`.** The published application remains browser/API 0.1.10 and CLI 0.14. The branch includes additive schema v7, project work requests and real browser review revisions; these have not been migrated or deployed to production. No new npm release is introduced. The original isolated visual concept remains available separately.
 
 Workspaces extends the existing Projects into a place to keep work requests, review iterations, decisions and activity together. The main user journey is a review that continues after the code changes, available through the browser and the terminal.
 
@@ -57,7 +57,7 @@ The prototype views the sample as its owner and does not implement these backend
 
 1. **Concept:** validate project navigation, work requests, repeated review, old quotes and phone/desktop use. This branch currently implements this step.
 2. **Data contract:** implemented on this branch: additive project associations, immutable review snapshots, migration/backfill, capability responses, permission checks and compatibility/recovery tests. Keep old quotes and URLs readable.
-3. **Browser integration:** connect the accepted interface to the real project/request APIs with bounded queries and pagination, revision publication preview/confirmation, pending/error states and draft preservation.
+3. **Browser integration:** core workflow implemented on this branch: real Project workspace navigation, visible work requests with search/paging/status/link/unlink, multi-file revision publication preview, original snapshot viewing and comparison, pending/error states and tab-scoped drafts. Project decisions and a dedicated activity/seen feed remain later work; existing introduction/updates/discussion links stay available.
 4. **CLI companion:** explicit linking of the current directory to an existing project, project-scoped navigation, revision preview/publication and the same version/permission rules. No automatic repository upload or code execution.
 5. **Release candidate:** multi-account/private-access tests, recovery and failure paths, migrations/rollback rehearsal, query/request budgets, mobile/keyboard checks and actual browser↔terminal continuity. Ship a combined 0.2 milestone when this complete workflow is ready.
 
@@ -106,3 +106,27 @@ This is an operator procedure for the eventual 0.2 deployment, **not a request t
 The backup schema copier includes snapshot tables, anchors, indexes and triggers. The regression fixture restores that copy, verifies quote/revision identity and confirms the immutability guard still rejects updates. This verifies the storage contract locally; it does not assert that hosted backup scheduling or a production restore drill has occurred.
 
 `tests/workspaces-api.test.mjs` covers ownership, private-list/search/count boundaries, revoked membership, workflow/version conflicts (including detach/relink), multi-file offsets and exact bytes, repeated-code identities, old-client edits, stale requests, paused states, revision budgets/caps, interrupted-write rollback, repeatable v6 preparation and snapshot recovery. The visual concept's separate tests still assert zero forum API calls.
+
+## Real browser workflow on this branch
+
+Use Projects → **Open workspace**, or `/app#workspace/PROJECT_ID`. The project introduction also links to its workspace. Overview shows actual project context and viewer-scoped workflow counts; Work requests supports bounded search/paging, status changes and explicit link/unlink. Code review opens a linked review at `/app#workspace/PROJECT_ID/review/POST_ID`. Its Full conversation link retains all existing replies and publication actions. A linked ordinary conversation points back to its project. No placeholder decisions, activity or terminal-workspace commands are advertised as implemented features.
+
+The request creation flow has a publication preview and explicit audience. Creating a conversation and linking it are two operations: the published ID is kept before linking. If linking fails or its response is uncertain, retry checks/reuses that ID rather than publishing again. Authors can leave that conversation unlinked and later link it explicitly. Unlinking has a confirmation and preserves code versions, feedback and replies.
+
+Every review in the app has a paginated version history. Authors can select up to ten relative file labels, edit text, preview the exact files and publish a new immutable revision. Prior GitHub provenance remains on its original snapshot; manually edited browser revisions do not silently inherit a possibly stale commit/PR claim. Historical remarks open their exact original file/global range; quote-only legacy remarks are explicitly labeled unavailable for full-snapshot viewing. Viewing an old version is read-only. Comparison preserves both original texts/line numbers, caps quadratic work, and paginates large changes using an exact replacement view.
+
+New feedback sends the snapshot identity alongside the existing hash/range. If the conversation changes between the code read and feedback read, commenting pauses until the current code reloads; feedback text is kept. This also protects identical-code revisions. A stale revision editor keeps its draft and can load/compare the latest published snapshot before previewing again. No automatic merge or automatic mutation retry occurs.
+
+Request/revision/feedback drafts live in `sessionStorage` with account and project/post-specific keys and a 24-hour expiry. They survive editor closing and tab reloads, but not a closed browser tab. Only bounded text and published IDs are retained, never credentials or upload handles. Storage-denied editors remain usable in memory and display the limitation for request/revision drafts. Discard controls restore a clean request or the selected current baseline; they never delete a published conversation. Account switching does not expose another account's drafts or private requests.
+
+The new read fields are additive: workspace identity includes existing public project context; request pages include scoped author/excerpt/reply counts and an optional kind filter. Associated public work-request identity is readable by guests; unlinked association/version inspection remains owner-only. Conversation detail includes a readable parent `work_request` link or null. Line-feedback reads include current `post_revision` and file boundaries so the browser can detect mismatched reads and navigate ordinary multi-file snapshots as well as GitHub patches.
+
+### Try it without a hosted database
+
+```sh
+npm run preview:workspaces:app
+```
+
+This builds the real app, starts a loopback server and prints its URL. It creates a disposable temporary database, two sample accounts, an Orbit Queue project, an original remark and a second multi-file revision. The terminal prints sample-only sign-in details. Stopping the preview removes its own temporary database. It does not load a developer `.env`, inherit a cloud database or send OAuth/email requests. The existing `npm run preview:workspaces` remains the separate session-only visual concept.
+
+`npm run test:workspaces:app` builds the app, runs model/API tests and drives the real multi-account browser flow. `scripts/workspace-browser-check.mjs` covers creation, drafts, uncertain-link retry without duplicates, unlink/relink, exact old code/quotes/comparison, stale-editor recovery, account switching, private/guest permissions, keyboard close and five widths in both themes. Artifacts live under ignored `.test-data/workspaces-browser/`. The production migration and CLI companion are still separate future stages.

@@ -27,6 +27,7 @@ jobs:
       - run: node scripts/browser-check.mjs
       - run: node scripts/public-conversation-check.mjs
       - run: node scripts/workspace-preview-check.mjs
+      - run: node scripts/workspace-browser-check.mjs
       - uses: actions/upload-artifact@v7
         if: failure()
         with:
@@ -34,4 +35,5 @@ jobs:
           path: |
             .test-data/browser/
             .test-data/workspaces-preview/
+            .test-data/workspaces-browser/
           retention-days: 7

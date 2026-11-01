@@ -21,3 +21,5 @@ Prefer the named npm commands in root `package.json`; they provide the expected 
 | `reset-local-data.mjs` | Destructive local data reset; never use against a hosted database |
 
 Do not infer safety from a filename alone. Read the script’s required arguments and the linked operating guide before migration, maintenance, reset, backup or restore. Keep generated datasets, captures, credentials and backup archives out of commits.
+
+Workspaces (development branch): `workspace-browser-check.mjs` exercises the real API/browser flow on disposable accounts/data; `workspace-demo.mjs` starts a temporary loopback preview with sample-only sign-in details. Both use the isolated HTTP fixture and never a hosted database. `workspace-preview.mjs` / `workspace-preview-check.mjs` still serve/check the independent sample concept.

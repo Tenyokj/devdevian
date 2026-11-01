@@ -44,3 +44,5 @@ Inline sign-in reuses the established forms. OAuth resumes through a short-lived
 ## Review snapshot navigation
 
 `review-navigation.mjs` validates author-provided PR file boundaries and complete hunks before producing a view of the published text. `code-review.jsx` pages within a chosen file while posting global line numbers and the existing server snippet hash. Do not reconstruct the patch or retarget outdated remarks. Invalid metadata falls back to the complete plain snippet.
+
+Workspaces 0.2 branch: `workspaces.jsx` owns the real project navigation and request lifecycle; `review-versions.jsx` provides immutable history, snapshot viewing/comparison and previewed publication; `workspace-model.mjs` bounds comparison work and validates tab/account-scoped drafts. `code-review.jsx` retains exact feedback targets and detects stale code reads. These components use the shared API permissions; the standalone `prototypes/workspaces` entry stays separate.

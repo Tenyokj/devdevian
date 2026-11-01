@@ -106,6 +106,17 @@ export function registerCodeReviews(app, db, required) {
       ...page,
       snippet_hash: hash,
       revision_id: snapshotId > 0 ? snapshotId : null,
+      post_revision: req.reviewPost.revision,
+      files:
+        snapshotId > 0
+          ? JSON.parse(head.files_json).map(
+              ({ path, start_line, end_line }) => ({
+                path,
+                start_line,
+                end_line,
+              }),
+            )
+          : [],
       summary,
       items: page.items.map(({ snapshot_files, ...row }) => ({
         ...row,
@@ -136,11 +147,9 @@ export function registerCodeReviews(app, db, required) {
       req.body.revision_id !== undefined &&
       req.body.revision_id !== snapshotId
     )
-      return res
-        .status(409)
-        .json({
-          error: "The review revision changed. Reload before adding feedback.",
-        });
+      return res.status(409).json({
+        error: "The review revision changed. Reload before adding feedback.",
+      });
     if (!p.code)
       return res
         .status(400)
@@ -170,11 +179,9 @@ export function registerCodeReviews(app, db, required) {
         .status(400)
         .json({ error: "Choose lines within one revision file." });
     if (req.body.file_path !== undefined && req.body.file_path !== file?.path)
-      return res
-        .status(400)
-        .json({
-          error: "The selected file does not match the feedback range.",
-        });
+      return res.status(400).json({
+        error: "The selected file does not match the feedback range.",
+      });
     if (hash !== snippetHash(p.code))
       return res.status(409).json({
         error: "The snippet changed. Reload it before adding line feedback.",

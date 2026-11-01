@@ -4,7 +4,7 @@ import { details, validatedDetails } from "./enhancements.mjs";
 import { notifyMentions } from "./mentions.mjs";
 import { notifyTopic } from "./subscriptions.mjs";
 import { InputError } from "./validation.mjs";
-import { pageRows, scopeSQL, memberOf } from "./spaces.mjs";
+import { pageRows, scopeSQL, memberOf, canRead } from "./spaces.mjs";
 import { attachments, validFiles, attachFiles } from "./uploads.mjs";
 import { replyPage, replyPath } from "./replies.mjs";
 import { notify, notifyReply, transaction } from "./activity.mjs";
@@ -386,6 +386,19 @@ export function registerDomain(app, db, required, profile) {
     );
     const project =
       db.prepare("SELECT * FROM projects WHERE post_id=?").get(p.id) || null;
+    const workLink = db
+      .prepare(
+        "SELECT w.project_id,w.state,pr.name project_name,pp.* FROM project_work_requests w JOIN projects pr ON pr.id=w.project_id JOIN posts pp ON pp.id=pr.post_id WHERE w.post_id=? AND w.linked=1",
+      )
+      .get(p.id);
+    const workRequest =
+      workLink && !workLink.removed_at && canRead(db, req.user, workLink)
+        ? {
+            project_id: workLink.project_id,
+            project_name: workLink.project_name,
+            state: workLink.state,
+          }
+        : null;
     const updates = project
       ? pageRows(
           db,
@@ -409,6 +422,7 @@ export function registerDomain(app, db, required, profile) {
       reply_path: path,
       reply_target_missing: !!req.query.reply_id && !path.length,
       project,
+      work_request: workRequest,
       updates: updates.items,
       updates_pagination: updates.pagination,
     });

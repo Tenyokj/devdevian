@@ -33,6 +33,12 @@ export function registerWorkspaces(app, db, required) {
         name: pr.name,
         description: pr.description,
         user_id: pr.user_id,
+        stage: pr.stage,
+        help: pr.help,
+        topic: pr.topic,
+        stack: pr.stack,
+        repo: pr.repo,
+        url: pr.url,
       },
       capabilities: workspaceCapabilities,
       permissions: { manage_requests: req.user?.id === pr.user_id },
@@ -44,6 +50,16 @@ export function registerWorkspaces(app, db, required) {
   app.get("/api/projects/:id/work-requests", project, (req, res) => {
     const where = [visible(req)],
       params = [req.workspace.id];
+    if (req.query.kind !== undefined) {
+      if (
+        !["question", "discussion", "review", "showcase"].includes(
+          req.query.kind,
+        )
+      )
+        return res.status(400).json({ error: "Unknown request type." });
+      where.push("p.kind=?");
+      params.push(req.query.kind);
+    }
     if (req.query.state !== undefined) {
       if (!states.includes(req.query.state))
         return res.status(400).json({ error: "Unknown work-request state." });
@@ -58,7 +74,7 @@ export function registerWorkspaces(app, db, required) {
     const page = pageRows(
       db,
       req,
-      `SELECT p.id,p.title,p.kind,p.user_id,p.community_id,p.created,p.revision,w.project_id,w.state,w.version work_version,w.updated_at FROM project_work_requests w JOIN posts p ON p.id=w.post_id WHERE ${where.join(" AND ")} ORDER BY p.id DESC`,
+      `SELECT p.id,p.title,p.kind,p.user_id,p.community_id,p.created,p.revision,substr(p.body,1,200) excerpt,u.name author_name,(SELECT COUNT(*) FROM replies r WHERE r.post_id=p.id) reply_count,w.project_id,w.state,w.version work_version,w.updated_at FROM project_work_requests w JOIN posts p ON p.id=w.post_id JOIN users u ON u.id=p.user_id WHERE ${where.join(" AND ")} ORDER BY p.id DESC`,
       params,
     );
     // Whitelist data columns; the libSQL adapter can attach row metadata.
@@ -74,6 +90,9 @@ export function registerWorkspaces(app, db, required) {
       "state",
       "work_version",
       "updated_at",
+      "excerpt",
+      "author_name",
+      "reply_count",
     ];
     res.json({
       ...page,
@@ -83,32 +102,27 @@ export function registerWorkspaces(app, db, required) {
       capabilities: workspaceCapabilities,
     });
   });
-  app.get(
-    "/api/projects/:id/work-requests/:postId",
-    required,
-    project,
-    (req, res) => {
-      const p = db
-        .prepare("SELECT * FROM posts WHERE id=?")
-        .get(req.params.postId);
-      if (!canRead(db, req.user, p) || p.removed_at)
-        return res.status(404).json({ error: "Conversation not found." });
-      const row = db
-        .prepare("SELECT * FROM project_work_requests WHERE post_id=?")
-        .get(p.id);
-      if (row?.linked && row.project_id === req.workspace.id)
-        return res.json({
-          post_id: p.id,
-          project_id: row.project_id,
-          state: row.state,
-          version: row.version,
-          linked: true,
-        });
-      if (req.workspace.user_id !== req.user.id || p.user_id !== req.user.id)
-        return res.status(404).json({ error: "Work request not found." });
-      res.json({ post_id: p.id, linked: false, version: row?.version || 0 });
-    },
-  );
+  app.get("/api/projects/:id/work-requests/:postId", project, (req, res) => {
+    const p = db
+      .prepare("SELECT * FROM posts WHERE id=?")
+      .get(req.params.postId);
+    if (!canRead(db, req.user, p) || p.removed_at)
+      return res.status(404).json({ error: "Conversation not found." });
+    const row = db
+      .prepare("SELECT * FROM project_work_requests WHERE post_id=?")
+      .get(p.id);
+    if (row?.linked && row.project_id === req.workspace.id)
+      return res.json({
+        post_id: p.id,
+        project_id: row.project_id,
+        state: row.state,
+        version: row.version,
+        linked: true,
+      });
+    if (req.workspace.user_id !== req.user?.id || p.user_id !== req.user?.id)
+      return res.status(404).json({ error: "Work request not found." });
+    res.json({ post_id: p.id, linked: false, version: row?.version || 0 });
+  });
   // Initial linking deliberately requires the same owner on both sides. Team
   // credits are attribution, not permission to curate another author's work.
   const mutate = (req, res) => {

@@ -41,3 +41,5 @@ A passing fixture test does not prove real OAuth, email delivery, hosted storage
 `npm run test:workspaces` checks the isolated 0.2 concept. Model tests protect revision/quote identity and exact diff reconstruction; `workspace-preview-check.mjs` drives the sample workspace at five viewport sizes and asserts no forum API requests. Fixtures and preview state do not touch the production database.
 
 `workspaces-api.test.mjs` verifies the 0.2 server foundation against disposable databases: project-linked work, viewer-scoped counts/search, ownership/membership, immutable multi-file revisions, legacy clients and historical quotes, stale-version conflicts, quotas, additive v6 preparation and restoration. The production API and prototype UI remain separate until browser integration.
+
+`workspace-model.test.mjs` verifies bounded production comparisons (including large replacements, CRLF/Unicode/trailing lines) and account/context isolation, expiry and safe shape handling for tab drafts. `scripts/workspace-browser-check.mjs` covers the actual multi-account project/revision workflow; CI runs it separately from the visual concept.
