@@ -58,25 +58,24 @@ function RequestDialog({ project, user, communities, close, done }) {
     [error, setError] = useState(""),
     [preview, setPreview] = useState(false),
     [stored, setStored] = useState(true);
-  const alive = useRef(true),
-    cleared = useRef(false);
+  const alive = useRef(true);
   useEffect(() => {
     alive.current = true;
     return () => {
       alive.current = false;
     };
   }, []);
-  useEffect(() => {
-    if (!cleared.current) {
-      try {
-        setStored(saveWorkspaceDraft(sessionStorage, key, draft));
-      } catch {
-        setStored(false);
-      }
+  function persist(next) {
+    try {
+      setStored(saveWorkspaceDraft(sessionStorage, key, next));
+    } catch {
+      setStored(false);
     }
-  }, [key, draft]);
+  }
   const change = (field) => (e) => {
-    setDraft({ ...draft, [field]: e.target.value });
+    const next = { ...draft, [field]: e.target.value };
+    persist(next);
+    setDraft(next);
     setPreview(false);
   };
   const valid =
@@ -123,7 +122,6 @@ function RequestDialog({ project, user, communities, close, done }) {
           method: "PUT",
           body: { state: "open", expected_version: association.version },
         });
-      cleared.current = true;
       try {
         sessionStorage.removeItem(key);
       } catch {
@@ -193,7 +191,6 @@ function RequestDialog({ project, user, communities, close, done }) {
             className="text-button"
             disabled={busy}
             onClick={() => {
-              cleared.current = true;
               try {
                 sessionStorage.removeItem(key);
               } catch {}

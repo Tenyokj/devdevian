@@ -276,28 +276,26 @@ function PublishRevision({ post, base, user, close, published }) {
     expected_revision: expected,
     base_revision_id: baseId,
   });
-  const alive = useRef(true),
-    cleared = useRef(false);
+  const alive = useRef(true);
   useEffect(() => {
     alive.current = true;
     return () => {
       alive.current = false;
     };
   }, []);
-  useEffect(() => {
-    if (cleared.current) return;
+  function persist(nextFiles = files, nextFocus = focus, nextTarget = target) {
     try {
       setStored(
         saveWorkspaceDraft(sessionStorage, key, {
-          files,
-          review_focus: focus,
-          ...target,
+          files: nextFiles,
+          review_focus: nextFocus,
+          ...nextTarget,
         }),
       );
     } catch {
       setStored(false);
     }
-  }, [key, files, focus, target]);
+  }
   const size = files.map((f) => f.code).join("\n").length;
   const valid =
     files.length > 0 &&
@@ -307,7 +305,11 @@ function PublishRevision({ post, base, user, close, published }) {
     files.every((f) => f.path.trim() && f.code !== undefined) &&
     new Set(files.map((f) => f.path)).size === files.length;
   function change(field, value) {
-    setFiles(files.map((f, i) => (i === index ? { ...f, [field]: value } : f)));
+    const next = files.map((f, i) =>
+      i === index ? { ...f, [field]: value } : f,
+    );
+    persist(next);
+    setFiles(next);
     setPreview(false);
   }
   async function publish() {
@@ -319,7 +321,6 @@ function PublishRevision({ post, base, user, close, published }) {
         method: "POST",
         body: { ...target, files, review_focus: focus },
       });
-      cleared.current = true;
       try {
         sessionStorage.removeItem(key);
       } catch {
@@ -349,10 +350,12 @@ function PublishRevision({ post, base, user, close, published }) {
         `/posts/${post.id}/revisions/${latest.current_revision_id}`,
       );
       if (alive.current) {
-        setTarget({
+        const nextTarget = {
           expected_revision: latest.post_revision,
           base_revision_id: latest.current_revision_id,
-        });
+        };
+        persist(files, focus, nextTarget);
+        setTarget(nextTarget);
         setBaseline({ snapshot, revision: latest.post_revision });
         setCompare(true);
         setConflict(false);
@@ -457,7 +460,9 @@ function PublishRevision({ post, base, user, close, published }) {
               className="text-button"
               disabled={busy || files.length >= 10}
               onClick={() => {
-                setFiles([...files, { path: "", code: "" }]);
+                const next = [...files, { path: "", code: "" }];
+                persist(next);
+                setFiles(next);
                 setIndex(files.length);
               }}
             >
@@ -468,7 +473,9 @@ function PublishRevision({ post, base, user, close, published }) {
               className="text-button"
               disabled={busy || files.length === 1}
               onClick={() => {
-                setFiles(files.filter((_, i) => i !== index));
+                const next = files.filter((_, i) => i !== index);
+                persist(next);
+                setFiles(next);
                 setIndex(0);
               }}
             >
@@ -508,7 +515,10 @@ function PublishRevision({ post, base, user, close, published }) {
               maxLength={1500}
               disabled={busy}
               value={focus}
-              onChange={(e) => setFocus(e.target.value)}
+              onChange={(e) => {
+                persist(files, e.target.value);
+                setFocus(e.target.value);
+              }}
             />
           </label>
           <p className="muted">

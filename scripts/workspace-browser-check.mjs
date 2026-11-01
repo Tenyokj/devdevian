@@ -106,6 +106,14 @@ try {
   await dialog
     .getByLabel("Work request message")
     .fill("Please help document which operations are safe to replay.");
+  await page.reload();
+  await page
+    .getByRole("button", { name: "New work request", exact: true })
+    .click();
+  await expect(page.getByLabel("Work request title")).toHaveValue(
+    "Document the retry contract",
+  );
+  dialog = page.getByRole("dialog");
   await dialog.getByRole("button", { name: "Close dialog" }).click();
   await page
     .getByRole("button", { name: "New work request", exact: true })
@@ -263,6 +271,13 @@ try {
   await page
     .getByLabel("Revision review focus")
     .fill("Check that permanent errors are never replayed.");
+  await page.reload();
+  await page
+    .getByRole("button", { name: "Share new revision", exact: true })
+    .click();
+  await expect(page.getByLabel("Revision review focus")).toHaveValue(
+    "Check that permanent errors are never replayed.",
+  );
   await page.getByRole("button", { name: "Close dialog" }).click();
   await page
     .getByRole("button", { name: "Share new revision", exact: true })

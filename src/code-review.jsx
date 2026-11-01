@@ -54,16 +54,19 @@ export function CodeReview({
         return "";
       }
     });
-  useEffect(() => {
+  // Persist in the input event itself: a hard reload can run before React's
+  // passive effects, especially on a busy terminal/browser or CI runner.
+  function changeBody(value) {
+    setBody(value);
     if (!feedbackKey) return;
     try {
-      if (body.trim())
-        saveWorkspaceDraft(sessionStorage, feedbackKey, { body });
+      if (value.trim())
+        saveWorkspaceDraft(sessionStorage, feedbackKey, { body: value });
       else sessionStorage.removeItem(feedbackKey);
     } catch {
       /* In-memory editing remains available. */
     }
-  }, [feedbackKey, body]);
+  }
   const [status, setStatus] = useState("all"),
     [version, setVersion] = useState("all"),
     [page, setPage] = useState(1),
@@ -225,7 +228,7 @@ export function CodeReview({
             : {}),
         },
       });
-      setBody("");
+      changeBody("");
       setPage(1);
       setStatus("all");
       setVersion("all");
@@ -426,7 +429,8 @@ export function CodeReview({
             <textarea
               id={`line-feedback-${post.id}`}
               value={body}
-              onChange={(e) => setBody(e.target.value)}
+              disabled={busy}
+              onChange={(e) => changeBody(e.target.value)}
               minLength={2}
               maxLength={5000}
               rows={3}
