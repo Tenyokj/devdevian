@@ -203,13 +203,15 @@ function FlowDialog({ plan, close, done }) {
                     }[key] || key}
                   </dt>
                   <dd>
-                    {flowLabels[value] ||
-                      {
-                        accept: "Accept review",
-                        decline: "Decline review",
-                        cancel: "Cancel request",
-                      }[value] ||
-                      String(value)}
+                    {key === "verdict"
+                      ? flowLabels[value] || String(value)
+                      : key === "action"
+                        ? {
+                            accept: "Accept review",
+                            decline: "Decline review",
+                            cancel: "Cancel request",
+                          }[value] || String(value)
+                        : String(value)}
                   </dd>
                 </React.Fragment>
               ))}

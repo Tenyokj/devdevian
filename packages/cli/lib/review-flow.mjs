@@ -120,6 +120,7 @@ export function flowPreview(payload) {
         value !== "",
     )
     .map(
-      ([key, value]) => `${labels[key] || key}: ${flowLabels[value] || value}`,
+      ([key, value]) =>
+        `${labels[key] || key}: ${key === "verdict" ? flowLabels[value] || value : value}`,
     );
 }

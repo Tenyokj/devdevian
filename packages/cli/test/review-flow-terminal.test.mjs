@@ -182,7 +182,7 @@ test(
       assert.equal(mutation, undefined);
       await send("\x1b[C");
       await send("\r");
-      await wait("Changes requested");
+      await wait("Completed");
       assert.equal(
         mutation.revision_id,
         9,
