@@ -110,3 +110,7 @@ With JavaScript enabled, sign in on the public page to reply. Browser OAuth retu
 ## Reviewing PR snapshots in the browser
 
 For a published GitHub PR review, choose **Review file** and **Review change**, or use **Previous hunk** / **Next hunk**. Select line numbers to add feedback. **Show in code** returns to the exact current snippet lines from a remark; older-version feedback keeps its original quote. These controls work on the published snapshot, without synchronizing GitHub. See the [browser review guide](github-pr-reader.md#browser-review-workspace).
+
+## Named reviewers and outcomes
+
+On your code review choose **Request a reviewer**, enter their public username, preview and confirm. Reviewers use **Waiting for me** to accept/decline and share a written **Changes requested** or **No objections** outcome for their assigned version. Earlier verdicts stay attached to their original code after an update. **Address in current revision** records how a newer version addresses an earlier remark; resolution remains a separate author action. Private community access is required before an invitation. See the [full workflow](review-flow.md).
