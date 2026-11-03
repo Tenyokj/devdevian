@@ -1,3 +1,4 @@
+import { ReviewProjectActivity } from "./review-flow";
 import React, { useEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
@@ -676,6 +677,7 @@ export function Workspace({
   }, [id, user?.id, reload]);
   useEffect(() => {
     const controller = new AbortController();
+    if (tab === "activity") return () => controller.abort();
     setRequests(null);
     setListError("");
     const params = new URLSearchParams({
@@ -754,6 +756,7 @@ export function Workspace({
             ["overview", "Overview", LayoutDashboard],
             ["work", "Work requests", GitPullRequest],
             ["review", "Code review", Code2],
+            ["activity", "Review activity", MessageSquare],
           ].map(([key, label, Icon]) => (
             <a
               href={`#workspace/${id}/${key}`}
@@ -851,7 +854,9 @@ export function Workspace({
             </div>
           </>
         )}
-        {tab === "review" && reviewId ? (
+        {tab === "activity" ? (
+          <ReviewProjectActivity projectId={id} />
+        ) : tab === "review" && reviewId ? (
           <WorkspaceReview
             key={`${user?.id || "guest"}:${reviewId}`}
             projectId={id}

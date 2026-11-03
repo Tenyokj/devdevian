@@ -57,6 +57,7 @@ export class DraftStore {
       Date.now() - record.savedAt > TTL ||
       record.savedAt > Date.now() + 60000 ||
       ![
+        "flow",
         "revision",
         "publication",
         "reply",
@@ -91,9 +92,15 @@ export class DraftStore {
       ["open", "report", "catalogFilter", "calendar", "appearance"].includes(
         form.kind,
       ) ||
-      !["title", "body", "name", "description", "file", "review_focus"].some(
-        (key) => String(form.values[key] || "").trim(),
-      )
+      ![
+        "title",
+        "body",
+        "name",
+        "description",
+        "file",
+        "review_focus",
+        "username",
+      ].some((key) => String(form.values[key] || "").trim())
     )
       return;
     await this.ensure();

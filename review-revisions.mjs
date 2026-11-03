@@ -1,3 +1,4 @@
+import { notifyReviewFlowRevision } from "./review-flow.mjs";
 import { createHash } from "node:crypto";
 import { canRead, pageRows } from "./spaces.mjs";
 import { transaction } from "./activity.mjs";
@@ -143,9 +144,11 @@ export function captureReviewRevision(
       contextJSON,
       post.review_focus || "",
     ).lastInsertRowid;
-  return db
+  const snapshot = db
     .prepare("SELECT * FROM review_revisions WHERE id=?")
     .get(Number(id));
+  notifyReviewFlowRevision(db, post, snapshot);
+  return snapshot;
 }
 export function validRevisionFiles(input) {
   if (!Array.isArray(input) || !input.length || input.length > 10)

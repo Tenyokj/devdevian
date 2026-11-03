@@ -1,5 +1,13 @@
 #!/usr/bin/env node
 import {
+  flowPage,
+  flowRequest,
+  flowActionPlan,
+  flowOutcomePlan,
+  flowInvitePlan,
+  flowID,
+} from "../lib/review-flow.mjs";
+import {
   ProjectBinding,
   loadWorkspace,
   requestPlan,
@@ -68,6 +76,10 @@ const options = {
   revision: { type: "string" },
   "reply-id": { type: "string" },
   name: { type: "string" },
+  username: { type: "string" },
+  verdict: { type: "string" },
+  snapshot: { type: "string" },
+  remark: { type: "string" },
   project: { type: "string" },
   yes: { type: "boolean" },
   json: { type: "boolean" },
@@ -128,6 +140,16 @@ const help = `Devdevian CLI ${version} · alpha
   devdevian appearance             Show local theme and layout preferences
   devdevian appearance --theme daylight --accent violet
   devdevian appearance --reset     Restore the default appearance
+  devdevian assigned [--section waiting|accepted|sent|completed] [--page 2]
+  devdevian review requests POST_ID
+  devdevian review invite POST_ID --username USER [--body "..."]
+  devdevian review accept POST_ID REQUEST_ID
+  devdevian review decline POST_ID REQUEST_ID
+  devdevian review cancel POST_ID REQUEST_ID
+  devdevian review outcome POST_ID REQUEST_ID --verdict changes_requested --body "..."
+  devdevian review link POST_ID --snapshot ID --remark ID [--body "..."]
+  devdevian review links POST_ID
+  devdevian workspace activity PROJECT_ID
   devdevian reviews [--section open|awaiting] [--page 2]
   devdevian work [--section mine|reviews|saved|following] [--page 2]
   devdevian workspace [PROJECT_ID] [--state open|in_progress|ready]
@@ -230,6 +252,10 @@ function show(data, json, kind = "posts") {
       else if (kind === "reviews")
         out(
           `#${item.id} · ${item.resolved ? "resolved" : "open"} · lines ${item.start_line}–${item.end_line}${item.outdated ? " · earlier snippet" : ""}\n${item.deleted_at ? "[deleted]" : item.body}\n${item.quote || ""}`,
+        );
+      else if (kind === "flow")
+        out(
+          `#${item.id} · post #${item.post_id} · @${item.reviewer_username} · ${item.state} · v${item.revision_number}\n${item.outcome_body || item.message || ""}`,
         );
       else if (kind === "revisions")
         out(
@@ -416,6 +442,79 @@ async function execute(args, flags) {
     );
   const api = client(config.origin, config.token),
     page = positive(flags.page || "1", "Page");
+  if (command === "assigned") {
+    show(
+      await flowPage(api, flags.section || "waiting", page),
+      flags.json,
+      "flow",
+    );
+    return;
+  }
+  if (command === "workspace" && args[1] === "activity") {
+    show(
+      await api(`/projects/${flowID(args[2])}/review-activity?page=${page}`),
+      flags.json,
+    );
+    return;
+  }
+  if (
+    command === "review" &&
+    [
+      "requests",
+      "invite",
+      "accept",
+      "decline",
+      "cancel",
+      "outcome",
+      "link",
+      "links",
+    ].includes(args[1])
+  ) {
+    const post = flowID(args[2]),
+      action = args[1];
+    let plan;
+    if (action === "requests") {
+      show(
+        await api(`/posts/${post}/review-flow?page=${page}`),
+        flags.json,
+        "flow",
+      );
+      return;
+    }
+    if (action === "links") {
+      show(await api(`/posts/${post}/revision-links?page=${page}`), flags.json);
+      return;
+    }
+    if (action === "invite")
+      plan = await flowInvitePlan(api, post, flags.username, flags.body || "");
+    else if (action === "link") {
+      const parent = await api(`/posts/${post}`);
+      plan = {
+        url: `/posts/${post}/revision-links`,
+        method: "POST",
+        payload: {
+          snapshot_id: flowID(flags.snapshot),
+          review_id: flowID(flags.remark),
+          body: flags.body || "",
+        },
+        audience: parent.community_id
+          ? "Private community"
+          : "Public conversation",
+      };
+    } else {
+      const row = await flowRequest(api, post, args[3]);
+      plan =
+        action === "outcome"
+          ? flowOutcomePlan(row, flags.verdict, await message(flags))
+          : flowActionPlan(row, action);
+    }
+    await confirm({ audience: plan.audience, ...plan.payload }, flags);
+    show(
+      await api(plan.url, { method: plan.method, body: plan.payload }),
+      flags.json,
+    );
+    return;
+  }
   if (command === "workspace") {
     const me = await api("/me"),
       root = await workspaceRoot(flags.project);

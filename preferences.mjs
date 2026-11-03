@@ -1,6 +1,7 @@
 export const preferenceDefaults = Object.freeze({
   notifications_enabled: true,
   notify_replies: true,
+  notify_reviews: true,
   notify_mentions: true,
   notify_subscriptions: true,
   notify_solutions: true,
@@ -21,8 +22,9 @@ export function preferences(db, id) {
 }
 export function notificationAllowed(db, id, type) {
   const p = preferences(db, id);
-  const key =
-    type === "mention"
+  const key = type.startsWith("review_")
+    ? "notify_reviews"
+    : type === "mention"
       ? "notify_mentions"
       : type === "reply" || type === "feedback_reply"
         ? "notify_replies"

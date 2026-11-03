@@ -3,6 +3,34 @@
 export const repository = "https://github.com/Tenyokj/devdevian";
 export const updates = [
   {
+    id: "review-flow-0-3",
+    channel: "Browser",
+    version: "0.3.0",
+    title: "A person. A revision. A useful next step.",
+    summary:
+      "Invite a named reviewer, follow Waiting for me and publish an outcome for the exact code you inspected — in the browser or terminal.",
+    points: [
+      "Changes requested and No objections stay attached to their assigned revision. New code never inherits an earlier verdict.",
+      "Link a newer revision to an earlier remark without silently resolving it. Project review activity follows existing private access.",
+    ],
+    link: repository + "/blob/main/docs/review-flow.md",
+    label: "Review Flow guide",
+  },
+  {
+    id: "cli-review-flow-0-16",
+    channel: "CLI",
+    version: "0.16.0-alpha.1",
+    title: "Your next review is waiting.",
+    summary:
+      "Waiting, In review, Sent and History bring named review requests into your terminal workspace.",
+    points: [
+      "Accept, decline, inspect assigned code and preview an immutable review outcome before sharing it.",
+      "Script commands and live forms use the same version checks and permissions as the browser.",
+    ],
+    link: repository + "/blob/main/docs/review-flow.md#terminal-workflow",
+    label: "Terminal review workflow",
+  },
+  {
     id: "cli-workspaces-0-15",
     channel: "CLI",
     version: "0.15.0-alpha.1",

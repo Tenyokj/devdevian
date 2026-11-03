@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
     inputs:
       workspace_action:
-        description: 'After verified backup: prepare or finalize the Workspaces rollout'
+        description: 'After verified backup: prepare Review Flow or prepare/finalize Workspaces'
         type: choice
         required: true
         default: none
@@ -13,6 +13,7 @@ on:
           - none
           - prepare
           - finalize
+          - review-flow
 permissions:
   contents: read
 concurrency:
@@ -74,3 +75,9 @@ jobs:
         run: |
           node --input-type=module -e 'const r = await fetch("https://devdevian.vercel.app/api/health", {signal: AbortSignal.timeout(20000)}); if (!r.ok || (await r.json()).version !== "0.2.0") throw Error("Production 0.2.0 must be healthy before finalization")'
           node scripts/migrate.mjs
+      - name: Prepare additive Review Flow schema
+        if: github.event_name == 'workflow_dispatch' && inputs.workspace_action == 'review-flow'
+        env:
+          TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
+          TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
+        run: node scripts/migrate.mjs --prepare-review-flow

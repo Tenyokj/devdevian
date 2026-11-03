@@ -96,6 +96,24 @@ try {
   db.prepare(
     "UPDATE code_reviews SET snapshot_id=CASE WHEN id<=500 THEN ? ELSE ? END WHERE post_id=1",
   ).run(original.id, latest.id);
+  db.prepare(
+    "INSERT INTO users(id,email,password,name,username,email_verified) VALUES(2,'reviewer@fixture.test','unused','Review fixture','load_reviewer',1)",
+  ).run();
+  const assignment = db.prepare(
+    "INSERT INTO review_requests(post_id,reviewer_id,requester_id,snapshot_id,state) VALUES(1,2,1,?,?)",
+  );
+  const retained = db
+    .prepare("SELECT id FROM review_revisions WHERE post_id=1 ORDER BY number")
+    .all();
+  for (let i = 0; i < retained.length; i++) {
+    assignment.run(
+      retained[i].id,
+      i === retained.length - 1 ? "accepted" : "completed",
+    );
+    db.prepare(
+      "INSERT INTO review_flow_events(post_id,actor_id,type,snapshot_id) VALUES(1,1,'review_requested',?)",
+    ).run(retained[i].id);
+  }
   const plan = db
     .prepare(
       "EXPLAIN QUERY PLAN SELECT post_id FROM project_work_requests WHERE project_id=1 AND linked=1 ORDER BY post_id DESC LIMIT 12",
@@ -120,6 +138,10 @@ try {
   }
   assert.match(logs, /Devdevian is ready/);
   const endpoints = [
+    "/review-flow?section=sent&page=5",
+    "/posts/1/review-flow?target_id=1",
+    "/projects/1/review-activity?page=5",
+    "/posts/1/revision-links",
     "/projects/1/workspace",
     "/projects/1/work-requests?page=20&state=ready",
     "/projects/1/work-requests?q=question&limit=12",
@@ -179,6 +201,7 @@ try {
     workspace_requests: 499,
     private_workspace_requests: 50,
     immutable_revisions: 100,
+    named_review_requests: 100,
     max_response_bytes: maxResponseBytes,
     concurrency: 10,
     posts: 500,

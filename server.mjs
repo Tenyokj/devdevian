@@ -1,3 +1,4 @@
+import { registerReviewFlow } from "./review-flow.mjs";
 import {
   prepareWorkspaces,
   registerReviewRevisions,
@@ -507,6 +508,7 @@ export async function createApp({ migrationOnly = false } = {}) {
     if (!db.schemaCurrent) prepareWorkspaces(db);
     registerReviewRevisions(app, db, required);
     registerWorkspaces(app, db, required);
+    registerReviewFlow(app, db, required, { migrate: migrationOnly });
     if (!db.schemaCurrent)
       db.exec(`
   CREATE INDEX IF NOT EXISTS memberships_item ON memberships(kind,item,user_id);

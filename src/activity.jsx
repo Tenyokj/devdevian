@@ -25,6 +25,13 @@ import { Modal, Avatar, Empty, Field, MD, ErrorMessage } from "./ui";
 import { api, dateStamp } from "./data";
 
 const messages = {
+  review_requested: "requested your review",
+  review_accepted: "accepted a review request",
+  review_declined: "declined a review request",
+  review_cancelled: "cancelled a review request",
+  review_completed: "shared a review outcome",
+  review_revision: "shared a new review revision",
+  review_addressed: "linked a revision to your remark",
   event_updated: "updated an event you’re attending",
   event_cancelled: "cancelled an event you’re attending",
   event_restored: "restored an event you’re attending",

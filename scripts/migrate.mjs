@@ -4,6 +4,7 @@ process.env.VERCEL = "1";
 process.env.DEVDEVIAN_EXPLICIT_ENV = "1";
 try {
   const actions = new Set([
+    "--prepare-review-flow",
     "--prepare-workspaces",
     "--prepare-cli",
     "--prepare-feedback",
@@ -15,7 +16,22 @@ try {
     throw Error(
       "Use no argument to finalize, or one supported --prepare-* action. No migration was run.",
     );
-  if (process.argv.includes("--prepare-workspaces")) {
+  if (process.argv.includes("--prepare-review-flow")) {
+    const { openDatabase } = await import("../database.mjs");
+    const { prepareReviewFlow } = await import("../review-flow.mjs");
+    const db = await openDatabase();
+    try {
+      if (
+        db.prepare("SELECT version FROM app_schema WHERE id=1").get()
+          ?.version !== 7
+      )
+        throw Error("Prepare Review Flow requires schema v7.");
+      prepareReviewFlow(db);
+    } finally {
+      db.close();
+    }
+    console.log("Review Flow prepared; active schema marker preserved.");
+  } else if (process.argv.includes("--prepare-workspaces")) {
     const { openDatabase } = await import("../database.mjs");
     const { prepareWorkspaces } = await import("../review-revisions.mjs");
     const db = await openDatabase();

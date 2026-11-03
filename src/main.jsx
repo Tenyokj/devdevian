@@ -1,3 +1,4 @@
+import { ReviewFlowQueue } from "./review-flow";
 import { Workspace } from "./workspaces";
 import { takeConversationReturn } from "./auth-return";
 import { conversationPath } from "../conversation-url.mjs";
@@ -112,6 +113,7 @@ import "./refresh.css";
 const navigation = [
   ["feed", "Public feed", Compass],
   ["following", "Following", Bell],
+  ["review-flow", "Waiting for me", CheckCircle2],
   ["communities", "Communities", Users],
   ["projects", "Projects", FolderGit2],
   ["events", "Events", CalendarDays],
@@ -797,6 +799,13 @@ export function App() {
                   requireUser={authorized}
                   onRefresh={refresh}
                   go={go}
+                />
+              )}
+              {page === "review-flow" && (
+                <ReviewFlowQueue
+                  key={user?.id || "guest"}
+                  user={user}
+                  requireUser={authorized}
                 />
               )}
               {page === "workspace" && (
@@ -1495,6 +1504,7 @@ export function App() {
                 "communities",
                 "projects",
                 "workspace",
+                "review-flow",
                 "events",
                 "post",
                 "profile",

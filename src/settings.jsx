@@ -111,6 +111,11 @@ export function Settings({
               "Master switch for new notification delivery.",
             ],
             [
+              "notify_reviews",
+              "Review requests and outcomes",
+              "Named invitations, revision updates and reviewer outcomes.",
+            ],
+            [
               "notify_replies",
               "Replies to my conversations",
               "Replies and responses in your threads.",

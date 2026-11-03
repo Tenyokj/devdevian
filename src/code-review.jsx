@@ -1,3 +1,4 @@
+import { ReviewFlowPanel, RevisionAddressButton } from "./review-flow";
 import {
   workspaceDraftKey,
   readWorkspaceDraft,
@@ -21,6 +22,8 @@ export function CodeReview({
   go,
   onPublished,
 }) {
+  const [flowEpoch, setFlowEpoch] = useState(0),
+    [flowAvailable, setFlowAvailable] = useState(false);
   const [published, setPublished] = useState(null),
     [historyView, setHistoryView] = useState(null),
     [refreshed, setRefreshed] = useState(null);
@@ -256,6 +259,13 @@ export function CodeReview({
   }
   return (
     <>
+      <ReviewFlowPanel
+        refreshToken={flowEpoch}
+        onAvailable={setFlowAvailable}
+        key={`${post.id}:${user?.id || "guest"}`}
+        post={post}
+        user={user}
+      />
       <ReviewVersions
         post={post}
         user={user}
@@ -568,6 +578,15 @@ export function CodeReview({
                     Show in code
                   </button>
                 )}
+              {flowAvailable && (
+                <RevisionAddressButton
+                  post={post}
+                  user={user}
+                  remark={item}
+                  snapshotId={data?.revision_id}
+                  onLinked={() => setFlowEpoch((n) => n + 1)}
+                />
+              )}
               {item.outdated && (
                 <span className="outdated-note">Earlier snippet version</span>
               )}

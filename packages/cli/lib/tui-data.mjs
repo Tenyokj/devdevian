@@ -1,3 +1,4 @@
+import { flowPage, requireFlow } from "./review-flow.mjs";
 import {
   loadWorkspace,
   requireWorkspace,
@@ -40,6 +41,7 @@ export const navigation = [
   ["work", "My work", "Your conversations & reviews"],
   ["reviews", "Review queue", "Open requests & awaiting you"],
   ["workspace", "Project workspace", "Linked directory & work requests"],
+  ["assigned", "Waiting for me", "Named review requests"],
 ];
 export async function notificationRoute(api, item) {
   if (item.code_review_id)
@@ -75,6 +77,57 @@ export async function notificationRoute(api, item) {
       };
 }
 export async function loadPage(api, route, signal) {
+  if (route.view === "assigned")
+    return {
+      ...(await flowPage(
+        api,
+        route.section || "waiting",
+        route.page || 1,
+        signal,
+      )),
+      title: "Waiting for me",
+      subtitle:
+        "Named requests · Enter opens reviewers · X actions · ← → sections",
+    };
+  if (route.view === "reviewers") {
+    const [post, data] = await Promise.all([
+      api(`/posts/${route.id}`, { signal }),
+      api(
+        `/posts/${route.id}/review-flow?page=${route.page || 1}${route.targetRequest ? "&target_id=" + route.targetRequest : ""}`,
+        { signal },
+      ),
+    ]);
+    requireFlow(data);
+    return {
+      ...data,
+      post,
+      title: "Reviewers · " + post.title,
+      subtitle:
+        "Requests belong to an exact snapshot · X accept / decline / outcome · I invite",
+    };
+  }
+  if (route.view === "flow-links")
+    return {
+      ...requireFlow(
+        await api(`/posts/${route.id}/revision-links?page=${route.page || 1}`, {
+          signal,
+        }),
+      ),
+      title: "Revisions linked to remarks",
+      subtitle:
+        "Author-provided links do not resolve remarks · Enter opens the revision",
+    };
+  if (route.view === "review-activity")
+    return {
+      ...requireFlow(
+        await api(
+          `/projects/${route.id}/review-activity?page=${route.page || 1}`,
+          { signal },
+        ),
+      ),
+      title: "Project review activity",
+      subtitle: "Only currently visible linked work requests appear here.",
+    };
   if (route.view === "workspace")
     return loadWorkspace(api, route.id, {
       page: route.page || 1,
@@ -357,6 +410,11 @@ export function contentLines(route, data) {
       "A developer workspace, in your terminal.",
       "",
       "Ctrl+K / /actions Search quick actions, sections and recent views",
+      "/assigned        Waiting / In review / Sent / History · ← → sections",
+      "/reviewers ID    Named reviewers and outcomes for a conversation",
+      "/invite ID @user Request a reviewer · confirmation required",
+      "/flow-links ID   Revisions explicitly linked to earlier remarks",
+      "/review-activity ID  Review events for a project",
       "/workspace [ID]  Project work requests; uses this directory’s explicit binding",
       "/bind ID         Associate this directory locally (confirmation required)",
       "/unbind          Remove only the local association",

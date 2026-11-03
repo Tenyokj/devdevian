@@ -4,6 +4,40 @@ export function contextActions({ route, data, selected, user, live }) {
   const actions = catalogActions(route, data, user),
     post = data?.post;
   const add = (id, label) => actions.push({ id, label });
+  if (["assigned", "reviewers"].includes(route.view)) {
+    if (selected) {
+      add("flow-original", "View assigned code");
+      add("flow-post", "Open conversation");
+      if (
+        selected.reviewer_id === user?.id &&
+        !selected.archived_at &&
+        !selected.locked_at
+      ) {
+        if (selected.state === "pending") add("flow-accept", "Accept review");
+        if (["pending", "accepted"].includes(selected.state))
+          add("flow-decline", "Decline review");
+        if (selected.state === "accepted")
+          add("flow-outcome", "Share review outcome");
+      }
+      if (
+        !selected.archived_at &&
+        !selected.locked_at &&
+        selected.requester_id === user?.id &&
+        ["pending", "accepted"].includes(selected.state)
+      )
+        add("flow-cancel", "Cancel request");
+    }
+    if (
+      data?.post?.user_id === user?.id &&
+      !data.post.archived_at &&
+      !data.post.locked_at
+    )
+      add("flow-invite", "Request a reviewer");
+    add("sync", "Refresh this view");
+    return actions;
+  }
+  if (route.view === "workspace")
+    add("flow-activity", "Project review activity");
   if (route.view === "project") add("workspace", "Open project workspace");
   if (
     route.view === "workspace" &&
@@ -11,14 +45,6 @@ export function contextActions({ route, data, selected, user, live }) {
     data?.workspace?.permissions?.manage_requests
   )
     add("request-state", "Change selected work-request state");
-  if (post?.code) {
-    add("versions", "Review revision history");
-    if (user?.id === post.user_id && !post.archived_at && !post.locked_at)
-      add("revision", "Share another review revision");
-    const note = route.view === "feedback" ? data.note : selected;
-    if (note?.snapshot_available)
-      add("original", "View remark’s original revision");
-  }
   const feedback =
     route.view === "feedback" ||
     (route.view === "post" && route.tab === "feedback");
@@ -61,6 +87,24 @@ export function contextActions({ route, data, selected, user, live }) {
   }
   if (feedback && selected && !selected.deleted_at)
     add("report", "Report selected feedback…");
+  // Keep actions on the selected reply/remark visible before global review tools.
+  if (post?.code) {
+    add("flow-reviewers", "Reviewers and outcomes");
+    if (post.user_id === user?.id && !post.archived_at && !post.locked_at) {
+      add("flow-invite", "Request a reviewer");
+      const note = route.view === "feedback" ? data.note : selected;
+      if (note?.outdated && note.snapshot_available)
+        add("flow-link", "Link current revision to this remark");
+    }
+  }
+  if (post?.code) {
+    add("versions", "Review revision history");
+    if (user?.id === post.user_id && !post.archived_at && !post.locked_at)
+      add("revision", "Share another review revision");
+    const note = route.view === "feedback" ? data.note : selected;
+    if (note?.snapshot_available)
+      add("original", "View remark’s original revision");
+  }
   if (post?.github_context?.pull_request)
     add("github-pr", "Read linked GitHub PR");
   if (route.view === "pr" && data?.pull)

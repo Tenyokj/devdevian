@@ -1,4 +1,14 @@
 import {
+  flowPage,
+  flowPreview,
+  flowSections,
+  flowLabels,
+  flowInvitePlan,
+  flowActionPlan,
+  flowOutcomePlan,
+  flowID,
+} from "./review-flow.mjs";
+import {
   ProjectBinding,
   loadWorkspace,
   requestPlan,
@@ -109,7 +119,7 @@ const stamp = (value) => {
     typeof value === "number"
       ? value
       : String(value || "").replace(" ", "T") +
-        (/Z$|[+-]\d\d:\d\d$/.test(value || "") ? "" : "Z"),
+          (/Z$|[+-]\d\d:\d\d$/.test(value || "") ? "" : "Z"),
   );
   return Number.isNaN(date.getTime())
     ? ""
@@ -158,6 +168,7 @@ function fieldsFor(form) {
       ? steps.flatMap((step) => step.indexes.map((i) => fields[i]))
       : fields;
   }
+  if (form.kind === "flow") return form.fields;
   if (form.kind === "appearance") return appearanceFields;
   if (form.kind === "revision")
     return [
@@ -520,7 +531,21 @@ function listRows(route, data, index, width, colors, density = "comfortable") {
     let title = item.title || item.name || "",
       meta = "",
       body = "";
-    if (route.view === "projects") {
+    if (route.view === "assigned" || route.view === "reviewers") {
+      title = `#${item.id} · @${item.reviewer_username} · ${flowLabels[item.state] || item.state}`;
+      meta = `${item.post_title} · v${item.revision_number}${item.outdated ? " · Earlier revision" : ""}`;
+      body = item.verdict
+        ? `${flowLabels[item.verdict]} · ${item.outcome_body}`
+        : item.message || "";
+    } else if (route.view === "flow-links") {
+      title = `Remark #${item.review_id} → v${item.revision_number}`;
+      meta = "Author-provided revision link";
+      body = item.body;
+    } else if (route.view === "review-activity") {
+      title = `${item.actor_name} · ${flowLabels[item.type] || item.type.replaceAll("_", " ")}`;
+      meta = item.post_title;
+      body = stamp(item.created);
+    } else if (route.view === "projects") {
       title = item.name;
       meta = `${item.stage} · #${item.topic} · ${item.founder_name}`;
       body = item.tagline || item.description;
@@ -1069,14 +1094,12 @@ function App({ initialConfig, flags, root, initialAppearance }) {
     };
     if (history.current.length > 30) history.current.shift();
     setReading(null);
-    if (
-      !(
-        replace &&
-        reviewing &&
-        next.view === route.view &&
-        next.id === route.id
-      )
-    ) {
+    if (!(
+      replace &&
+      reviewing &&
+      next.view === route.view &&
+      next.id === route.id
+    )) {
       setReviewLine(0);
       setReviewAnchor(null);
       setReviewHorizontal(0);
@@ -1993,6 +2016,23 @@ function App({ initialConfig, flags, root, initialAppearance }) {
         navigate({ view: "post", id, tab: "overview", page: 1 });
         return;
       }
+      if (form.kind === "flow") {
+        let payload = { ...form.plan.payload, ...form.values };
+        if (form.mode === "invite") {
+          payload.message = payload.body;
+          delete payload.body;
+        }
+        if (form.mode === "outcome")
+          payload = flowOutcomePlan(
+            form.row,
+            form.values.verdict,
+            form.values.body,
+          ).payload;
+        setPreview({ ...form.plan, payload, title: form.title, flow: true });
+        setScroll(0);
+        setYes(false);
+        return;
+      }
       if (form.kind === "catalog") {
         if (form.catalogProgress?.uncertain)
           throw Error(
@@ -2223,7 +2263,13 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       setPreview(null);
       setForm(null);
       setScroll(0);
-      if (form.workspaceProject)
+      if (form.kind === "flow") {
+        navigate(
+          { view: "reviewers", id: form.postId, page: 1 },
+          { replace: true },
+        );
+        setRefresh((n) => n + 1);
+      } else if (form.workspaceProject)
         navigate({ view: "workspace", id: form.workspaceProject, page: 1 });
       else if (form.kind === "revision")
         navigate(
@@ -2251,6 +2297,54 @@ function App({ initialConfig, flags, root, initialAppearance }) {
     });
   }
   async function openSelected() {
+    if (route.view === "assigned") {
+      if (selected)
+        navigate({
+          view: "reviewers",
+          id: selected.post_id,
+          targetRequest: selected.id,
+          page: 1,
+        });
+      return;
+    }
+    if (route.view === "reviewers") {
+      if (selected)
+        navigate({
+          view: "snapshot",
+          postId: selected.post_id,
+          id: selected.snapshot_id,
+        });
+      return;
+    }
+    if (route.view === "flow-links") {
+      if (selected)
+        navigate({
+          view: "snapshot",
+          postId: route.id,
+          id: selected.snapshot_id,
+        });
+      return;
+    }
+    if (route.view === "review-activity") {
+      if (selected)
+        navigate(
+          selected.review_id
+            ? {
+                view: "feedback",
+                postId: selected.post_id,
+                id: selected.review_id,
+                page: 1,
+              }
+            : {
+                view: "reviewers",
+                id: selected.post_id,
+                targetRequest: selected.request_id,
+                page: 1,
+              },
+        );
+      return;
+    }
+
     if (route.view === "versions") {
       if (selected)
         navigate({ view: "snapshot", postId: route.postId, id: selected.id });
@@ -2541,8 +2635,138 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       values: { reason: "" },
     });
   }
+  async function inviteReviewer(postId, username = "") {
+    await task(async () => {
+      const plan = await flowInvitePlan(api, postId, username);
+      openForm({
+        kind: "flow",
+        mode: "invite",
+        postId,
+        title: plan.title,
+        plan,
+        audience: plan.audience,
+        fields: [
+          { key: "username", label: "Reviewer username", min: 3, max: 30 },
+          {
+            key: "body",
+            label: "Invitation context",
+            multiline: true,
+            max: 1000,
+          },
+        ],
+        values: { username, body: "" },
+      });
+    });
+  }
+  function reviewFlowAction(id) {
+    if (id === "flow-invite") {
+      inviteReviewer(current.post.id);
+      return;
+    }
+    if (id === "flow-reviewers") {
+      navigate({ view: "reviewers", id: current.post.id, page: 1 });
+      return;
+    }
+    if (id === "flow-activity") {
+      navigate({ view: "review-activity", id: route.id, page: 1 });
+      return;
+    }
+    const row = selected;
+    if (id === "flow-original") {
+      if (row)
+        navigate({
+          view: "snapshot",
+          postId: row.post_id,
+          id: row.snapshot_id,
+        });
+      return;
+    }
+    if (id === "flow-post") {
+      if (row)
+        navigate({ view: "post", id: row.post_id, tab: "feedback", page: 1 });
+      return;
+    }
+    if (id === "flow-outcome" && row) {
+      openForm({
+        kind: "flow",
+        mode: "outcome",
+        postId: row.post_id,
+        row,
+        title: `Review outcome · assigned v${row.revision_number}`,
+        audience: row.community_id
+          ? "Private community"
+          : "Public conversation",
+        plan: {
+          url: `/posts/${row.post_id}/review-flow/${row.id}/outcome`,
+          method: "POST",
+        },
+        fields: [
+          {
+            key: "verdict",
+            label: "Review outcome",
+            options: [
+              ["changes_requested", "Changes requested"],
+              ["no_objections", "No objections"],
+            ],
+          },
+          {
+            key: "body",
+            label: "Outcome context",
+            min: 2,
+            max: 5000,
+            multiline: true,
+          },
+        ],
+        values: { verdict: "changes_requested", body: "" },
+      });
+      return;
+    }
+    if (id === "flow-link") {
+      const note = route.view === "feedback" ? current.note : selected;
+      task(async () => {
+        const baseline = await revisionBase(api, current.post.id);
+        openForm({
+          kind: "flow",
+          mode: "link",
+          postId: current.post.id,
+          title: `Link current revision to remark #${note.id}`,
+          audience: current.post.community_id
+            ? "Private community"
+            : "Public conversation",
+          plan: {
+            url: `/posts/${current.post.id}/revision-links`,
+            method: "POST",
+            payload: {
+              snapshot_id: baseline.baseRevisionId,
+              review_id: note.id,
+            },
+          },
+          fields: [
+            { key: "body", label: "What changed", max: 1500, multiline: true },
+          ],
+          values: { body: "" },
+        });
+      });
+      return;
+    }
+    if (row && ["flow-accept", "flow-decline", "flow-cancel"].includes(id)) {
+      const plan = flowActionPlan(row, id.slice(5));
+      askConfirm(plan.title, plan.context + " · " + plan.audience, () =>
+        task(async () => {
+          await api(plan.url, { method: plan.method, body: plan.payload });
+          cache.current.clear();
+          setRefresh((n) => n + 1);
+          setNotice("Review request updated.");
+        }),
+      );
+    }
+  }
   function runAction(id) {
     setActionIndex(null);
+    if (id?.startsWith("flow-")) {
+      reviewFlowAction(id);
+      return;
+    }
     if (id?.startsWith("catalog-")) {
       catalogAction(id.slice(8));
       return;
@@ -2673,6 +2897,27 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       const parsed = value.startsWith("/")
         ? parseCommand(value)
         : { command: "search", arg: value };
+      if (parsed.command === "assigned") {
+        const section = parsed.arg || "waiting";
+        if (!flowSections.some(([id]) => id === section))
+          throw Error("Choose waiting, accepted, sent or completed.");
+        navigate({ view: "assigned", section, page: 1 });
+        return;
+      }
+      if (
+        ["reviewers", "flow-links", "review-activity"].includes(parsed.command)
+      ) {
+        navigate({ view: parsed.command, id: parsed.arg, page: 1 });
+        return;
+      }
+      if (parsed.command === "invite") {
+        const m = /^([1-9]\d*)\s+@?([A-Za-z][A-Za-z0-9_]{2,29})$/.exec(
+          parsed.arg,
+        );
+        if (!m) throw Error("Use /invite POST_ID @username.");
+        await inviteReviewer(flowID(m[1]), m[2]);
+        return;
+      }
       if (parsed.command === "workspace") {
         await openProjectWorkspace(parsed.arg);
         return;
@@ -3586,6 +3831,23 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       );
       return;
     }
+    if (
+      route.view === "assigned" &&
+      (keyEvent.leftArrow || keyEvent.rightArrow)
+    ) {
+      const i = flowSections.findIndex(
+        ([id]) => id === (route.section || "waiting"),
+      );
+      navigate(
+        {
+          ...route,
+          section: flowSections[(i + (keyEvent.rightArrow ? 1 : 3)) % 4][0],
+          page: 1,
+        },
+        { replace: true },
+      );
+      return;
+    }
     if (route.view === "work") {
       if (input === "i" || input === "I" || input === "d" || input === "D") {
         navigate({
@@ -4067,6 +4329,9 @@ function App({ initialConfig, flags, root, initialAppearance }) {
           "",
           link.label + " · " + link.url,
         ]),
+        ...(preview.flow
+          ? ["", "EXACT REVIEW REQUEST", ...flowPreview(payload)]
+          : []),
         ...(preview.catalog
           ? [
               "",

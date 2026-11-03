@@ -4,6 +4,13 @@ The CLI is a separately versioned Devdevian client. Its npm version does not hav
 
 Every published npm artifact has a unique immutable version. We record each version here, even when several ship in one working session. A GitHub release can summarize a day's work and link to the individual entries; it does not need to be created for every npm publication. An unfinished change stays under **Unreleased** until its package version is assigned. Alpha packages use the `alpha` npm tag.
 
+## 0.16.0-alpha.1 — Review Flow
+
+- Named reviewer invitations and a personal Waiting / In review / Sent / History queue, shared with the browser.
+- Accept/decline/cancel, immutable exact-revision outcomes, explicit links from newer revisions to earlier remarks and scoped project review activity.
+- Script commands and live terminal forms retain preview/confirmation, version checks and private-access rules. No new dependencies, OAuth scopes or GitHub writeback.
+- Companion to browser/API 0.3.0. Requires optional Review Flow preparation; npm publication is recorded separately from the source version.
+
 ## Combined GitHub releases
 
 - [0.14.0-alpha.1 — Keep the review moving](https://github.com/Tenyokj/devdevian/releases/tag/cli-v0.14.0-alpha.1): collects CLI 0.11–0.14 and browser/API 0.1.7–0.1.10. [Release notes](../../docs/releases/cli-0.14.0-alpha.1.md).

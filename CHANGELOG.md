@@ -1,5 +1,12 @@
 # Changelog
 
+## Browser & API 0.3.0 / CLI 0.16.0-alpha.1 — Review Flow
+
+- Request a named reviewer and track Waiting / In review / Sent / History in the browser and CLI.
+- Publish immutable Changes requested / No objections outcomes for the exact assigned snapshot; sharing a new revision never carries an earlier verdict forward.
+- Link a newer revision to an earlier retained remark without implicitly resolving it; expose permission-scoped project review activity.
+- Add optional additive preparation, bounded invitations/links, notification preferences and browser/API/terminal/recovery checks. Publication is tracked separately from this source version.
+
 ## Workspaces 0.2.0 / CLI 0.15.0-alpha.1
 
 - Extend Projects with scoped work requests, explicit linking, Open/In progress/Ready workflow, search and pagination. Existing private community permissions remain authoritative.

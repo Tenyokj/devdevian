@@ -1,0 +1,119 @@
+.rf-panel {
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  padding: clamp(18px, 3vw, 30px);
+  background: var(--surface);
+  margin: 20px 0;
+  min-width: 0;
+}
+.rf-heading,
+.rf-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.rf-heading h3 {
+  margin: 8px 0;
+}
+.rf-actions,
+.rf-tabs {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin: 14px 0;
+}
+.rf-list {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+}
+.rf-card {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 18px;
+  background: var(--surface-soft);
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.rf-card p {
+  margin: 10px 0;
+}
+.rf-state {
+  padding: 5px 10px;
+  border-radius: 99px;
+  font-size: 12px;
+  border: 1px solid var(--line);
+}
+.rf-accepted,
+.rf-completed {
+  color: var(--accent);
+}
+.rf-outcome {
+  border-left: 3px solid var(--accent);
+  padding-left: 14px;
+  margin: 18px 0;
+}
+.rf-links {
+  border-top: 1px solid var(--line);
+  padding-top: 18px;
+  margin-top: 20px;
+}
+.rf-tabs button {
+  padding: 9px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-soft);
+}
+.rf-tabs button.active {
+  color: var(--accent);
+  border-color: currentColor;
+}
+.rf-field {
+  display: grid;
+  gap: 8px;
+  margin: 20px 0;
+}
+.rf-field input,
+.rf-field textarea,
+.rf-field select {
+  width: 100%;
+  box-sizing: border-box;
+}
+.rf-dialog pre {
+  max-height: 45vh;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  padding: 14px;
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+@media (max-width: 600px) {
+  .rf-heading {
+    align-items: flex-start;
+  }
+  .rf-panel .button {
+    max-width: 100%;
+  }
+  .rf-card {
+    padding: 14px;
+  }
+  .rf-actions {
+    gap: 8px;
+  }
+}
+
+.rf-preview dt {
+  font-weight: 600;
+  margin-top: 1rem;
+  color: var(--muted);
+}
+.rf-preview dd {
+  margin: 0.35rem 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

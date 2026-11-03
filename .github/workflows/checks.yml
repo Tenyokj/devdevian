@@ -28,6 +28,7 @@ jobs:
       - run: node scripts/public-conversation-check.mjs
       - run: node scripts/workspace-preview-check.mjs
       - run: node scripts/workspace-browser-check.mjs
+      - run: node scripts/review-flow-browser-check.mjs
       - uses: actions/upload-artifact@v7
         if: failure()
         with:
@@ -36,4 +37,5 @@ jobs:
             .test-data/browser/
             .test-data/workspaces-preview/
             .test-data/workspaces-browser/
+            .test-data/review-flow-browser/
           retention-days: 7
