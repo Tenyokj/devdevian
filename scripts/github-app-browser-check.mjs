@@ -150,6 +150,7 @@ try {
     await route.continue();
   });
   await page.goto(f.base + "/app#github");
+  await expect(page.getByText("A little off the beaten path.", { exact: true })).toHaveCount(0);
   await expect(
     page.getByRole("heading", { name: "Your repository. A shared next step." }),
   ).toBeVisible();

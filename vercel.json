@@ -23,7 +23,7 @@
       "destination": "/api?__public_path=/sitemaps/conversations-:page.xml"
     },
     {
-      "source": "/api/:path*",
+      "source": "/api/:__api_route*",
       "destination": "/api"
     },
     {

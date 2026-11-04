@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import express from "express";
+import { readFileSync } from "node:fs";
 import { openDatabase } from "../database.mjs";
 import { createHmac, randomUUID } from "node:crypto";
 import {
@@ -162,6 +163,25 @@ test("GitHub App tokens are encrypted, audience bound and reads cannot become ar
       .repository,
     "https://github.com/fixture/private",
   );
+});
+test("Vercel API rewrite parameters preserve the GitHub resource query for organization repositories", async () => {
+  const deployment = JSON.parse(readFileSync(new URL("../vercel.json", import.meta.url), "utf8"));
+  const rewrite = deployment.rewrites.find((r) => r.source.startsWith("/api/:") && r.destination === "/api");
+  const capture = rewrite.source.match(/:([A-Za-z_]+)\*/)[1];
+  const query = new URLSearchParams({ path: "/repos/fixture/private/pulls?per_page=20&page=1" });
+  // Unused source captures are forwarded as query parameters by the host.
+  // Using `path` for both the route and GitHub resource loses the resource.
+  query.set(capture, "github/read");
+  const f = await fixture();
+  try {
+    f.seed(1);
+    const result = await f.api("/github/read?" + query);
+    assert.equal(result.status, 200);
+    assert.equal(result.data.private, true);
+    assert.equal(result.data.data[0].title, "Private fixture PR");
+  } finally {
+    await f.close();
+  }
 });
 test("GitHub App reads reauthorize each viewer, never expose tokens and enforce private project bindings", async () => {
   const f = await fixture();

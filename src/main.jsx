@@ -1537,6 +1537,7 @@ export function App() {
                 "workspace",
                 "room",
                 "review-flow",
+                "github",
                 "events",
                 "post",
                 "profile",
