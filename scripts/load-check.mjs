@@ -114,6 +114,23 @@ try {
       "INSERT INTO review_flow_events(post_id,actor_id,type,snapshot_id) VALUES(1,1,'review_requested',?)",
     ).run(retained[i].id);
   }
+  for (let i = 2; i <= 101; i++) {
+    db.prepare(
+      "INSERT INTO room_assignments(post_id,project_id,user_id) VALUES(?,1,1)",
+    ).run(i);
+    db.prepare(
+      "INSERT INTO room_events(project_id,post_id,actor_id,type,state) VALUES(1,?,1,'task_assigned','open')",
+    ).run(i);
+    db.prepare(
+      "INSERT INTO room_decisions(project_id,post_id,user_id,title,body,operation_key,archived) VALUES(1,?,1,?,?,?,?)",
+    ).run(
+      i,
+      "Decision " + i,
+      "A bounded fixture decision.",
+      "fixture-operation-" + i,
+      i < 14 ? 0 : 1,
+    );
+  }
   const plan = db
     .prepare(
       "EXPLAIN QUERY PLAN SELECT post_id FROM project_work_requests WHERE project_id=1 AND linked=1 ORDER BY post_id DESC LIMIT 12",
@@ -138,6 +155,11 @@ try {
   }
   assert.match(logs, /Devdevian is ready/);
   const endpoints = [
+    "/projects/1/room",
+    "/projects/1/room/tasks?state=open&page=10",
+    "/projects/1/room/tasks?mine=1&page=4",
+    "/projects/1/room/decisions?archived=1&page=5",
+    "/projects/1/room/activity?page=12",
     "/review-flow?section=sent&page=5",
     "/posts/1/review-flow?target_id=1",
     "/projects/1/review-activity?page=5",

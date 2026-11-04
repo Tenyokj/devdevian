@@ -159,7 +159,8 @@ export function App() {
       history.replaceState(null, "", location.pathname + location.hash);
     }
   }, []);
-  const [page, id] = route.split("/");
+  const [rawPage, id] = route.split("/");
+  const page = rawPage === "room" ? "workspace" : rawPage;
   useEffect(() => {
     if (page === "handle")
       api("/handles/" + encodeURIComponent(id))
@@ -812,7 +813,7 @@ export function App() {
                 <Workspace
                   key={`${user?.id || "guest"}:${id}`}
                   id={id}
-                  route={route}
+                  route={rawPage === "room" ? `workspace/${id}/room` : route}
                   user={user}
                   requireUser={authorized}
                   go={go}
@@ -1199,6 +1200,12 @@ export function App() {
                           >
                             Open workspace <ArrowUpRight size={15} />
                           </a>
+                          <a
+                            className="text-button project-room-link"
+                            href={"#room/" + p.id}
+                          >
+                            Enter room <ArrowUpRight size={15} />
+                          </a>
                           <div className="project-footer">
                             <button onClick={() => go("member/" + p.user_id)}>
                               <Avatar name={p.founder_name} size="small" />
@@ -1504,6 +1511,7 @@ export function App() {
                 "communities",
                 "projects",
                 "workspace",
+                "room",
                 "review-flow",
                 "events",
                 "post",
@@ -1977,6 +1985,12 @@ function PostDetail({
           <>
             <a className="button secondary" href={"#workspace/" + p.project.id}>
               Open workspace <ArrowUpRight size={15} />
+            </a>
+            <a
+              className="text-button project-room-link"
+              href={"#room/" + p.project.id}
+            >
+              Enter room <ArrowUpRight size={15} />
             </a>
             <Carousel images={p.project.screenshots} />
             <EntityLinks links={p.project.links} />

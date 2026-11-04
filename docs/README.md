@@ -38,8 +38,9 @@ Devdevian is an open-source developer forum. The hosted early release is at [dev
 
 Documentation describes the current implementation. Free provider quotas, console interfaces, and account approvals can change; check the linked provider documentation for current requirements.
 
-## In development
+## Feature guides
 
+- [Rooms](rooms.md): shared task boards, assignees, pinned decisions/history, project activity and browser/CLI commands.
 - [Review Flow](review-flow.md): named reviewers, personal queues, version-bound outcomes, revision links and project activity in browser and CLI. Browser/API 0.3.0 and CLI 0.16 source milestone; publication is tracked separately.
 
 - [Workspaces 0.2](workspaces-0.2.md): server contracts, real browser and CLI workflows, isolated demos, migration/recovery plan and release-candidate stages. See the release guide for rollout status and compatibility.

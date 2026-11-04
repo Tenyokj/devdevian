@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
     inputs:
       workspace_action:
-        description: 'After verified backup: prepare Review Flow or prepare/finalize Workspaces'
+        description: 'After verified backup: prepare Rooms/Review Flow or prepare/finalize Workspaces'
         type: choice
         required: true
         default: none
@@ -14,6 +14,7 @@ on:
           - prepare
           - finalize
           - review-flow
+          - rooms
 permissions:
   contents: read
 concurrency:
@@ -81,3 +82,9 @@ jobs:
           TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
           TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
         run: node scripts/migrate.mjs --prepare-review-flow
+      - name: Prepare additive Rooms schema
+        if: github.event_name == 'workflow_dispatch' && inputs.workspace_action == 'rooms'
+        env:
+          TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
+          TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
+        run: node scripts/migrate.mjs --prepare-rooms

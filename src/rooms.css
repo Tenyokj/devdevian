@@ -1,0 +1,497 @@
+.room-surface {
+  --room-blue: #79b8ff;
+  --room-amber: #efb56b;
+  --room-mint: #72d8b5;
+  min-width: 0;
+}
+:root[data-theme="light"] .room-surface {
+  --room-blue: #2465ad;
+  --room-amber: #95580b;
+  --room-mint: #147357;
+}
+.room-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+  padding: 26px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background:
+    radial-gradient(
+      ellipse at top left,
+      rgba(74, 144, 226, 0.13),
+      transparent 75%
+    ),
+    var(--surface-soft);
+  margin-bottom: 24px;
+}
+.room-banner .eyebrow {
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  color: var(--room-blue);
+}
+.room-banner h2 {
+  font-size: clamp(21px, 2.5vw, 30px);
+  letter-spacing: -0.8px;
+  margin: 9px 0 12px;
+  line-height: 1.35;
+}
+.room-banner p,
+.room-goal .markdown {
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--text-secondary);
+}
+.room-orbit {
+  display: grid;
+  place-items: center;
+  padding: 15px;
+  border: 1px solid rgba(121, 184, 255, 0.3);
+  border-radius: 17px;
+  background: rgba(121, 184, 255, 0.09);
+  color: var(--room-blue);
+}
+.room-banner > .icon-button {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.room-goal {
+  padding: 4px 4px 25px;
+  max-width: 790px;
+}
+.room-goal > small {
+  font-size: 9px;
+  letter-spacing: 1.6px;
+  color: var(--room-mint);
+}
+.room-goal .markdown {
+  margin: 12px 0;
+}
+.room-goal > a,
+.room-footnote a {
+  color: var(--room-blue);
+  font-size: 12px;
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+.room-toolbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin: 18px 0;
+}
+.room-toolbar > label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface-soft);
+  padding: 12px 15px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  min-width: 0;
+  max-width: 380px;
+  flex: 1;
+}
+.room-toolbar input {
+  background: none;
+  border: 0;
+  color: var(--text);
+  font-size: 12px;
+  width: 100%;
+  min-width: 0;
+  outline: none;
+}
+.room-toolbar > button {
+  font-size: 12px;
+  padding: 11px 15px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.room-toolbar > button[aria-pressed="true"] {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.room-board {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+.room-column {
+  --column: var(--room-blue);
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  border-radius: 17px;
+  padding: 12px;
+  min-width: 0;
+}
+.room-in_progress {
+  --column: var(--room-amber);
+}
+.room-ready {
+  --column: var(--room-mint);
+}
+.room-column > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 4px 15px;
+  color: var(--column);
+  font-size: 12px;
+}
+.room-column > header > span {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.room-column > header > strong {
+  font-family: monospace;
+  background: var(--surface);
+  padding: 4px 7px;
+  border-radius: 7px;
+  border: 1px solid var(--line);
+}
+.room-task-list {
+  display: grid;
+  gap: 12px;
+}
+.room-task {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-top: 2px solid var(--column);
+  border-radius: 13px;
+  padding: 16px;
+  min-width: 0;
+  transition:
+    box-shadow 0.2s,
+    border-color 0.2s,
+    transform 0.2s;
+}
+.room-task:hover {
+  border-color: var(--column);
+  box-shadow: 0 8px 25px var(--shadow);
+  transform: translateY(-2px);
+}
+.room-task-type {
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  color: var(--text-muted);
+  font-size: 9px;
+  line-height: 1.6;
+}
+.room-task-title {
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.6;
+  margin: 11px 0;
+  width: 100%;
+  overflow-wrap: anywhere;
+}
+.room-task-title svg {
+  flex-shrink: 0;
+  margin-top: 5px;
+  color: var(--column);
+}
+.room-task > p {
+  font-size: 11px;
+  line-height: 1.8;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.room-assignee {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 10px;
+  color: var(--text-secondary);
+  margin: 18px 0 12px;
+}
+.room-assignee small {
+  display: block;
+  color: var(--text-muted);
+  font-size: 9px;
+  margin-top: 3px;
+}
+.room-person {
+  width: 27px;
+  height: 27px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.room-task-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+.room-task-actions button {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  padding: 6px 8px;
+  font-size: 10px;
+  border-radius: 7px;
+  background: var(--surface-soft);
+  color: var(--column);
+}
+.room-column-empty {
+  font-size: 11px;
+  line-height: 1.8;
+  padding: 22px 7px;
+  color: var(--text-muted);
+}
+.room-column .pagination {
+  flex-wrap: wrap;
+  font-size: 10px;
+  margin-top: 16px;
+}
+.room-footnote {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  font-size: 12px;
+  color: var(--text-secondary);
+  padding: 24px 2px;
+}
+.room-footnote > svg {
+  color: var(--room-amber);
+}
+.room-decisions {
+  display: grid;
+  gap: 18px;
+}
+.room-decision {
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 17px;
+  background:
+    linear-gradient(120deg, rgba(239, 181, 107, 0.06), transparent 65%),
+    var(--surface-soft);
+  margin: 16px 0;
+  overflow-wrap: anywhere;
+}
+.room-decision > small {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  font-size: 10px;
+  color: var(--text-muted);
+}
+.room-decision > small > svg {
+  color: var(--room-amber);
+}
+.room-decision h3 {
+  font-size: 19px;
+  margin: 15px 0;
+}
+.room-decision .markdown {
+  font-size: 13px;
+}
+.room-decision-footer {
+  border-top: 1px solid var(--line);
+  padding-top: 17px;
+  margin-top: 22px;
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  flex-wrap: wrap;
+  font-size: 10px;
+  color: var(--text-muted);
+}
+.room-decision-footer button {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  color: var(--accent);
+}
+.room-decision-footer > span {
+  margin-right: auto;
+}
+.room-empty {
+  text-align: center;
+  padding: 45px 15px;
+  color: var(--text-secondary);
+}
+.room-empty > svg {
+  color: var(--accent);
+}
+.room-empty h3 {
+  margin: 16px 0;
+  font-size: 21px;
+}
+.room-empty p {
+  font-size: 12px;
+  line-height: 1.9;
+  max-width: 500px;
+  margin: auto;
+}
+.room-timeline {
+  display: grid;
+  gap: 0;
+}
+.room-timeline article {
+  display: flex;
+  gap: 17px;
+  padding: 22px 8px;
+  border-bottom: 1px solid var(--line);
+}
+.room-event-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--room-blue);
+  box-shadow: 0 0 0 5px rgba(121, 184, 255, 0.09);
+  margin: 6px;
+}
+.room-event-decision {
+  background: var(--room-amber);
+}
+.room-timeline strong {
+  font-size: 13px;
+}
+.room-timeline p {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin: 7px 0;
+}
+.room-timeline a {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  color: var(--accent);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.room-timeline small {
+  display: block;
+  color: var(--text-muted);
+  font-size: 10px;
+  margin-top: 12px;
+}
+@media (min-width: 1150px) {
+  .dw-workspace:has(.room-surface) {
+    grid-template-columns: 175px minmax(0, 1fr);
+  }
+  .dw-workspace:has(.room-surface) .dw-main {
+    padding: 26px;
+  }
+}
+@media (max-width: 1100px) {
+  .room-board {
+    grid-template-columns: 1fr;
+  }
+  .room-task-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 600px) {
+  .room-banner {
+    padding: 18px;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .room-orbit {
+    padding: 9px;
+  }
+  .room-banner .eyebrow {
+    font-size: 8px;
+  }
+  .room-task-list {
+    grid-template-columns: 1fr;
+  }
+  .room-toolbar > label {
+    flex-basis: 100%;
+    max-width: none;
+  }
+  .room-decision {
+    padding: 18px;
+  }
+  .room-task:hover {
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .room-task {
+    transition: none;
+  }
+  .room-task:hover {
+    transform: none;
+  }
+}
+/* Give project and review surfaces semantic accents, without moving layout. */
+.app .dw-state.dw-open {
+  color: #79b8ff;
+  background: rgba(121, 184, 255, 0.1);
+}
+.app .dw-state.dw-in_progress {
+  color: #efb56b;
+  background: rgba(239, 181, 107, 0.1);
+}
+.app .dw-state.dw-ready {
+  color: #72d8b5;
+  background: rgba(114, 216, 181, 0.1);
+}
+:root[data-theme="light"] .app .dw-state.dw-open {
+  color: #2465ad;
+}
+:root[data-theme="light"] .app .dw-state.dw-in_progress {
+  color: #95580b;
+}
+:root[data-theme="light"] .app .dw-state.dw-ready {
+  color: #147357;
+}
+.app .project-card {
+  border-top: 2px solid rgba(121, 184, 255, 0.45);
+  background:
+    radial-gradient(
+      ellipse at top right,
+      rgba(121, 184, 255, 0.065),
+      transparent 70%
+    ),
+    var(--surface);
+}
+.app .project-card:nth-child(3n + 2) {
+  border-top-color: rgba(114, 216, 181, 0.55);
+}
+.app .project-card:nth-child(3n) {
+  border-top-color: rgba(239, 181, 107, 0.55);
+}
+.app .dw-project-mark > svg {
+  color: #79b8ff;
+  background: rgba(121, 184, 255, 0.1);
+}
+.app .dw-stats > button:nth-child(1) {
+  border-top: 2px solid #79b8ff;
+}
+.app .dw-stats > button:nth-child(2) {
+  border-top: 2px solid #efb56b;
+}
+.app .dw-stats > button:nth-child(3) {
+  border-top: 2px solid #72d8b5;
+}
+
+.app .project-room-link {
+  color: var(--accent);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  margin: 14px 0;
+}

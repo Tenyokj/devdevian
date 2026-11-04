@@ -1,3 +1,4 @@
+import { roomTaskPlan, roomDecisionPlan, roomStates } from "./rooms.mjs";
 import {
   flowPage,
   flowPreview,
@@ -531,7 +532,21 @@ function listRows(route, data, index, width, colors, density = "comfortable") {
     let title = item.title || item.name || "",
       meta = "",
       body = "";
-    if (route.view === "assigned" || route.view === "reviewers") {
+    if (route.view === "room") {
+      meta = `${item.state.replaceAll("_", " ")} · ${item.kind} · ${item.assignee_name ? "@" + item.assignee_username : "Available to pick up"}`;
+      body = item.excerpt;
+    } else if (
+      route.view === "room-decisions" ||
+      route.view === "room-decision-history"
+    ) {
+      title = `${item.title} · v${item.version}${item.archived ? " · Archived" : ""}`;
+      meta = item.author_name || "Pinned decision";
+      body = item.body;
+    } else if (route.view === "room-activity") {
+      title = `${item.actor_name} · ${item.type.replaceAll("_", " ")}`;
+      meta = item.title || "Project room";
+      body = stamp(item.created);
+    } else if (route.view === "assigned" || route.view === "reviewers") {
       title = `#${item.id} · @${item.reviewer_username} · ${flowLabels[item.state] || item.state}`;
       meta = `${item.post_title} · v${item.revision_number}${item.outdated ? " · Earlier revision" : ""}`;
       body = item.verdict
@@ -2028,6 +2043,14 @@ function App({ initialConfig, flags, root, initialAppearance }) {
             form.values.verdict,
             form.values.body,
           ).payload;
+        if (form.roomMode === "assign")
+          payload.username = String(payload.username || "")
+            .replace(/^@/, "")
+            .toLowerCase();
+        if (form.roomMode === "decision" && form.values.post_id !== undefined)
+          payload.post_id = form.values.post_id
+            ? workspaceId(form.values.post_id)
+            : null;
         setPreview({ ...form.plan, payload, title: form.title, flow: true });
         setScroll(0);
         setYes(false);
@@ -2263,6 +2286,11 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       setPreview(null);
       setForm(null);
       setScroll(0);
+      if (form.kind === "flow" && form.roomRoute) {
+        navigate(form.roomRoute, { replace: true });
+        setNotice("Saved to the project room.");
+        return;
+      }
       if (form.kind === "flow") {
         navigate(
           { view: "reviewers", id: form.postId, page: 1 },
@@ -2297,6 +2325,36 @@ function App({ initialConfig, flags, root, initialAppearance }) {
     });
   }
   async function openSelected() {
+    if (route.view === "room") {
+      if (selected)
+        navigate({
+          view: "post",
+          id: selected.id,
+          tab: selected.kind === "review" ? "feedback" : "overview",
+          page: 1,
+        });
+      return;
+    }
+    if (route.view === "room-decisions") {
+      if (selected)
+        navigate({
+          view: "room-decision-history",
+          id: route.id,
+          decisionId: selected.id,
+          page: 1,
+        });
+      return;
+    }
+    if (route.view === "room-activity") {
+      if (selected?.post_id)
+        navigate({
+          view: "post",
+          id: selected.post_id,
+          tab: "overview",
+          page: 1,
+        });
+      return;
+    }
     if (route.view === "assigned") {
       if (selected)
         navigate({
@@ -2761,8 +2819,156 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       );
     }
   }
+  async function openRoom(value, view = "room") {
+    const id = value
+      ? workspaceId(value)
+      : [
+            "room",
+            "room-decisions",
+            "room-activity",
+            "room-decision-history",
+          ].includes(route.view)
+        ? route.id
+        : await binding.read();
+    if (!id) throw Error("Use /room PROJECT_ID or bind this directory first.");
+    navigate({ view, id, page: 1 });
+  }
+  function roomAction(id) {
+    if (id === "room-board") {
+      openRoom(route.id);
+      return;
+    }
+    if (id === "room-open") {
+      openSelected();
+      return;
+    }
+    if (id === "room-decisions" || id === "room-activity") {
+      openRoom(route.id, id);
+      return;
+    }
+    if (id === "room-history") {
+      openSelected();
+      return;
+    }
+    if (id === "room-archived") {
+      navigate(
+        { ...route, archived: !route.archived, page: 1 },
+        { replace: true },
+      );
+      return;
+    }
+    if (
+      ["room-pin", "room-edit", "room-archive", "room-restore"].includes(id)
+    ) {
+      task(async () => {
+        const plan = await roomDecisionPlan(
+          api,
+          route.id,
+          id === "room-pin" ? null : selected.id,
+          id.slice(5),
+        );
+        if (id === "room-archive" || id === "room-restore") {
+          askConfirm(
+            plan.title,
+            `${plan.values.title} · ${plan.audience}`,
+            () =>
+              task(async () => {
+                await api(plan.url, {
+                  method: plan.method,
+                  body: { ...plan.payload, ...plan.values },
+                });
+                cache.current.clear();
+                setRefresh((n) => n + 1);
+                setNotice("Decision updated.");
+              }),
+          );
+          return;
+        }
+        const values = {
+          ...plan.values,
+          ...(id === "room-pin" ? { post_id: "" } : {}),
+        };
+        const fields =
+          id === "room-archive" || id === "room-restore"
+            ? []
+            : [
+                { key: "title", label: "Decision", min: 3, max: 140 },
+                {
+                  key: "body",
+                  label: "Why this matters",
+                  min: 2,
+                  max: 6000,
+                  multiline: true,
+                },
+                ...(id === "room-pin"
+                  ? [
+                      {
+                        key: "post_id",
+                        label: "Related work request ID (optional)",
+                        max: 12,
+                      },
+                    ]
+                  : []),
+              ];
+        openForm({
+          kind: "flow",
+          mode: "room",
+          roomMode: "decision",
+          title: plan.title,
+          plan,
+          roomRoute: plan.roomRoute,
+          postId: plan.url,
+          fields,
+          values,
+          audience: plan.audience,
+        });
+      });
+      return;
+    }
+    if (!selected) return;
+    const action = id.startsWith("room-state-") ? "state" : id.slice(5),
+      state = id.startsWith("room-state-") ? id.slice(11) : undefined;
+    task(async () => {
+      const plan = await roomTaskPlan(api, route.id, selected.id, action, {
+        state,
+      });
+      if (action === "assign") {
+        openForm({
+          kind: "flow",
+          mode: "room",
+          roomMode: "assign",
+          title: plan.title,
+          plan,
+          roomRoute: plan.roomRoute,
+          postId: plan.url,
+          audience: plan.audience,
+          fields: [
+            { key: "username", label: "Public username", min: 3, max: 30 },
+          ],
+          values: { username: "" },
+        });
+        return;
+      }
+      askConfirm(
+        plan.title,
+        plan.audience +
+          " · Assignment does not grant conversation editing rights.",
+        () =>
+          task(async () => {
+            await api(plan.url, { method: plan.method, body: plan.payload });
+            cache.current.clear();
+            setRefresh((n) => n + 1);
+            setNotice("Room task updated.");
+          }),
+      );
+    });
+  }
   function runAction(id) {
     setActionIndex(null);
+    if (id?.startsWith("room-")) {
+      roomAction(id);
+      return;
+    }
     if (id?.startsWith("flow-")) {
       reviewFlowAction(id);
       return;
@@ -2916,6 +3122,19 @@ function App({ initialConfig, flags, root, initialAppearance }) {
         );
         if (!m) throw Error("Use /invite POST_ID @username.");
         await inviteReviewer(flowID(m[1]), m[2]);
+        return;
+      }
+      if (["room", "decisions", "room-activity"].includes(parsed.command)) {
+        await openRoom(
+          parsed.arg,
+          parsed.command === "decisions" ? "room-decisions" : parsed.command,
+        );
+        return;
+      }
+      if (parsed.command === "pin") {
+        if (!["room", "room-decisions"].includes(route.view))
+          throw Error("Open a project room first.");
+        roomAction("room-pin");
         return;
       }
       if (parsed.command === "workspace") {
@@ -3801,7 +4020,7 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       return;
     }
     if (
-      route.view === "workspace" &&
+      ["workspace", "room"].includes(route.view) &&
       (keyEvent.leftArrow || keyEvent.rightArrow)
     ) {
       const states = ["", "open", "in_progress", "ready"],
@@ -4330,7 +4549,11 @@ function App({ initialConfig, flags, root, initialAppearance }) {
           link.label + " · " + link.url,
         ]),
         ...(preview.flow
-          ? ["", "EXACT REVIEW REQUEST", ...flowPreview(payload)]
+          ? [
+              "",
+              preview.roomRoute ? "ROOM CHANGE" : "EXACT REVIEW REQUEST",
+              ...flowPreview(payload),
+            ]
           : []),
         ...(preview.catalog
           ? [

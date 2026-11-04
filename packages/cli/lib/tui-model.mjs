@@ -121,6 +121,10 @@ export function parseCommand(text) {
   if (cmd === "pr") return { command: "pr", arg };
   if (
     [
+      "room",
+      "decisions",
+      "room-activity",
+      "pin",
       "assigned",
       "invite",
       "workspace",

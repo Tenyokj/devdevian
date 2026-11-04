@@ -28,6 +28,10 @@ Actual CLI captures from isolated demonstration accounts. Your terminal uses you
 
 Run `devdevian --help` for script commands and workspace shortcuts. Interactive help has a large wordmark and selective accents; `NO_COLOR=1` keeps it uncolored, narrow terminals use a compact heading, and redirected output stays plain.
 
+## Project Rooms
+
+CLI **0.17.0-alpha.1** with browser/API **0.4.0** adds `/room [PROJECT_ID]`, `/decisions [PROJECT_ID]`, `/room-activity [PROJECT_ID]` and `/pin`. Open tasks with Enter, switch states with left/right and use **X** to claim, assign, release or move work. Owner decisions keep immutable history and archive/restore. `/room` uses the directory’s explicit project binding. All writes retain preview, confirmation and version checks. [Workflow, commands and permissions](../../docs/rooms.md)
+
 ## Review Flow
 
 CLI **0.16.0-alpha.1** and browser/API **0.3.0** add named reviewer invitations, Waiting for me, immutable version-bound outcomes and links from new revisions to earlier remarks. See the [browser/CLI workflow and commands](../../docs/review-flow.md). They require an explicitly prepared matching server; source versions do not imply npm publication.

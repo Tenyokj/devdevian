@@ -4,6 +4,12 @@ The CLI is a separately versioned Devdevian client. Its npm version does not hav
 
 Every published npm artifact has a unique immutable version. We record each version here, even when several ship in one working session. A GitHub release can summarize a day's work and link to the individual entries; it does not need to be created for every npm publication. An unfinished change stays under **Unreleased** until its package version is assigned. Alpha packages use the `alpha` npm tag.
 
+## 0.17.0-alpha.1 — Project Rooms
+
+- `/room`, project-bound tasks, named assignees, claim/release/state actions, decisions/history/archive and shared activity. Script clients expose matching `room` commands.
+- Owner decisions and assignee state changes preserve parent visibility and do not grant conversation edits or community access. Version conflicts retain drafts; writes keep preview/confirmation.
+- Companion to browser/API 0.4.0 with optional Rooms schema preparation. Existing bindings, themes and credentials stay compatible; no new CLI dependencies or GitHub scopes.
+
 ## 0.16.0-alpha.1 — Review Flow
 
 - Named reviewer invitations and a personal Waiting / In review / Sent / History queue, shared with the browser.

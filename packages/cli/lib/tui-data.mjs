@@ -1,3 +1,4 @@
+import { loadRoom, requireRoom } from "./rooms.mjs";
 import { flowPage, requireFlow } from "./review-flow.mjs";
 import {
   loadWorkspace,
@@ -77,6 +78,45 @@ export async function notificationRoute(api, item) {
       };
 }
 export async function loadPage(api, route, signal) {
+  if (route.view === "room")
+    return loadRoom(api, route.id, {
+      state: route.state || "",
+      page: route.page || 1,
+      mine: route.mine,
+      signal,
+    });
+  if (
+    ["room-decisions", "room-activity", "room-decision-history"].includes(
+      route.view,
+    )
+  ) {
+    const suffix =
+      route.view === "room-activity"
+        ? "activity"
+        : route.view === "room-decision-history"
+          ? `decisions/${route.decisionId}/history`
+          : "decisions";
+    const data = requireRoom(
+      await api(
+        `/projects/${route.id}/room/${suffix}?page=${route.page || 1}&archived=${route.archived ? "1" : "0"}`,
+        { signal },
+      ),
+    );
+    const room = requireRoom(
+      await api(`/projects/${route.id}/room`, { signal }),
+    );
+    return {
+      ...data,
+      room,
+      title:
+        route.view === "room-activity"
+          ? "Room activity"
+          : route.view === "room-decision-history"
+            ? "Decision history"
+            : "Pinned decisions",
+      subtitle: `${room.project.name} · X actions · /room ${route.id}`,
+    };
+  }
   if (route.view === "assigned")
     return {
       ...(await flowPage(
@@ -410,6 +450,10 @@ export function contentLines(route, data) {
       "A developer workspace, in your terminal.",
       "",
       "Ctrl+K / /actions Search quick actions, sections and recent views",
+      "/room [ID]       Project room tasks; uses the directory binding",
+      "/decisions [ID]  Pinned decisions · X edit/history/archive",
+      "/room-activity [ID] Tasks, decisions and reviews",
+      "/pin             Pin a decision in the current room (owner)",
       "/assigned        Waiting / In review / Sent / History · ← → sections",
       "/reviewers ID    Named reviewers and outcomes for a conversation",
       "/invite ID @user Request a reviewer · confirmation required",

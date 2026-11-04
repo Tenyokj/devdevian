@@ -43,7 +43,7 @@ function usePage(path, epoch = 0) {
 }
 // Every write has its own captured version and explicit preview. A failed
 // request keeps the editor; it is never silently rebased or automatically sent.
-function FlowDialog({ plan, close, done }) {
+export function FlowDialog({ plan, close, done }) {
   const [values, setValues] = useState(plan.values || {}),
     [preview, setPreview] = useState(false),
     [busy, setBusy] = useState(false),
@@ -185,8 +185,11 @@ function FlowDialog({ plan, close, done }) {
             })
               .filter(
                 ([key, value]) =>
-                  !["expected_version", "expected_revision"].includes(key) &&
-                  value !== "",
+                  ![
+                    "expected_version",
+                    "expected_revision",
+                    "operation_key",
+                  ].includes(key) && value !== "",
               )
               .map(([key, value]) => (
                 <React.Fragment key={key}>

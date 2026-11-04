@@ -1,5 +1,14 @@
 # Changelog
 
+## Browser & API 0.4.0 / CLI 0.17.0-alpha.1 — Rooms
+
+- Add shared project task boards, claim/release/assignment and state changes with captured versions and existing private permissions.
+- Add owner-pinned decisions, immutable edit history, archive/restore and scoped room activity combining task and Review Flow events.
+- Add room commands and live terminal actions, previews and account-scoped drafts.
+- Refresh project surfaces and status accents; color current and retained review code without changing text or line anchors.
+- Recover one transient browser GET failure within the original deadline, respecting cancellation, cooldown and account changes; never retry writes.
+- Add optional Rooms preparation, encrypted recovery, real browser/script/PTY, privacy and load checks.
+
 ## Browser & API 0.3.0 / CLI 0.16.0-alpha.1 — Review Flow
 
 - Request a named reviewer and track Waiting / In review / Sent / History in the browser and CLI.

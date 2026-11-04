@@ -1,3 +1,4 @@
+import { roomEvent } from "./rooms.mjs";
 import { canRead, pageRows, scopeSQL } from "./spaces.mjs";
 import { transaction } from "./activity.mjs";
 import { workspaceCapabilities } from "./review-revisions.mjs";
@@ -187,6 +188,7 @@ export function registerWorkspaces(app, db, required) {
         db.prepare(
           "UPDATE project_work_requests SET linked=0,version=version+1,updated_at=CURRENT_TIMESTAMP WHERE post_id=? AND version=?",
         ).run(p.id, row.version);
+        roomEvent(db, pr.id, p.id, req.user.id, "task_unlinked");
         return { ok: true, version: row.version + 1 };
       }
       if (!row) {
@@ -201,6 +203,15 @@ export function registerWorkspaces(app, db, required) {
           "UPDATE project_work_requests SET project_id=?,linked=1,state=?,version=version+1,updated_at=CURRENT_TIMESTAMP WHERE post_id=? AND version=?",
         ).run(pr.id, req.body.state, p.id, row.version);
       }
+      roomEvent(
+        db,
+        pr.id,
+        p.id,
+        req.user.id,
+        row?.linked ? "task_state_changed" : "task_linked",
+        null,
+        req.body.state,
+      );
       return {
         post_id: p.id,
         project_id: pr.id,

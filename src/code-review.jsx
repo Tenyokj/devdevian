@@ -1,3 +1,4 @@
+import { CodeTokens, useCodeTokens } from "./code-color";
 import { ReviewFlowPanel, RevisionAddressButton } from "./review-flow";
 import {
   workspaceDraftKey,
@@ -98,6 +99,7 @@ export function CodeReview({
     targetReply = parts[4] === "reply" ? parts[5] : null;
   const lines = post.code ? post.code.split("\n") : [],
     paused = !!(post.archived_at || post.locked_at);
+  const coloredLines = useCodeTokens(post.code);
   const files = useMemo(() => {
     const navigation = reviewNavigation(post.code, post.github_context);
     const stored = post.review_files || data?.files || [];
@@ -382,7 +384,9 @@ export function CodeReview({
                   >
                     {number}
                   </button>
-                  <code>{line || " "}</code>
+                  <code>
+                    <CodeTokens tokens={coloredLines[number - 1]} text={line} />
+                  </code>
                 </div>
               );
             })}

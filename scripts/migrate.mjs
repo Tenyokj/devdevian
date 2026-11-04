@@ -4,6 +4,7 @@ process.env.VERCEL = "1";
 process.env.DEVDEVIAN_EXPLICIT_ENV = "1";
 try {
   const actions = new Set([
+    "--prepare-rooms",
     "--prepare-review-flow",
     "--prepare-workspaces",
     "--prepare-cli",
@@ -16,7 +17,22 @@ try {
     throw Error(
       "Use no argument to finalize, or one supported --prepare-* action. No migration was run.",
     );
-  if (process.argv.includes("--prepare-review-flow")) {
+  if (process.argv.includes("--prepare-rooms")) {
+    const { openDatabase } = await import("../database.mjs");
+    const { prepareRooms } = await import("../rooms.mjs");
+    const db = await openDatabase();
+    try {
+      if (
+        db.prepare("SELECT version FROM app_schema WHERE id=1").get()
+          ?.version !== 7
+      )
+        throw Error("Prepare Rooms requires schema v7.");
+      prepareRooms(db);
+    } finally {
+      db.close();
+    }
+    console.log("Rooms prepared; global schema preserved.");
+  } else if (process.argv.includes("--prepare-review-flow")) {
     const { openDatabase } = await import("../database.mjs");
     const { prepareReviewFlow } = await import("../review-flow.mjs");
     const db = await openDatabase();

@@ -6,8 +6,8 @@
   <p>
     <a href="https://github.com/Tenyokj/devdevian/actions/workflows/checks.yml"><img src="https://github.com/Tenyokj/devdevian/actions/workflows/checks.yml/badge.svg" alt="Build and tests" /></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0--only-9e8bff" alt="GPL 3.0 only" /></a>
-    <a href="package.json"><img src="https://img.shields.io/badge/version-0.3.0-7b83ff" alt="Browser/API version 0.3.0" /></a>
-    <a href="https://www.npmjs.com/package/@tenyokjs/devdevian-cli"><img src="https://img.shields.io/badge/CLI-0.16.0--alpha.1-b2a0ff" alt="CLI 0.16.0-alpha.1" /></a>
+    <a href="package.json"><img src="https://img.shields.io/badge/version-0.4.0-7b83ff" alt="Browser/API version 0.4.0" /></a>
+    <a href="https://www.npmjs.com/package/@tenyokjs/devdevian-cli"><img src="https://img.shields.io/badge/CLI-0.17.0--alpha.1-b2a0ff" alt="CLI 0.17.0-alpha.1" /></a>
     <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/Node.js-24%2B-84bc95" alt="Node.js 24 or newer" /></a>
     <img src="https://img.shields.io/badge/status-active_development-b2a0ff" alt="Active development" />
   </p>
@@ -17,6 +17,10 @@
 [Latest combined release: CLI 0.14 — Keep the review moving](https://github.com/Tenyokj/devdevian/releases/tag/cli-v0.14.0-alpha.1)
 
 [Watch the launch film](https://www.youtube.com/watch?v=ssUCB1Jpf-Q) · [Find your way around the source](docs/source-map.md) · [Full changelog](CHANGELOG.md)
+
+## Devdevian Rooms
+
+Find the next task, take responsibility and keep the decisions with the work. Project rooms add a shared Open / In progress / Ready board, named assignees, pinned decisions with edit history and permission-scoped activity in browser and CLI. Code reviews gain syntax colors while preserving exact snapshots and line anchors. [Rooms guide](docs/rooms.md)
 
 ## Review Flow
 

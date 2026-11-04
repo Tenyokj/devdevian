@@ -49,9 +49,14 @@ export async function readAPIResponse(response) {
   return data;
 }
 const pendingGets = new Map();
+let readGeneration = 0;
 export async function api(path, options = {}) {
   const isGet = !options.method || options.method === "GET";
-  if (!isGet) pendingGets.clear();
+  if (!isGet) {
+    pendingGets.clear();
+    readGeneration++;
+  }
+  const generation = readGeneration;
   // Only identical in-flight reads are shared. No private responses are cached
   // across account changes, and mutations are never automatically replayed.
   if (isGet && !options.signal && pendingGets.has(path))
@@ -62,20 +67,48 @@ export async function api(path, options = {}) {
     const signal = options.signal
       ? AbortSignal.any([options.signal, timeout])
       : timeout;
-    try {
-      response = await fetch("/api" + path, {
-        ...options,
-        signal,
-        headers: { "Content-Type": "application/json", ...options.headers },
-        body: options.body ? JSON.stringify(options.body) : undefined,
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        response = await fetch("/api" + path, {
+          ...options,
+          signal,
+          headers: { "Content-Type": "application/json", ...options.headers },
+          body: options.body ? JSON.stringify(options.body) : undefined,
+        });
+      } catch (e) {
+        if (options.signal?.aborted) throw e;
+        throw new Error(
+          timeout.aborted
+            ? "The server took too long to respond. Please try again."
+            : "Could not reach the service. Check your connection and try again.",
+        );
+      }
+      // A read can fail during session lookup before its route runs. Retry once,
+      // within the original deadline, only if no account/mutation intervened.
+      // Writes and server-directed cooldowns are never replayed or bypassed.
+      if (
+        !isGet ||
+        attempt ||
+        generation !== readGeneration ||
+        ![500, 502, 503, 504].includes(response.status) ||
+        Number(response.headers?.get?.("retry-after")) > 1
+      )
+        break;
+      await response.body?.cancel();
+      await new Promise((resolve, reject) => {
+        const abort = () => {
+          clearTimeout(timer);
+          reject(signal.reason);
+        };
+        const timer = setTimeout(() => {
+          signal.removeEventListener("abort", abort);
+          resolve();
+        }, 450);
+        if (signal.aborted) abort();
+        else signal.addEventListener("abort", abort, { once: true });
       });
-    } catch (e) {
-      if (options.signal?.aborted) throw e;
-      throw new Error(
-        timeout.aborted
-          ? "The server took too long to respond. Please try again."
-          : "Could not reach the service. Check your connection and try again.",
-      );
+      if (generation !== readGeneration)
+        throw new Error("The session changed. Refresh this view.");
     }
     const data = await readAPIResponse(response);
     if (data.posts?.items && data.posts.pagination)

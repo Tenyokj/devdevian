@@ -4,6 +4,55 @@ export function contextActions({ route, data, selected, user, live }) {
   const actions = catalogActions(route, data, user),
     post = data?.post;
   const add = (id, label) => actions.push({ id, label });
+  if (route.view === "room") {
+    if (selected) {
+      add("room-open", "Open task conversation");
+      if (
+        user &&
+        !data?.room?.paused &&
+        !selected.archived_at &&
+        !selected.locked_at
+      ) {
+        const owner = data?.room?.permissions?.manage;
+        if (!selected.assignee_name) add("room-claim", "Pick up task");
+        if (selected.assignee_id === user.id || owner) {
+          if (selected.assignee_name) add("room-release", "Release task");
+          for (const state of ["open", "in_progress", "ready"])
+            if (state !== selected.state)
+              add(
+                "room-state-" + state,
+                "Move to " + state.replaceAll("_", " "),
+              );
+        }
+        if (owner) add("room-assign", "Assign a teammate");
+      }
+    }
+    add("room-decisions", "Pinned decisions");
+    add("room-activity", "Room activity");
+    add("sync", "Refresh this view");
+    return actions;
+  }
+  if (route.view === "room-decisions") {
+    if (selected) {
+      add("room-history", "Read decision and history");
+      if (data?.room?.permissions?.manage) {
+        add("room-edit", "Edit decision");
+        add(
+          selected.archived ? "room-restore" : "room-archive",
+          selected.archived ? "Restore decision" : "Archive decision",
+        );
+      }
+    }
+    if (data?.room?.permissions?.manage) add("room-pin", "Pin a decision");
+    add(
+      "room-archived",
+      route.archived ? "Show pinned decisions" : "Show archived decisions",
+    );
+    add("room-board", "Back to room tasks");
+    return actions;
+  }
+  if (["project", "workspace"].includes(route.view))
+    add("room-board", "Open project room");
   if (["assigned", "reviewers"].includes(route.view)) {
     if (selected) {
       add("flow-original", "View assigned code");

@@ -1,3 +1,4 @@
+import { CodeTokens, useCodeTokens } from "./code-color";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   History,
@@ -44,6 +45,7 @@ function SnapshotCode({ snapshot, range }) {
     );
   const file = snapshot.files[index];
   const lines = file.code.split("\n");
+  const coloredLines = useCodeTokens(file.code, file.path);
   return (
     <div className="dw-snapshot">
       <Select
@@ -77,7 +79,12 @@ function SnapshotCode({ snapshot, range }) {
               }
             >
               <span>{n}</span>
-              <code>{line || " "}</code>
+              <code>
+                <CodeTokens
+                  tokens={coloredLines[(page - 1) * 100 + i]}
+                  text={line}
+                />
+              </code>
             </div>
           );
         })}

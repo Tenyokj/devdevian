@@ -1,0 +1,42 @@
+/* Token colors are scoped to code, with separate high-contrast light values. */
+:is(.numbered-snippet, .dw-code, .colored-code) {
+  --syntax-key: #c7a7ff;
+  --syntax-string: #a0dab1;
+  --syntax-number: #f2bd81;
+  --syntax-comment: #8f9caf;
+  --syntax-function: #8bc8ff;
+  --syntax-tag: #f099ae;
+  color: var(--text);
+}
+:root[data-theme="light"] :is(.numbered-snippet, .dw-code, .colored-code) {
+  --syntax-key: #6b36a1;
+  --syntax-string: #226c43;
+  --syntax-number: #965000;
+  --syntax-comment: #526479;
+  --syntax-function: #155b96;
+  --syntax-tag: #a32f50;
+}
+:is(.numbered-snippet, .dw-code, .colored-code)
+  :is(.hljs-keyword, .hljs-selector-tag, .hljs-literal, .hljs-built_in) {
+  color: var(--syntax-key);
+}
+:is(.numbered-snippet, .dw-code, .colored-code)
+  :is(.hljs-string, .hljs-regexp, .hljs-template-tag) {
+  color: var(--syntax-string);
+}
+:is(.numbered-snippet, .dw-code, .colored-code)
+  :is(.hljs-number, .hljs-attr, .hljs-symbol) {
+  color: var(--syntax-number);
+}
+:is(.numbered-snippet, .dw-code, .colored-code)
+  :is(.hljs-comment, .hljs-quote) {
+  color: var(--syntax-comment);
+  font-style: italic;
+}
+:is(.numbered-snippet, .dw-code, .colored-code) :is(.hljs-title, .hljs-type) {
+  color: var(--syntax-function);
+}
+:is(.numbered-snippet, .dw-code, .colored-code)
+  :is(.hljs-tag, .hljs-name, .hljs-variable) {
+  color: var(--syntax-tag);
+}

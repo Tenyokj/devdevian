@@ -1,5 +1,11 @@
 #!/usr/bin/env node
 import {
+  loadRoom,
+  requireRoom,
+  roomTaskPlan,
+  roomDecisionPlan,
+} from "../lib/rooms.mjs";
+import {
   flowPage,
   flowRequest,
   flowActionPlan,
@@ -81,6 +87,9 @@ const options = {
   snapshot: { type: "string" },
   remark: { type: "string" },
   project: { type: "string" },
+  mine: { type: "boolean" },
+  archived: { type: "boolean" },
+  "related-post": { type: "string" },
   yes: { type: "boolean" },
   json: { type: "boolean" },
   editor: { type: "boolean" },
@@ -152,6 +161,12 @@ const help = `Devdevian CLI ${version} · alpha
   devdevian workspace activity PROJECT_ID
   devdevian reviews [--section open|awaiting] [--page 2]
   devdevian work [--section mine|reviews|saved|following] [--page 2]
+  devdevian room [PROJECT_ID] [--state open|in_progress|ready] [--mine]
+  devdevian room decisions PROJECT_ID [--archived]
+  devdevian room activity PROJECT_ID
+  devdevian room claim|release|assign|state PROJECT_ID POST_ID [--username NAME] [--state ready]
+  devdevian room decision pin|edit|archive|restore PROJECT_ID [DECISION_ID] --title "..." --body "..."
+  devdevian room decision history PROJECT_ID DECISION_ID
   devdevian workspace [PROJECT_ID] [--state open|in_progress|ready]
   devdevian workspace bind PROJECT_ID     Link this directory locally (explicit confirmation)
   devdevian workspace unbind              Remove only the local association
@@ -513,6 +528,101 @@ async function execute(args, flags) {
       await api(plan.url, { method: plan.method, body: plan.payload }),
       flags.json,
     );
+    return;
+  }
+  if (command === "room") {
+    const action = args[1];
+    if (["claim", "release", "assign", "state"].includes(action)) {
+      const plan = await roomTaskPlan(api, args[2], args[3], action, {
+        username: flags.username,
+        state: flags.state,
+      });
+      await confirm(
+        {
+          audience: plan.audience,
+          ...plan.payload,
+          project_id: args[2],
+          post_id: args[3],
+        },
+        flags,
+      );
+      show(
+        await api(plan.url, { method: plan.method, body: plan.payload }),
+        flags.json,
+      );
+      return;
+    }
+    if (action === "decision") {
+      const operation = args[2],
+        project = workspaceId(args[3]),
+        id = args[4];
+      if (operation === "history") {
+        show(
+          requireRoom(
+            await api(
+              `/projects/${project}/room/decisions/${workspaceId(id)}/history?page=${page}`,
+            ),
+          ),
+          flags.json,
+        );
+        return;
+      }
+      if (!["pin", "edit", "archive", "restore"].includes(operation))
+        throw Error("Choose pin, edit, archive, restore or history.");
+      const plan = await roomDecisionPlan(
+        api,
+        project,
+        operation === "pin" ? null : id,
+        operation,
+      );
+      const payload = { ...plan.payload, ...plan.values };
+      if (["pin", "edit"].includes(operation)) {
+        payload.title = flags.title || payload.title;
+        payload.body = await message(flags, payload.body);
+      }
+      if (flags["related-post"]) {
+        if (operation !== "pin")
+          throw Error("A decision preserves its original audience.");
+        payload.post_id = workspaceId(flags["related-post"]);
+      }
+      await confirm({ audience: plan.audience, ...payload }, flags);
+      show(
+        await api(plan.url, { method: plan.method, body: payload }),
+        flags.json,
+      );
+      return;
+    }
+    if (action === "decisions" || action === "activity") {
+      const id = workspaceId(args[2]);
+      show(
+        requireRoom(
+          await api(
+            `/projects/${id}/room/${action}?page=${page}&archived=${flags.archived ? "1" : "0"}`,
+          ),
+        ),
+        flags.json,
+      );
+      return;
+    }
+    let id = action ? workspaceId(action) : null;
+    if (!id) {
+      const me = await api("/me");
+      const binding = new ProjectBinding({
+        origin: config.origin,
+        userId: me.user.id,
+        root: await workspaceRoot(flags.project),
+      });
+      id = await binding.read();
+    }
+    if (!id) throw Error("Use room PROJECT_ID or workspace bind PROJECT_ID.");
+    const data = await loadRoom(api, id, {
+      state: flags.state,
+      page,
+      mine: flags.mine,
+      query: flags.query,
+    });
+    if (!flags.json) out(data.title + " · " + data.room.project.goal);
+    show(data, flags.json, "workspace");
     return;
   }
   if (command === "workspace") {

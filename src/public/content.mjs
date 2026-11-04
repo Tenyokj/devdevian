@@ -3,6 +3,34 @@
 export const repository = "https://github.com/Tenyokj/devdevian";
 export const updates = [
   {
+    id: "rooms-0-4",
+    channel: "Browser",
+    version: "0.4.0",
+    title: "A place for the next useful step.",
+    summary:
+      "Project rooms bring a shared task board, named assignees, pinned decisions and activity together.",
+    points: [
+      "Pick up work, move it forward and keep the reasons behind decisions with their edit history. Private work keeps its audience.",
+      "Fresh project accents and syntax colors make states and code easier to read in both themes.",
+    ],
+    link: repository + "/blob/main/docs/rooms.md",
+    label: "Explore Rooms",
+  },
+  {
+    id: "cli-rooms-0-17",
+    channel: "CLI",
+    version: "0.17.0-alpha.1",
+    title: "The room, right beside your code.",
+    summary:
+      "Open your project room from its bound directory. Pick up tasks, follow decisions and share progress from the terminal.",
+    points: [
+      "Use /room, /decisions and /room-activity; X offers actions permitted for the selected work.",
+      "Preview changes before confirming. Tasks, decisions and version checks are shared with the browser.",
+    ],
+    link: repository + "/blob/main/docs/rooms.md#use-the-terminal",
+    label: "Terminal Rooms guide",
+  },
+  {
     id: "review-flow-0-3",
     channel: "Browser",
     version: "0.3.0",

@@ -1,3 +1,4 @@
+import { RoomSurface } from "./rooms";
 import { ReviewProjectActivity } from "./review-flow";
 import React, { useEffect, useRef, useState } from "react";
 import {
@@ -677,7 +678,8 @@ export function Workspace({
   }, [id, user?.id, reload]);
   useEffect(() => {
     const controller = new AbortController();
-    if (tab === "activity") return () => controller.abort();
+    if (["activity", "room", "decisions", "room-activity"].includes(tab))
+      return () => controller.abort();
     setRequests(null);
     setListError("");
     const params = new URLSearchParams({
@@ -749,11 +751,14 @@ export function Workspace({
         <div className="dw-project-mark">
           <FolderGit2 size={25} />
           <strong>{project.name}</strong>
-          <small>Project workspace</small>
+          <small>Project room · Shared work</small>
         </div>
         <nav aria-label="Workspace navigation">
           {[
             ["overview", "Overview", LayoutDashboard],
+            ["room", "Room board", LayoutDashboard],
+            ["decisions", "Decisions", CheckCircle2],
+            ["room-activity", "All activity", MessageSquare],
             ["work", "Work requests", GitPullRequest],
             ["review", "Code review", Code2],
             ["activity", "Review activity", MessageSquare],
@@ -842,6 +847,9 @@ export function Workspace({
                     Visit the project <ArrowUpRight size={17} />
                   </a>
                 )}
+                <a href={`#workspace/${id}/room`}>
+                  Open the project room <ArrowUpRight size={17} />
+                </a>
                 <a href={"#post/" + project.post_id}>
                   Project updates & discussion <MessageSquare size={17} />
                 </a>
@@ -854,7 +862,16 @@ export function Workspace({
             </div>
           </>
         )}
-        {tab === "activity" ? (
+        {["room", "decisions", "room-activity"].includes(tab) ? (
+          <RoomSurface
+            project={project}
+            user={user}
+            requireUser={requireUser}
+            go={go}
+            section={tab}
+            onChange={refresh}
+          />
+        ) : tab === "activity" ? (
           <ReviewProjectActivity projectId={id} />
         ) : tab === "review" && reviewId ? (
           <WorkspaceReview
