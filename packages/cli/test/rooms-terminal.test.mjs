@@ -120,8 +120,13 @@ test(
       };
       const command = async (text) => {
         await send("/");
-        await send(text);
-        await send("\r");
+        if (text === "/pin") {
+          // A pasted command and Enter can arrive in the same terminal frame.
+          await send(text + "\r");
+        } else {
+          await send(text);
+          await send("\r");
+        }
       };
       await wait("Inspect the retry owner");
       await command("/room " + project);

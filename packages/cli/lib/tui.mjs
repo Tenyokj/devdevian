@@ -801,10 +801,22 @@ function App({ initialConfig, flags, root, initialAppearance }) {
     [scroll, setScroll] = useState(0);
   const [focus, setFocus] = useState("content"),
     [navIndex, setNavIndex] = useState(1),
-    [command, setCommand] = useState(""),
-    [commandCursor, setCommandCursor] = useState(0),
+    [command, setCommandState] = useState(""),
+    [commandCursor, setCommandCursorState] = useState(0),
     [error, setError] = useState(""),
     [notice, setNotice] = useState(initialAppearance.warning || "");
+  // Terminal input may deliver text and Enter before React commits a frame.
+  // Keep the editable value synchronous; rendering still uses ordinary state.
+  const commandText = useRef("");
+  const commandPosition = useRef(0);
+  const setCommand = (value) => {
+    commandText.current = value;
+    setCommandState(value);
+  };
+  const setCommandCursor = (value) => {
+    commandPosition.current = value;
+    setCommandCursorState(value);
+  };
   const [form, setForm] = useState(null),
     [field, setField] = useState(0),
     [formNav, setFormNav] = useState(null),
@@ -3094,7 +3106,7 @@ function App({ initialConfig, flags, root, initialAppearance }) {
     });
   }
   async function runCommand(override) {
-    const value = (override ?? command).trim();
+    const value = (override ?? commandText.current).trim();
     if (!value) return;
     setCommand("");
     setCommandCursor(0);
@@ -3706,9 +3718,15 @@ function App({ initialConfig, flags, root, initialAppearance }) {
         runCommand();
         return;
       }
-      const updated = editText(command, commandCursor, input, keyEvent, {
-        max: 500,
-      });
+      const updated = editText(
+        commandText.current,
+        commandPosition.current,
+        input,
+        keyEvent,
+        {
+          max: 500,
+        },
+      );
       setCommand(updated.value);
       setCommandCursor(updated.cursor);
       return;
