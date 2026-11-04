@@ -1,5 +1,10 @@
 import { details } from "./enhancements.mjs";
-import { limitValue, QuotaError } from "./limits.mjs";
+import {
+  limitValue,
+  QuotaError,
+  consumeBudget,
+  initializeLimits,
+} from "./limits.mjs";
 import express from "express";
 import { randomUUID } from "node:crypto";
 import { objectStorage } from "./object-storage.mjs";
@@ -35,6 +40,7 @@ export function attachFiles(db, postId, user, ids = [], replyId = null) {
     ).run(postId, replyId, id, user.id);
 }
 export function registerUploads(app, db, required) {
+  initializeLimits(db);
   const storage = objectStorage();
   if (!db.schemaCurrent) {
     db.exec(
@@ -48,6 +54,14 @@ export function registerUploads(app, db, required) {
   app.post(
     "/api/uploads",
     required,
+    (req, res, next) => {
+      // Reject repeated attempts before buffering their file bodies.
+      consumeBudget(db, [
+        { key: `upload-attempt:${req.user.id}`, max: 60, window: 300000 },
+        { key: "upload-attempt:server", max: 300, window: 300000 },
+      ]);
+      next();
+    },
     express.raw({ type: "application/octet-stream", limit: "4mb" }),
     async (req, res) => {
       if (!Buffer.isBuffer(req.body) || !req.body.length)
@@ -164,19 +178,51 @@ export function registerUploads(app, db, required) {
     const f = db.prepare("SELECT * FROM uploads WHERE id=?").get(req.params.id);
     if (!f || (f.reply_id && details(db, "reply", f.reply_id).deleted_at))
       return res.status(404).json({ error: "File not found." });
+    // Referencing an image does not make a private project's files public.
+    const references =
+      !f.post_id && f.mime.startsWith("image/")
+        ? db
+            .prepare(
+              "SELECT kind,entity_id FROM entity_details WHERE json_extract(data,'$.logo')=? OR json_extract(data,'$.banner')=? OR json_extract(data,'$.avatar')=? OR EXISTS(SELECT 1 FROM json_each(json_extract(data,'$.screenshots')) WHERE value=?)",
+            )
+            .all(f.id, f.id, f.id, f.id)
+        : [];
+    const imageVisible = references.some((ref) => {
+      if (ref.kind === "project")
+        return canRead(
+          db,
+          req.user,
+          db
+            .prepare(
+              "SELECT p.* FROM posts p JOIN projects pr ON pr.post_id=p.id WHERE pr.id=?",
+            )
+            .get(ref.entity_id),
+        );
+      if (ref.kind === "post")
+        return canRead(
+          db,
+          req.user,
+          db.prepare("SELECT * FROM posts WHERE id=?").get(ref.entity_id),
+        );
+      if (ref.kind === "reply")
+        return canRead(
+          db,
+          req.user,
+          db
+            .prepare(
+              "SELECT p.* FROM posts p JOIN replies r ON r.post_id=p.id WHERE r.id=?",
+            )
+            .get(ref.entity_id),
+        );
+      return ["user", "community", "event"].includes(ref.kind);
+    });
     const permitted = f.post_id
       ? canRead(
           db,
           req.user,
           db.prepare("SELECT * FROM posts WHERE id=?").get(f.post_id),
         )
-      : req.user?.id === f.user_id ||
-        (f.mime.startsWith("image/") &&
-          !!db
-            .prepare(
-              "SELECT 1 FROM entity_details WHERE json_extract(data,'$.logo')=? OR json_extract(data,'$.banner')=? OR json_extract(data,'$.avatar')=? OR EXISTS(SELECT 1 FROM json_each(json_extract(data,'$.screenshots')) WHERE value=?)",
-            )
-            .get(f.id, f.id, f.id, f.id));
+      : req.user?.id === f.user_id || imageVisible;
     if (!permitted) return res.status(404).json({ error: "File not found." });
     let bytes;
     try {

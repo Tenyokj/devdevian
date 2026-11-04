@@ -650,11 +650,11 @@ export function registerDomain(app, db, required, profile) {
     res.status(201).json({ ok: true });
   });
   const projectsSelect =
-    "SELECT pr.*,u.name founder_name,u.role founder_role,(SELECT COUNT(*) FROM replies r WHERE r.post_id=pr.post_id) feedback_count FROM projects pr JOIN users u ON u.id=pr.user_id";
+    "SELECT pr.*,parent.community_id,u.name founder_name,u.role founder_role,(SELECT COUNT(*) FROM replies r WHERE r.post_id=pr.post_id) feedback_count FROM projects pr JOIN users u ON u.id=pr.user_id JOIN posts parent ON parent.id=pr.post_id";
   app.get("/api/projects", (req, res) => {
     const params = [];
     let where =
-      " WHERE pr.post_id IN (SELECT p.id FROM posts p WHERE p.community_id IS NULL AND p.removed_at IS NULL AND " +
+      " WHERE pr.post_id IN (SELECT p.id FROM posts p WHERE p.removed_at IS NULL AND " +
       scopeSQL("p", req.user) +
       ")";
     if (req.query.q) {
@@ -699,8 +699,13 @@ export function registerDomain(app, db, required, profile) {
       stack = "",
       stage,
       help,
+      community_id = null,
     } = req.body;
     if (
+      (community_id !== null &&
+        community_id !== "" &&
+        (typeof community_id !== "string" ||
+          !memberOf(db, req.user, community_id))) ||
       !text(name, 80, 2) ||
       !text(description, 5000, 20) ||
       !text(help, 1500, 10) ||
@@ -736,9 +741,18 @@ export function registerDomain(app, db, required, profile) {
       });
     db.exec("BEGIN");
     try {
+      if (community_id && !memberOf(db, req.user, community_id)) {
+        db.exec("ROLLBACK");
+        return res
+          .status(403)
+          .json({
+            error:
+              "Community membership changed. Refresh before creating this project.",
+          });
+      }
       const p = db
         .prepare(
-          "INSERT INTO posts(user_id,title,body,kind,topic,stack) VALUES(?,?,?,?,?,?)",
+          "INSERT INTO posts(user_id,title,body,kind,topic,stack,community_id) VALUES(?,?,?,?,?,?,?)",
         )
         .run(
           req.user.id,
@@ -747,6 +761,7 @@ export function registerDomain(app, db, required, profile) {
           "showcase",
           topic,
           stack.trim(),
+          community_id || null,
         );
       const result = db
         .prepare(
@@ -766,7 +781,11 @@ export function registerDomain(app, db, required, profile) {
         );
       notifyTopic(
         db,
-        { id: Number(p.lastInsertRowid), topic, community_id: null },
+        {
+          id: Number(p.lastInsertRowid),
+          topic,
+          community_id: community_id || null,
+        },
         req.user.id,
       );
       db.exec("COMMIT");

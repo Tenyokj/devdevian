@@ -16,6 +16,7 @@ import { MD, Modal, ErrorMessage } from "./ui";
 import { Pagination } from "./content";
 import { FlowDialog } from "./review-flow";
 import "./rooms.css";
+import { GitHubWorkDialog, GitHubTaskContext } from "./github-work";
 const states = [
   ["open", "Open", Circle],
   ["in_progress", "In progress", Activity],
@@ -86,6 +87,7 @@ function TaskColumn({
   paused,
   openAction,
   openRequest,
+  openGitHub,
 }) {
   const [page, setPage] = useState(1);
   useEffect(() => setPage(1), [mine, search]);
@@ -132,6 +134,9 @@ function TaskColumn({
               )}
             </div>
             <div className="room-task-actions">
+              {user && (
+                <button onClick={() => openGitHub(t)}>GitHub context</button>
+              )}
               {canChange(t) &&
                 (!t.assignee_name ? (
                   <button onClick={() => openAction(t, "claim")}>
@@ -197,6 +202,8 @@ export function RoomSurface({
   onChange,
 }) {
   const [epoch, setEpoch] = useState(0),
+    [githubTask, setGitHubTask] = useState(null),
+    [importIssue, setImportIssue] = useState(false),
     [dialog, setDialog] = useState(null),
     [history, setHistory] = useState(null),
     [mine, setMine] = useState(false),
@@ -392,6 +399,14 @@ export function RoomSurface({
             </a>
           </div>
           <div className="room-toolbar">
+            {owner && !room.data.paused && (
+              <button
+                className="button secondary"
+                onClick={() => setImportIssue(true)}
+              >
+                Import GitHub issue
+              </button>
+            )}
             <label>
               <Search size={16} />
               <input
@@ -417,6 +432,7 @@ export function RoomSurface({
                 key={state}
                 {...{ state, label, Icon, user, mine, search, epoch }}
                 project={project.id}
+                openGitHub={setGitHubTask}
                 paused={room.data.paused}
                 owner={owner && !room.data.paused}
                 openAction={room.data.paused ? () => {} : taskAction}
@@ -565,6 +581,21 @@ export function RoomSurface({
             label="room activity"
           />
         </>
+      )}
+      {importIssue && (
+        <GitHubWorkDialog
+          project={project}
+          close={() => setImportIssue(false)}
+          done={done}
+        />
+      )}
+      {githubTask && (
+        <GitHubTaskContext
+          project={project}
+          task={githubTask}
+          close={() => setGitHubTask(null)}
+          done={done}
+        />
       )}
       {dialog && (
         <FlowDialog plan={dialog} close={() => setDialog(null)} done={done} />

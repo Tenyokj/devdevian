@@ -814,7 +814,12 @@ export function Composer({
     </Modal>
   );
 }
-export function ProjectForm({ communities, close, done }) {
+export function ProjectForm({
+  communities,
+  joinedCommunities = [],
+  close,
+  done,
+}) {
   const [busy, setBusy] = useState(false),
     [error, setError] = useState("");
   return (
@@ -841,6 +846,19 @@ export function ProjectForm({ communities, close, done }) {
           }
         }}
       >
+        <Field
+          label="Project visibility"
+          hint="This audience is preserved for the project and its room. Private GitHub issues require a private community."
+        >
+          <Select name="community_id">
+            <option value="">Public project</option>
+            {joinedCommunities.map((c) => (
+              <option key={c.id} value={c.id}>
+                Private · {c.name}
+              </option>
+            ))}
+          </Select>
+        </Field>
         <div className="form-grid">
           <Field label="Project name">
             <input

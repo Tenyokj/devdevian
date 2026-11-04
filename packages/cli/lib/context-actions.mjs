@@ -69,6 +69,18 @@ export function contextActions({ route, data, selected, user, live }) {
     add("room-decisions", "Pinned decisions");
     add("room-activity", "Room activity");
     add("sync", "Refresh this view");
+    if (data?.room?.permissions?.manage && !data?.room?.paused)
+      add("room-import-issue", "Import GitHub issue");
+    if (selected && user) add("room-github", "GitHub task context and checks");
+    if (
+      selected &&
+      user &&
+      !data?.room?.paused &&
+      !selected.archived_at &&
+      !selected.locked_at &&
+      (data?.room?.permissions?.manage || selected.assignee_id === user.id)
+    )
+      add("room-link-pr", "Link GitHub PR / contribution");
     return actions;
   }
   if (route.view === "room-decisions") {

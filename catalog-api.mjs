@@ -34,7 +34,7 @@ export function registerCatalog(app, db, required) {
       .get(id);
     const post =
       row && db.prepare("SELECT * FROM posts WHERE id=?").get(row.post_id);
-    if (!post || post.community_id || !canRead(db, user, post)) return null;
+    if (!post || !canRead(db, user, post)) return null;
     const metadata =
       db
         .prepare(
@@ -43,6 +43,7 @@ export function registerCatalog(app, db, required) {
         .get(String(row.id))?.data || "{}";
     return {
       ...row,
+      community_id: post.community_id,
       revision: createHash("sha256")
         .update(
           JSON.stringify([
@@ -67,6 +68,13 @@ export function registerCatalog(app, db, required) {
         .status(403)
         .json({ error: "Only the founder can edit this project." });
     const b = req.body;
+    if (
+      "community_id" in b &&
+      (b.community_id || null) !== (row.community_id || null)
+    )
+      return res
+        .status(409)
+        .json({ error: "Project audience cannot change after publication." });
     if (
       !text(b.name, 2, 80) ||
       !text(b.description, 20, 5000) ||

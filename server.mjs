@@ -1,3 +1,4 @@
+import { securityHeaders } from "./security-headers.mjs";
 import { registerGitHubApp } from "./github-app.mjs";
 import { registerContributions } from "./contributions.mjs";
 import { registerRooms } from "./rooms.mjs";
@@ -85,6 +86,8 @@ export async function createApp({ migrationOnly = false } = {}) {
     const app = express();
     app.disable("x-powered-by");
     app.use(requestContext);
+    if (process.env.NODE_ENV === "production" || process.env.VERCEL === "1")
+      app.use(securityHeaders);
     app.use(
       "/api/github/webhook",
       express.json({

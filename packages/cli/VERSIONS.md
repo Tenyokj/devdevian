@@ -210,3 +210,7 @@ No API/schema migration. Existing browser and CLI credentials remain compatible.
 ## Preparing a combined GitHub release
 
 Choose a product release title and list the exact npm versions it includes. Summarize user-visible changes, installation, compatibility and known limitations; link to the relevant headings in this file. Do not rename or republish existing npm artifacts, and do not imply that a planned milestone has shipped. GitHub releases are created when the maintainer decides to close the session or milestone.
+
+## 0.20.0-alpha.1 · GitHub work in Rooms
+
+Issue import with frozen previews, private-copy consent and idempotency; PR association with exact task/link/contribution versions; live state/checks/current-head reviews; room TUI actions, script commands and private project creation. Linking/merging does not accept a contribution or mark a task ready. Server/API0.7.0 with optional GitHub work schema required.

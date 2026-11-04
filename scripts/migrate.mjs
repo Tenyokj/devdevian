@@ -5,6 +5,7 @@ process.env.DEVDEVIAN_EXPLICIT_ENV = "1";
 try {
   const actions = new Set([
     "--prepare-github-app",
+    "--prepare-github-work",
     "--prepare-contributions",
     "--prepare-rooms",
     "--prepare-review-flow",
@@ -19,7 +20,22 @@ try {
     throw Error(
       "Use no argument to finalize, or one supported --prepare-* action. No migration was run.",
     );
-  if (process.argv.includes("--prepare-github-app")) {
+  if (process.argv.includes("--prepare-github-work")) {
+    const { openDatabase } = await import("../database.mjs");
+    const { prepareGitHubWork } = await import("../github-work.mjs");
+    const db = await openDatabase();
+    try {
+      if (
+        db.prepare("SELECT version FROM app_schema WHERE id=1").get()
+          ?.version !== 7
+      )
+        throw Error("GitHub work requires schema v7.");
+      prepareGitHubWork(db);
+    } finally {
+      db.close();
+    }
+    console.log("GitHub work prepared; global schema preserved.");
+  } else if (process.argv.includes("--prepare-github-app")) {
     const { openDatabase } = await import("../database.mjs");
     const { prepareGitHubApp } = await import("../github-app.mjs");
     const db = await openDatabase();

@@ -65,3 +65,5 @@ Local fixtures verify behavior, not provider availability or deployment correctn
 ## GitHub App boundary
 
 `github-app-core.mjs` owns encrypted token primitives, fixed-host provider reads, strict transport paths and signatures. `github-app.mjs` owns optional schema, browser-bound OAuth/PKCE, leased refresh, per-viewer repository reads, project bindings and signed webhook generations. `src/github-app.jsx` and `packages/cli/lib/github-connected.mjs` expose browser/terminal workflows. `github-pulls.mjs` remains the separate public Contributions metadata check. Private source enters ordinary Devdevian data only through explicit user sharing into a private community. [Operator and privacy contract](github-app.md).
+
+GitHub room work (`github-work.mjs`, optional schema1) stores explicitly imported issue copies and immutable task/PR association history. Live provider reads remain per-viewer. Private project media access checks the parent conversation audience. `security-headers.mjs` supplies production CSP; Vercel static headers mirror it, with a test preventing drift.

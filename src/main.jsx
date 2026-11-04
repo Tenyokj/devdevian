@@ -111,6 +111,7 @@ import {
 import { CommunityDirectory, CommunityHeader } from "./spaces";
 import "./style.css";
 import "./refresh.css";
+import "./app-life.css";
 const navigation = [
   ["feed", "Public feed", Compass],
   ["following", "Following", Bell],
@@ -1158,6 +1159,11 @@ export function App() {
                       )
                       .map((p) => (
                         <article className="project-card" key={p.id}>
+                          {p.community_id && (
+                            <span className="project-private-label">
+                              Private community
+                            </span>
+                          )}
                           <Carousel images={p.screenshots} />
                           <div className="project-card-top">
                             <span
@@ -1671,6 +1677,7 @@ export function App() {
       {projectForm && (
         <ProjectForm
           communities={topics}
+          joinedCommunities={joinedCommunities}
           close={closeProject}
           done={async (p) => {
             setProjectForm(false);
@@ -1718,7 +1725,7 @@ function PostCard({
 }) {
   const t = types[p.kind] || types.discussion;
   return (
-    <article className="post-card">
+    <article className="post-card" data-kind={p.kind}>
       <div className="post-card-header">
         <div className="post-community">
           <span className={"type-dot " + t.color} />

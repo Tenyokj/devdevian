@@ -48,3 +48,6 @@ Documentation describes the current implementation. Free provider quotas, consol
 - [Contributions](contributions.md): submit assigned work, review exact result revisions and attach checked public GitHub PRs.
 
 - [GitHub workspace](github-app.md): GitHub App connection, installed public/private repositories, PRs/issues/diffs/checks, explicit sharing and operations.
+
+- [GitHub issues → room tasks → PRs](github-room-work.md)
+- [0.7 security verification and limits](security-review-0.7.md)

@@ -1,3 +1,8 @@
+import {
+  githubWorkPlan,
+  githubTaskRoot,
+  githubTaskLines,
+} from "./github-work.mjs";
 import { githubRepository } from "./github-context.mjs";
 import { connectedGitHubReader } from "./github-connected.mjs";
 import {
@@ -1710,6 +1715,15 @@ function App({ initialConfig, flags, root, initialAppearance }) {
         existing: row,
         title: (editing ? "Edit your " : "Create a ") + entity,
         topics,
+        communities:
+          entity === "project"
+            ? [
+                ["", "Public project"],
+                ...itemsOf(await api("/communities"))
+                  .filter((c) => c.is_member)
+                  .map((c) => [c.id, "Private · " + c.name]),
+              ]
+            : [],
         values,
       });
     });
@@ -2106,6 +2120,23 @@ function App({ initialConfig, flags, root, initialAppearance }) {
         return;
       }
       if (form.kind === "flow") {
+        if (form.mode === "github-work") {
+          const prepared = await githubWorkPlan(
+            api,
+            form.projectId,
+            form.taskId,
+            form.values.url,
+            {
+              contribution: form.values.contribution,
+              sharePrivate: form.values.sharing === "SHARE",
+              operationKey: form.operationKey,
+            },
+          );
+          setPreview({ ...prepared, flow: true });
+          setScroll(0);
+          setYes(false);
+          return;
+        }
         let payload = { ...form.plan.payload, ...form.values };
         if (form.mode === "invite") {
           payload.message = payload.body;
@@ -2977,6 +3008,90 @@ function App({ initialConfig, flags, root, initialAppearance }) {
     navigate({ view, id, page: 1 });
   }
   function roomAction(id) {
+    if (id === "room-github-history") {
+      if (!selected) return;
+      task(async () => {
+        const d = await api(
+          githubTaskRoot(route.id, selected.id) + "/history?page=1",
+        );
+        readItem({
+          id: selected.id,
+          title: "GitHub PR link history",
+          created: new Date().toISOString(),
+          body:
+            d.items
+              .map(
+                (h) =>
+                  `v${h.version} · ${h.url}\nHead ${h.head}\n${h.contribution_id ? "Contribution #" + h.contribution_id + " · revision " + h.contribution_revision : "Task link"}\n${h.created}`,
+              )
+              .join("\n\n") +
+            (d.has_next
+              ? "\n\nMore history: devdevian room github-history " +
+                route.id +
+                " " +
+                selected.id +
+                " --page 2"
+              : ""),
+        });
+      });
+      return;
+    }
+    if (id === "room-github") {
+      if (!selected) return;
+      task(async () => {
+        const d = await api(githubTaskRoot(route.id, selected.id));
+        setReading({
+          id: 0,
+          title: "Task · GitHub context",
+          body: githubTaskLines(d).join("\n"),
+          created: new Date().toISOString(),
+        });
+        setScroll(0);
+        setReaderFind({ query: "", cursor: 0, editing: false });
+      });
+      return;
+    }
+    if (id === "room-import-issue" || id === "room-link-pr") {
+      const linking = id === "room-link-pr";
+      if (linking && !selected) return;
+      openForm({
+        kind: "flow",
+        mode: "github-work",
+        roomRoute: { view: "room", id: route.id, page: 1 },
+        projectId: route.id,
+        taskId: linking ? selected.id : null,
+        operationKey: crypto.randomUUID(),
+        plan: { payload: {} },
+        title: linking ? "Link GitHub pull request" : "Import GitHub issue",
+        audience:
+          "Project room · private source requires explicit SHARE confirmation",
+        values: { url: "", contribution: "", sharing: "" },
+        fields: [
+          {
+            key: "url",
+            label: linking ? "GitHub pull request URL" : "GitHub issue URL",
+            min: 15,
+            max: 300,
+          },
+          ...(linking
+            ? [
+                {
+                  key: "contribution",
+                  label: "Contribution ID (optional)",
+                  max: 12,
+                },
+              ]
+            : []),
+          {
+            key: "sharing",
+            label:
+              "Private source: type SHARE to allow all approved community members to read the saved copy",
+            max: 5,
+          },
+        ],
+      });
+      return;
+    }
     if (id === "room-board") {
       openRoom(route.id);
       return;
@@ -4797,7 +4912,7 @@ function App({ initialConfig, flags, root, initialAppearance }) {
           : h(TextLine, {
               text: readerFind.query
                 ? `Find: ${readerFind.query} · ${readerHits.length} matching lines · n next / N previous`
-                : `Reply #${reading.id} · ${stamp(reading.created)} · / find in text`,
+                : `${reading.title || "Reply #" + reading.id} · ${stamp(reading.created)} · / find in text`,
               width: contentWidth,
               color: colors.muted,
             }),
@@ -4843,6 +4958,17 @@ function App({ initialConfig, flags, root, initialAppearance }) {
               `PUBLIC PR · ${preview.checkedPull.url}`,
               `${preview.checkedPull.state} · pinned head ${preview.checkedPull.head}`,
               `Checked ${preview.checkedPull.fetched_at} · GitHub authorship is not verified.`,
+            ]
+          : []),
+        ...(preview.ticket
+          ? [
+              "",
+              `GITHUB SOURCE · ${preview.ticket.private ? "Private" : "Public"}`,
+              preview.ticket.url,
+              preview.ticket.title,
+              preview.ticket.body,
+              preview.ticket.head ? `Pinned head ${preview.ticket.head}` : "",
+              "A saved copy is shared with the project room audience. GitHub state does not accept a result.",
             ]
           : []),
         ...githubContextLines(payload.details?.github_context),

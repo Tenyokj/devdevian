@@ -78,3 +78,7 @@ Back up and verify restoration before `node scripts/migrate.mjs --prepare-github
 Tests use synthetic credentials and isolated provider responses. A real deployment still requires a real account authorization, installation and provider read after configuration. Check GitHub Recent Deliveries for signed webhook delivery, including redelivery of an initial ping sent before the endpoint was deployed.
 
 Official references: [user access tokens and resource intersection](https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-a-user-access-token-for-a-github-app), [GitHub App registration](https://docs.github.com/en/apps/creating-github-apps/registering-a-github-app/registering-a-github-app), [webhook validation](https://docs.github.com/en/webhooks/using-webhooks/validating-webhook-deliveries).
+
+## Tasks and contributions
+
+Browser/API0.7 and CLI0.20 add [issue import, task PR links and contribution revision associations](github-room-work.md). Private projects choose their community at creation; public projects cannot receive private GitHub copies.

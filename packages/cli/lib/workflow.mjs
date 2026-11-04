@@ -12,7 +12,10 @@ export function formSteps(form, fields) {
     groups =
       form.entity === "project"
         ? [
-            ["Basics", ["name", "tagline", "topic", "stage", "stack"]],
+            [
+              "Basics",
+              ["name", "tagline", "topic", "stage", "stack", "community_id"],
+            ],
             ["Story", ["description", "help", "problem", "audience"]],
             ["People & links", ["url", "repo", "team", "links"]],
             ["Images", ["logo", "screenshots"]],

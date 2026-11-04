@@ -1,5 +1,10 @@
 #!/usr/bin/env node
 import {
+  githubWorkPlan,
+  githubTaskRoot,
+  githubTaskLines,
+} from "../lib/github-work.mjs";
+import {
   contributionRoot,
   requireContributions,
   contributionSubmitPlan,
@@ -83,6 +88,8 @@ const options = {
   "github-context": { type: "boolean" },
   pr: { type: "string" },
   connected: { type: "boolean" },
+  "share-private": { type: "boolean" },
+  contribution: { type: "string" },
   repository: { type: "string" },
   installation: { type: "string" },
   hunks: { type: "string" },
@@ -177,6 +184,10 @@ const help = `Devdevian CLI ${version} · alpha
   devdevian contributions submit PROJECT_ID POST_ID --body "..." [--pr PR_URL]
   devdevian contributions accept|changes|withdraw PROJECT_ID CONTRIBUTION_ID --body "..."
   devdevian contributions history PROJECT_ID CONTRIBUTION_ID
+  devdevian room import PROJECT_ID ISSUE_URL [--share-private]
+  devdevian room link-pr PROJECT_ID POST_ID PR_URL [--contribution ID] [--share-private]
+  devdevian room github PROJECT_ID POST_ID [--json]
+  devdevian room github-history PROJECT_ID POST_ID [--page 2]
   devdevian room decisions PROJECT_ID [--archived]
   devdevian room activity PROJECT_ID
   devdevian room claim|release|assign|state PROJECT_ID POST_ID [--username NAME] [--state ready]
@@ -692,6 +703,40 @@ async function execute(args, flags) {
   }
   if (command === "room") {
     const action = args[1];
+    if (action === "github-history") {
+      show(
+        await api(githubTaskRoot(args[2], args[3]) + "/history?page=" + page),
+        flags.json,
+      );
+      return;
+    }
+    if (action === "github") {
+      const data = await api(githubTaskRoot(args[2], args[3]));
+      if (flags.json) show(data, true);
+      else for (const line of githubTaskLines(data)) out(line);
+      return;
+    }
+    if (["import", "link-pr"].includes(action)) {
+      const plan = await githubWorkPlan(
+        api,
+        args[2],
+        action === "link-pr" ? args[3] : null,
+        action === "link-pr" ? args[4] : args[3],
+        {
+          contribution: flags.contribution,
+          sharePrivate: !!flags["share-private"],
+        },
+      );
+      await confirm(
+        { audience: plan.audience, source: plan.ticket, ...plan.payload },
+        flags,
+      );
+      show(
+        await api(plan.url, { method: plan.method, body: plan.payload }),
+        flags.json,
+      );
+      return;
+    }
     if (["claim", "release", "assign", "state"].includes(action)) {
       const plan = await roomTaskPlan(api, args[2], args[3], action, {
         username: flags.username,

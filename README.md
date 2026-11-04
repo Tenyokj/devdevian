@@ -145,3 +145,5 @@ For vulnerabilities, follow [SECURITY.md](SECURITY.md) and contact maintainers p
 [Privacy & Security](https://devdevian.vercel.app/privacy) · [Terms of Use](https://devdevian.vercel.app/terms) · [Changelog](CHANGELOG.md)
 
 The software is licensed under the **GNU General Public License, version 3 only**. See [LICENSE](LICENSE). This does not automatically license user posts, code snippets, images, or attachments under GPL; their authors retain their respective rights.
+
+GitHub Issues can become room tasks with explicit previews and private sharing consent. Link PRs to tasks and exact contribution revisions, and inspect current checks in the browser or terminal. [Workflow guide](docs/github-room-work.md) · [Security verification](docs/security-review-0.7.md).

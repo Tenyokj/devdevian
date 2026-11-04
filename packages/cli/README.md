@@ -294,3 +294,7 @@ Use `/contributions PROJECT_ID` for shared results and history. In `/room`, sele
 ## Connected GitHub workspace
 
 Run `devdevian github connect`, then use `/github` in the live terminal or the `github installations/repositories/pulls/issues/checks` commands. `github pr/diff/review --connected` uses your GitHub App access, including private repositories. Public readers keep their existing behavior. [Setup, keys, private sharing and security](../../docs/github-app.md).
+
+### GitHub room work (0.20 alpha)
+
+Use `devdevian room import PROJECT_ID ISSUE_URL`, `devdevian room link-pr PROJECT_ID POST_ID PR_URL [--contribution ID]`, or `devdevian room github PROJECT_ID POST_ID`. Private sources require `--share-private`. The TUI room action menu offers the same workflow with a preview and explicit confirmation. Project creation can choose a private community. [Full guide](../../docs/github-room-work.md).

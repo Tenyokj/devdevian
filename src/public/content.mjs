@@ -3,6 +3,34 @@
 export const repository = "https://github.com/Tenyokj/devdevian";
 export const updates = [
   {
+    id: "github-room-work-0-7",
+    channel: "Browser",
+    version: "0.7.0",
+    title: "From an issue to work that moves.",
+    summary:
+      "Import GitHub issues into Rooms, connect task PRs to exact contribution revisions and follow current checks and reviews.",
+    points: [
+      "Private projects preserve their community audience, including their room and media. Private imports require explicit consent.",
+      "Preview fingerprints, durable operation keys and permission rechecks protect task imports and PR links. Production CSP and early upload attempt limits strengthen the browser and API.",
+    ],
+    link: repository + "/blob/main/docs/github-room-work.md",
+    label: "GitHub room work guide",
+  },
+  {
+    id: "cli-github-room-work-0-20",
+    channel: "CLI",
+    version: "0.20.0-alpha.1",
+    title: "Issue. Task. Pull request. One terminal.",
+    summary:
+      "Bring GitHub work into your room from live terminal actions or script commands.",
+    points: [
+      "Import issues, link task PRs and contribution revisions, then inspect current commit checks and review verdicts.",
+      "Explicit private-sharing confirmation, project visibility choices and frozen previews keep the audience clear. Merging never accepts a contribution automatically.",
+    ],
+    link: repository + "/blob/main/docs/github-room-work.md#terminal",
+    label: "Terminal workflow",
+  },
+  {
     id: "github-workspace-0-6",
     channel: "Browser",
     version: "0.6.0",

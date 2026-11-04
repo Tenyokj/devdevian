@@ -32,6 +32,8 @@ jobs:
       - run: node scripts/rooms-browser-check.mjs
       - run: node scripts/contributions-browser-check.mjs
       - run: node scripts/github-app-browser-check.mjs
+      - run: node scripts/github-work-browser-check.mjs
+      - run: node scripts/security-browser-check.mjs
       - uses: actions/upload-artifact@v7
         if: failure()
         with:
@@ -44,4 +46,6 @@ jobs:
             .test-data/rooms-browser/
             .test-data/contributions-browser/
             .test-data/github-app-browser/
+            .test-data/github-work-browser/
+            .test-data/security-browser/
           retention-days: 7

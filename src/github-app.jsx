@@ -11,6 +11,7 @@ import { MD, ErrorMessage } from "./ui";
 import { selectPRHunks, parsePRPatch } from "../packages/cli/lib/pr-diff.mjs";
 import { githubRepository } from "../packages/cli/lib/github-context.mjs";
 import "./github-app.css";
+import { GitHubWorkDialog } from "./github-work";
 const query = (path) => "/github/read?" + new URLSearchParams({ path });
 function Pager({ page, hasNext, onPage }) {
   return (
@@ -442,6 +443,7 @@ function PRView({ repository, number, close, generation = 0, onReview }) {
 }
 export function GitHubHub({ user, requireUser, project = null, onReview }) {
   const [repository, setRepository] = useState(""),
+    [importURL, setImportURL] = useState(null),
     [input, setInput] = useState(""),
     [repo, setRepo] = useState(null),
     [installations, setInstallations] = useState(null),
@@ -602,6 +604,13 @@ export function GitHubHub({ user, requireUser, project = null, onReview }) {
         </div>
       </header>
       <GitHubConnection />
+      {importURL && (
+        <GitHubWorkDialog
+          project={project}
+          initialURL={importURL}
+          close={() => setImportURL(null)}
+        />
+      )}
       <ErrorMessage error={error} />
       {!number ? (
         <>
@@ -747,6 +756,15 @@ export function GitHubHub({ user, requireUser, project = null, onReview }) {
                     ) : (
                       <>
                         <MD>{String(r.body || "").slice(0, 3000)}</MD>
+                        {project && project.user_id === user.id && (
+                          <button
+                            onClick={() =>
+                              setImportURL(repository + "/issues/" + r.number)
+                            }
+                          >
+                            Import as room task
+                          </button>
+                        )}
                         <a
                           href={repository + "/issues/" + r.number}
                           target="_blank"

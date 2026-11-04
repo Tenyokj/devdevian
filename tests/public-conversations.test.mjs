@@ -126,8 +126,13 @@ test("public documents render crawlable content, bound replies, escape user inpu
       doc.querySelectorAll(
         'script:not([src]):not([type="application/json"]):not([type="application/ld+json"])',
       ).length,
+      0,
+      "no executable inline scripts survive the production CSP",
+    );
+    assert.equal(
+      doc.querySelectorAll('script[src="/theme-init.js"]').length,
       1,
-      "only the fixed theme initialization script executes",
+      "theme initialization is a same-origin script",
     );
     assert.ok(!doc.querySelector('[href^="javascript:"]'));
     assert.ok(!html.includes("ERASED_REPLY_BODY"));
@@ -167,8 +172,18 @@ test("public documents render crawlable content, bound replies, escape user inpu
     );
     assert.equal(redirect.status, 308);
     assert.equal(redirect.headers.get("location"), path + "?reply_page=2");
-    const resume = await fetch(f.base + "/conversation/" + id + "/old-title?reply=1&reply_to=" + replyIds[0], { redirect: "manual" });
-    assert.equal(resume.headers.get("location"), path + "?reply=1&reply_to=" + replyIds[0] + "#reply");
+    const resume = await fetch(
+      f.base +
+        "/conversation/" +
+        id +
+        "/old-title?reply=1&reply_to=" +
+        replyIds[0],
+      { redirect: "manual" },
+    );
+    assert.equal(
+      resume.headers.get("location"),
+      path + "?reply=1&reply_to=" + replyIds[0] + "#reply",
+    );
     assert.equal((await fetch(f.base + path + "?reply_page=1e9")).status, 400);
     const space = (
       await author("/communities", {

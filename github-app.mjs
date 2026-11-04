@@ -14,6 +14,7 @@ import { transaction } from "./activity.mjs";
 import { consumeBudget } from "./limits.mjs";
 import { canRead } from "./spaces.mjs";
 import { githubRepository } from "./packages/cli/lib/github-context.mjs";
+import { registerGitHubWork } from "./github-work.mjs";
 const hash = (v) => createHash("sha256").update(v).digest("hex");
 export function prepareGitHubApp(db) {
   if (
@@ -588,6 +589,7 @@ export function registerGitHubApp(
       .status(outcome === "conflict" ? 409 : 200)
       .json(outcome ? { duplicate: true } : { ok: true });
   });
+  registerGitHubWork(app, db, required, { migrate, get: request, repository, ready });
   app.use((error, req, res, next) => {
     if (!error.githubPublic) return next(error);
     res

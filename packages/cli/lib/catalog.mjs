@@ -165,6 +165,15 @@ export function catalogFields(form) {
       max: 5000,
       hint: "One per line: @username | Role. Existing members can use #user_id | Role.",
     },
+    ...(!form.entityId
+      ? [
+          {
+            key: "community_id",
+            label: "Project visibility",
+            options: form.communities || [["", "Public project"]],
+          },
+        ]
+      : []),
     links,
     { key: "logo", label: "Logo image (optional)", max: 1500, hint: imageHint },
     {
@@ -212,6 +221,7 @@ export function initialCatalog(entity, row = {}) {
   return {
     ...values,
     topic: row.topic || "web",
+    community_id: row.community_id || "",
     ...(entity === "project"
       ? {
           stage: row.stage || "Idea",
@@ -465,6 +475,7 @@ export async function prepareCatalog(api, root, form) {
         "repo",
       ].map((k) => [k, v[k] || ""]),
     );
+    if (!form.entityId) payload.community_id = v.community_id || null;
     webURL(v.url, true);
     webURL(v.repo, true);
     Object.assign(details, {

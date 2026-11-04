@@ -1,0 +1,133 @@
+/* Small semantic accents stay still while reading; movement only follows input. */
+.main-shell {
+  --life-blue: #81baff;
+  --life-mint: #73dabc;
+  --life-amber: #efbc7d;
+  --life-rose: #ee9fae;
+}
+:root[data-theme="light"] .main-shell {
+  --life-blue: #2864ae;
+  --life-mint: #197355;
+  --life-amber: #8a570b;
+  --life-rose: #ad3c58;
+}
+.main-shell .topbar {
+  background: linear-gradient(
+    110deg,
+    color-mix(in srgb, var(--life-blue) 6%, var(--canvas)),
+    color-mix(in srgb, var(--accent) 7%, var(--canvas))
+  );
+}
+.main-shell .post-card {
+  --card-life: var(--life-blue);
+  border-top: 2px solid color-mix(in srgb, var(--card-life) 48%, var(--line));
+  background:
+    radial-gradient(
+      ellipse at 0 0,
+      color-mix(in srgb, var(--card-life) 6%, transparent),
+      transparent 58%
+    ),
+    var(--surface);
+}
+.main-shell .post-card[data-kind="review"] {
+  --card-life: var(--life-amber);
+}
+.main-shell .post-card[data-kind="showcase"] {
+  --card-life: var(--life-mint);
+}
+.main-shell .post-card[data-kind="discussion"] {
+  --card-life: var(--life-rose);
+}
+.main-shell .post-card .post-card-meta {
+  color: var(--card-life);
+}
+.main-shell .project-card {
+  background:
+    radial-gradient(
+      ellipse at 100% 0,
+      color-mix(in srgb, var(--life-mint) 8%, transparent),
+      transparent 65%
+    ),
+    var(--surface);
+  border-top-color: color-mix(in srgb, var(--life-mint) 45%, var(--line));
+}
+.main-shell .project-card .project-help {
+  border-left: 2px solid color-mix(in srgb, var(--life-amber) 65%, var(--line));
+}
+.main-shell .event-card {
+  border-top-color: color-mix(in srgb, var(--life-rose) 45%, var(--line));
+}
+.room-task {
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--room-blue) 4%, var(--surface-soft)),
+    var(--surface-soft)
+  );
+}
+.room-in_progress .room-task {
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--room-amber) 5%, var(--surface-soft)),
+    var(--surface-soft)
+  );
+}
+.room-ready .room-task {
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--room-mint) 5%, var(--surface-soft)),
+    var(--surface-soft)
+  );
+}
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .main-shell .post-card,
+  .main-shell .project-card,
+  .room-task {
+    transition:
+      transform 180ms ease,
+      border-color 180ms ease,
+      box-shadow 180ms ease;
+  }
+  .main-shell .post-card:hover,
+  .main-shell .project-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px #080c1a1c;
+  }
+  .room-task:hover {
+    border-color: color-mix(in srgb, var(--room-blue) 40%, var(--line));
+  }
+  .github-work-heading svg {
+    animation: work-arrive 350ms ease both;
+  }
+}
+@keyframes work-arrive {
+  from {
+    opacity: 0.3;
+    transform: translateX(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .main-shell .post-card,
+  .main-shell .project-card,
+  .room-task {
+    transition: none;
+    transform: none;
+  }
+  .github-work-heading svg {
+    animation: none;
+  }
+}
+
+.project-private-label {
+  display: inline-block;
+  color: var(--life-amber);
+  font-size: 10px;
+  letter-spacing: 1px;
+  margin-bottom: 14px;
+  padding: 6px 9px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}

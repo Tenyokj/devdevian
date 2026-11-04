@@ -4,6 +4,7 @@ import { MD, Modal, ErrorMessage } from "./ui";
 import { Pagination } from "./content";
 import { FlowDialog } from "./review-flow";
 import "./contributions.css";
+import { GitHubTaskContext } from "./github-work";
 const labels = {
   submitted: "Awaiting review",
   changes_requested: "Changes requested",
@@ -186,6 +187,7 @@ function Submit({ project, user, task, previous, close, done }) {
 }
 export function Contributions({ project, user, onChange }) {
   const [data, setData] = useState(null),
+    [githubTask, setGitHubTask] = useState(null),
     [tasks, setTasks] = useState(null),
     [page, setPage] = useState(1),
     [taskPage, setTaskPage] = useState(1),
@@ -367,6 +369,15 @@ export function Contributions({ project, user, onChange }) {
             </p>
           )}
           <div className="rf-actions">
+            {user && (
+              <button
+                onClick={() =>
+                  setGitHubTask({ id: c.post_id, title: c.task_title })
+                }
+              >
+                Task PR & checks
+              </button>
+            )}
             <button
               onClick={() => {
                 setHistory(c);
@@ -421,6 +432,14 @@ export function Contributions({ project, user, onChange }) {
             done={refresh}
           />
         )
+      )}
+      {githubTask && (
+        <GitHubTaskContext
+          project={project}
+          task={githubTask}
+          close={() => setGitHubTask(null)}
+          done={refresh}
+        />
       )}
       {history && (
         <Modal title="Contribution history" onClose={() => setHistory(null)}>

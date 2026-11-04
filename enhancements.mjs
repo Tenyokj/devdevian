@@ -808,7 +808,7 @@ export function importPublicTechnologies(db) {
   if (db.schemaCurrent) return;
   for (const row of db
     .prepare(
-      "SELECT stack FROM posts WHERE community_id IS NULL UNION SELECT stack FROM projects UNION SELECT stack FROM users WHERE privacy='public' AND deleted_at IS NULL",
+      "SELECT stack FROM posts WHERE community_id IS NULL UNION SELECT pr.stack FROM projects pr JOIN posts p ON p.id=pr.post_id WHERE p.community_id IS NULL AND p.removed_at IS NULL UNION SELECT stack FROM users WHERE privacy='public' AND deleted_at IS NULL",
     )
     .all()) {
     for (const raw of String(row.stack || "").split(",")) {

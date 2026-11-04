@@ -17,6 +17,7 @@ on:
           - rooms
           - contributions
           - github-app
+          - github-work
 permissions:
   contents: read
 concurrency:
@@ -102,3 +103,9 @@ jobs:
           TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
           TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
         run: node scripts/migrate.mjs --prepare-github-app
+      - name: Prepare additive GitHub work schema
+        if: github.event_name == 'workflow_dispatch' && inputs.workspace_action == 'github-work'
+        env:
+          TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
+          TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
+        run: node scripts/migrate.mjs --prepare-github-work

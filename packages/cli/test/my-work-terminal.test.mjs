@@ -155,6 +155,7 @@ test(
       await wait("An owned conversation");
       await send("\x1b");
       await wait("My work");
+      await wait("Owned page 1");
       await send("]");
       await wait("Owned page 2");
       await send("\x1b[C");
