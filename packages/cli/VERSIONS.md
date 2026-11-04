@@ -8,6 +8,7 @@ Every published npm artifact has a unique immutable version. We record each vers
 
 - `/room`, project-bound tasks, named assignees, claim/release/state actions, decisions/history/archive and shared activity. Script clients expose matching `room` commands.
 - Owner decisions and assignee state changes preserve parent visibility and do not grant conversation edits or community access. Version conflicts retain drafts; writes keep preview/confirmation.
+- Preserve terminal command text before rendering, accept one pasted command with its trailing Enter, and reject pasted batches.
 - Companion to browser/API 0.4.0 with optional Rooms schema preparation. Existing bindings, themes and credentials stay compatible; no new CLI dependencies or GitHub scopes.
 
 ## 0.16.0-alpha.1 — Review Flow

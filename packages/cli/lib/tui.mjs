@@ -3706,6 +3706,29 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       return;
     }
     if (focus === "prompt") {
+      // Ink may deliver pasted text plus its trailing Enter as one chunk,
+      // without setting key.return. Submit one complete line, never a batch.
+      if (!keyEvent.return && /[\r\n]/.test(input)) {
+        const parts = input
+          .replace(/\r\n/g, "\n")
+          .replace(/\r/g, "\n")
+          .split("\n");
+        if (parts.length !== 2 || parts[1] !== "") {
+          setError("Paste one command at a time.");
+          return;
+        }
+        const updated = editText(
+          commandText.current,
+          commandPosition.current,
+          parts[0],
+          keyEvent,
+          { max: 500 },
+        );
+        setCommand(updated.value);
+        setCommandCursor(updated.cursor);
+        runCommand(updated.value);
+        return;
+      }
       if (keyEvent.escape) {
         setFocus("content");
         return;

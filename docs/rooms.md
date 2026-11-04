@@ -28,7 +28,7 @@ There are at most 12 active pinned decisions and 100 lifetime decisions per room
 
 ## Use the terminal
 
-`/room PROJECT_ID` opens task navigation. `/room` uses the directory's explicit project binding, created with `/bind PROJECT_ID`. Left/right switches states; Enter opens the selected conversation, and **X** offers permitted task actions. `/decisions PROJECT_ID` opens pinned decisions; **X** offers history, editing, archive/restore and the archived list. `/pin` starts an owner decision form in the current room. `/room-activity PROJECT_ID` opens the shared timeline. Ctrl+S previews forms; publication has a separate confirmation.
+`/room PROJECT_ID` opens task navigation. `/room` uses the directory's explicit project binding, created with `/bind PROJECT_ID`. Left/right switches states; Enter opens the selected conversation, and **X** offers permitted task actions. `/decisions PROJECT_ID` opens pinned decisions; **X** offers history, editing, archive/restore and the archived list. `/pin` starts an owner decision form in the current room. `/room-activity PROJECT_ID` opens the shared timeline. Ctrl+S previews forms; publication has a separate confirmation. A single pasted command with its trailing Enter is supported; pasted batches are rejected.
 
 ```sh
 devdevian room PROJECT_ID --state open --page 1 --json

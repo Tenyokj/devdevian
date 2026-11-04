@@ -4,7 +4,7 @@
 
 - Add shared project task boards, claim/release/assignment and state changes with captured versions and existing private permissions.
 - Add owner-pinned decisions, immutable edit history, archive/restore and scoped room activity combining task and Review Flow events.
-- Add room commands and live terminal actions, previews and account-scoped drafts.
+- Add room commands and live terminal actions, previews and account-scoped drafts. Preserve pasted command/Enter input before rendering and reject command batches.
 - Refresh project surfaces and status accents; color current and retained review code without changing text or line anchors.
 - Recover one transient browser GET failure within the original deadline, respecting cancellation, cooldown and account changes; never retry writes.
 - Add optional Rooms preparation, encrypted recovery, real browser/script/PTY, privacy and load checks.

@@ -166,6 +166,15 @@ test(
       await wait("0 items");
       // Wait for the completed navigation frame before entering a new command.
       await delay(250);
+      await send("/");
+      await send("/pin\r/quit\r");
+      await wait("Paste one command at a time.");
+      assert.equal(
+        (await api(`/projects/${project}/room/decisions`)).data.pagination
+          .total,
+        0,
+      );
+      await send("\x1b");
       await command("/pin");
       await wait("Why this matters");
       await send("A single retry owner");
