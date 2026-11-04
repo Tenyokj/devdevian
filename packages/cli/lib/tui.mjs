@@ -1,3 +1,8 @@
+import {
+  contributionSubmitPlan,
+  contributionDecisionPlan,
+  contributionPayload,
+} from "./contributions.mjs";
 import { roomTaskPlan, roomDecisionPlan, roomStates } from "./rooms.mjs";
 import {
   flowPage,
@@ -120,7 +125,7 @@ const stamp = (value) => {
     typeof value === "number"
       ? value
       : String(value || "").replace(" ", "T") +
-          (/Z$|[+-]\d\d:\d\d$/.test(value || "") ? "" : "Z"),
+        (/Z$|[+-]\d\d:\d\d$/.test(value || "") ? "" : "Z"),
   );
   return Number.isNaN(date.getTime())
     ? ""
@@ -532,7 +537,23 @@ function listRows(route, data, index, width, colors, density = "comfortable") {
     let title = item.title || item.name || "",
       meta = "",
       body = "";
-    if (route.view === "room") {
+    if (["contributions", "contribution-history"].includes(route.view)) {
+      title =
+        route.view === "contributions"
+          ? `${item.task_title} · v${item.revision}`
+          : `Result v${item.revision}`;
+      meta = `${(item.state || "snapshot").replaceAll("_", " ")} · ${item.author_name || stamp(item.created)}`;
+      body =
+        item.body +
+        (item.pull
+          ? `\nPR #${item.pull.number} · ${item.pull.state} · head ${item.pull.head.slice(0, 10)} · ${item.pull.url}`
+          : "");
+      if (route.view === "contribution-history")
+        body += (data.events || [])
+          .filter((e) => e.revision === item.revision)
+          .map((e) => `\n${e.actor_name} · ${e.state}: ${e.body}`)
+          .join("");
+    } else if (route.view === "room") {
       meta = `${item.state.replaceAll("_", " ")} · ${item.kind} · ${item.assignee_name ? "@" + item.assignee_username : "Available to pick up"}`;
       body = item.excerpt;
     } else if (
@@ -1121,12 +1142,14 @@ function App({ initialConfig, flags, root, initialAppearance }) {
     };
     if (history.current.length > 30) history.current.shift();
     setReading(null);
-    if (!(
-      replace &&
-      reviewing &&
-      next.view === route.view &&
-      next.id === route.id
-    )) {
+    if (
+      !(
+        replace &&
+        reviewing &&
+        next.view === route.view &&
+        next.id === route.id
+      )
+    ) {
       setReviewLine(0);
       setReviewAnchor(null);
       setReviewHorizontal(0);
@@ -2063,7 +2086,26 @@ function App({ initialConfig, flags, root, initialAppearance }) {
           payload.post_id = form.values.post_id
             ? workspaceId(form.values.post_id)
             : null;
-        setPreview({ ...form.plan, payload, title: form.title, flow: true });
+        if (form.mode === "contribution-submit") {
+          const prepared = await contributionPayload(
+            api,
+            form.plan,
+            form.values,
+          );
+          payload = prepared.payload;
+          if (prepared.pull)
+            setNotice(
+              `PR checked · ${prepared.pull.state} · head ${prepared.pull.head.slice(0, 10)}. This revision is pinned.`,
+            );
+          setPreview({
+            ...form.plan,
+            payload,
+            title: form.title,
+            flow: true,
+            checkedPull: prepared.pull,
+          });
+        } else
+          setPreview({ ...form.plan, payload, title: form.title, flow: true });
         setScroll(0);
         setYes(false);
         return;
@@ -2337,6 +2379,18 @@ function App({ initialConfig, flags, root, initialAppearance }) {
     });
   }
   async function openSelected() {
+    if (route.view === "contribution-history") return;
+    if (route.view === "contributions") {
+      if (selected)
+        navigate({
+          view: "contribution-history",
+          id: route.id,
+          contributionId: selected.id,
+          page: 1,
+        });
+      return;
+    }
+
     if (route.view === "room") {
       if (selected)
         navigate({
@@ -2839,6 +2893,8 @@ function App({ initialConfig, flags, root, initialAppearance }) {
             "room-decisions",
             "room-activity",
             "room-decision-history",
+            "contributions",
+            "contribution-history",
           ].includes(route.view)
         ? route.id
         : await binding.read();
@@ -2977,6 +3033,67 @@ function App({ initialConfig, flags, root, initialAppearance }) {
   }
   function runAction(id) {
     setActionIndex(null);
+    if (id?.startsWith("contribution-")) {
+      if (id === "contribution-list") {
+        openRoom(route.id, "contributions");
+        return;
+      }
+      if (!selected) return;
+      if (id === "contribution-history") {
+        openSelected();
+        return;
+      }
+      if (id === "contribution-pr") {
+        navigate({ view: "pr", url: selected.pull.url, page: 1 });
+        return;
+      }
+      task(async () => {
+        const submit = id === "contribution-submit";
+        const plan = submit
+          ? await contributionSubmitPlan(api, route.id, selected.id)
+          : await contributionDecisionPlan(
+              api,
+              route.id,
+              selected.id,
+              id.slice(13),
+            );
+        if (!submit && plan.payload.expected_version !== selected.version)
+          throw Error(
+            "This result changed. Refresh contributions before reviewing.",
+          );
+        openForm({
+          kind: "flow",
+          mode: submit ? "contribution-submit" : "contribution-decision",
+          title: plan.title,
+          plan,
+          roomRoute: plan.roomRoute,
+          postId: plan.url,
+          audience: plan.audience,
+          values: plan.values,
+          fields: [
+            {
+              key: "body",
+              label: submit
+                ? "Result and how to verify it"
+                : "Decision and next steps",
+              min: 2,
+              max: 6000,
+              multiline: true,
+            },
+            ...(submit
+              ? [
+                  {
+                    key: "pr",
+                    label: "Public GitHub PR URL (optional)",
+                    max: 250,
+                  },
+                ]
+              : []),
+          ],
+        });
+      });
+      return;
+    }
     if (id?.startsWith("room-")) {
       roomAction(id);
       return;
@@ -3136,7 +3253,11 @@ function App({ initialConfig, flags, root, initialAppearance }) {
         await inviteReviewer(flowID(m[1]), m[2]);
         return;
       }
-      if (["room", "decisions", "room-activity"].includes(parsed.command)) {
+      if (
+        ["room", "decisions", "room-activity", "contributions"].includes(
+          parsed.command,
+        )
+      ) {
         await openRoom(
           parsed.arg,
           parsed.command === "decisions" ? "room-decisions" : parsed.command,
@@ -4584,6 +4705,14 @@ function App({ initialConfig, flags, root, initialAppearance }) {
           ? [payload.title || payload.name, ""]
           : []),
         payload.body || payload.reason || payload.description || "",
+        ...(preview.checkedPull
+          ? [
+              "",
+              `PUBLIC PR · ${preview.checkedPull.url}`,
+              `${preview.checkedPull.state} · pinned head ${preview.checkedPull.head}`,
+              `Checked ${preview.checkedPull.fetched_at} · GitHub authorship is not verified.`,
+            ]
+          : []),
         ...githubContextLines(payload.details?.github_context),
         ...conversationLinks(payload).flatMap((link) => [
           "",

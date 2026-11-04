@@ -3,6 +3,34 @@
 export const repository = "https://github.com/Tenyokj/devdevian";
 export const updates = [
   {
+    id: "contributions-0-5",
+    channel: "Browser",
+    version: "0.5.0",
+    title: "Bring the work back.",
+    summary:
+      "Submit a result for an assigned task, get feedback and keep every revision with its decision.",
+    points: [
+      "Project owners accept a specific result or request changes. A new revision keeps the earlier history.",
+      "Attach a checked public GitHub PR with pinned commits. New code never silently inherits an earlier verdict.",
+    ],
+    link: repository + "/blob/main/docs/contributions.md",
+    label: "Contributions guide",
+  },
+  {
+    id: "cli-contributions-0-18",
+    channel: "CLI",
+    version: "0.18.0-alpha.1",
+    title: "From your editor to an accepted result.",
+    summary:
+      "Submit work and review contributions without leaving the terminal.",
+    points: [
+      "Use /contributions, task actions and matching script commands. Preview and confirm before publishing.",
+      "Open an attached public PR, inspect the diff and keep the result history beside your code.",
+    ],
+    link: repository + "/blob/main/docs/contributions.md#terminal",
+    label: "Terminal workflow",
+  },
+  {
     id: "rooms-0-4",
     channel: "Browser",
     version: "0.4.0",

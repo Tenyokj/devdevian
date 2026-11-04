@@ -44,3 +44,5 @@ Documentation describes the current implementation. Free provider quotas, consol
 - [Review Flow](review-flow.md): named reviewers, personal queues, version-bound outcomes, revision links and project activity in browser and CLI. Browser/API 0.3.0 and CLI 0.16 source milestone; publication is tracked separately.
 
 - [Workspaces 0.2](workspaces-0.2.md): server contracts, real browser and CLI workflows, isolated demos, migration/recovery plan and release-candidate stages. See the release guide for rollout status and compatibility.
+
+- [Contributions](contributions.md): submit assigned work, review exact result revisions and attach checked public GitHub PRs.

@@ -4,6 +4,22 @@ export function contextActions({ route, data, selected, user, live }) {
   const actions = catalogActions(route, data, user),
     post = data?.post;
   const add = (id, label) => actions.push({ id, label });
+  if (["contributions", "contribution-history"].includes(route.view)) {
+    if (selected && route.view === "contributions") {
+      add("contribution-history", "Read result and history");
+      if (selected.pull) add("contribution-pr", "Browse attached public PR");
+      if (selected.state === "submitted" && user) {
+        if (selected.user_id === user.id)
+          add("contribution-withdrawn", "Withdraw result");
+        else if (data?.room?.permissions?.manage) {
+          add("contribution-accepted", "Accept result");
+          add("contribution-changes_requested", "Request changes");
+        }
+      }
+    }
+    add("room-board", "Back to room tasks");
+    return actions;
+  }
   if (route.view === "room") {
     if (selected) {
       add("room-open", "Open task conversation");
@@ -25,8 +41,11 @@ export function contextActions({ route, data, selected, user, live }) {
               );
         }
         if (owner) add("room-assign", "Assign a teammate");
+        if (selected.assignee_id === user.id)
+          add("contribution-submit", "Submit work");
       }
     }
+    add("contribution-list", "Contributions");
     add("room-decisions", "Pinned decisions");
     add("room-activity", "Room activity");
     add("sync", "Refresh this view");

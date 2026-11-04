@@ -1,3 +1,4 @@
+import { contributionRoot, requireContributions } from "./contributions.mjs";
 import { loadRoom, requireRoom } from "./rooms.mjs";
 import { flowPage, requireFlow } from "./review-flow.mjs";
 import {
@@ -78,6 +79,32 @@ export async function notificationRoute(api, item) {
       };
 }
 export async function loadPage(api, route, signal) {
+  if (["contributions", "contribution-history"].includes(route.view)) {
+    const root = contributionRoot(route.id);
+    const d = requireContributions(
+      await api(
+        root +
+          (route.view === "contribution-history"
+            ? `/${route.contributionId}/history`
+            : "") +
+          `?page=${route.page || 1}`,
+        { signal },
+      ),
+    );
+    const room = requireRoom(
+      await api(`/projects/${route.id}/room`, { signal }),
+    );
+    return {
+      ...d,
+      room,
+      title:
+        route.view === "contributions"
+          ? "Contributions"
+          : "Contribution history",
+      subtitle: `${room.project.name} · Enter history · X actions · /room ${route.id}`,
+    };
+  }
+
   if (route.view === "room")
     return loadRoom(api, route.id, {
       state: route.state || "",

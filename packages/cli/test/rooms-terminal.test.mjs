@@ -198,6 +198,37 @@ test(
       await send("\r");
       await wait("Decision history");
       await wait("A single retry owner");
+      await command("/contributions " + project);
+      await wait("Contributions");
+      await command("/room " + project);
+      await wait("Terminal Orbit · Room");
+      await send("X");
+      await wait("Submit work");
+      // Quick actions support filtering; the X menu uses arrow navigation.
+      await send("\x1b");
+      await send("\x0b");
+      await send("Submit work");
+      await send("\r");
+      await wait("Result and how to verify it");
+      await send(
+        "Implemented a bounded queue with permanent failure coverage.",
+      );
+      await send("\x13");
+      await wait("ROOM CHANGE");
+      assert.equal(
+        (await api(`/projects/${project}/contributions`)).data.items.length,
+        0,
+      );
+      await send("\x1b[C");
+      await send("\r");
+      await wait("Saved to the project room.");
+      const contributed = (await api(`/projects/${project}/contributions`)).data
+        .items;
+      assert.equal(contributed.length, 1);
+      assert.equal(contributed[0].state, "submitted");
+      await send("\r");
+      await wait("Contribution history");
+      await wait("Implemented a bounded queue");
       term.resize(60, 18);
       child.stdin.write(JSON.stringify({ resize: [60, 18] }) + "\n");
       await delay(250);

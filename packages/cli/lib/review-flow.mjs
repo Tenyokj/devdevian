@@ -116,9 +116,12 @@ export function flowPreview(payload) {
   return Object.entries(payload)
     .filter(
       ([key, value]) =>
-        !["expected_version", "expected_revision", "operation_key"].includes(
-          key,
-        ) && value !== "",
+        ![
+          "expected_version",
+          "expected_revision",
+          "operation_key",
+          "pull_token",
+        ].includes(key) && value !== "",
     )
     .map(
       ([key, value]) =>

@@ -285,3 +285,7 @@ The review discussion header shows **Open / Resolved / Earlier** totals: open an
 Leaving a review and reopening it with **V** in the same terminal session restores code focus, file/line, horizontal position, range and the selected remark. The remark target is located by ID, including later feedback pages. Positions are held in a bounded in-memory cache, cleared on account reset, and invalidated if the exact code changes; they are not saved across CLI restarts. Esc also restores ordinary navigation history. Inbox already opens exact remarks and replies; those explicit targets take priority over remembered positions.
 
 This release does not write anything back to GitHub or add new OAuth permissions. Network failures do not automatically repeat publications; ordinary previews, scoped drafts and reconnect rules still apply.
+
+## Contributions
+
+Use `/contributions PROJECT_ID` for shared results and history. In `/room`, select your assigned task and choose **X → Submit work**. Owner decisions, withdrawal and opening an attached public PR are available in result actions. Every write keeps preview and confirmation. [Workflow, script commands and GitHub boundaries](../../docs/contributions.md).

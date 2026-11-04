@@ -121,6 +121,7 @@ export function parseCommand(text) {
   if (cmd === "pr") return { command: "pr", arg };
   if (
     [
+      "contributions",
       "room",
       "decisions",
       "room-activity",

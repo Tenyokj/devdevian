@@ -1,3 +1,4 @@
+import { Contributions } from "./contributions";
 import { RoomSurface } from "./rooms";
 import { ReviewProjectActivity } from "./review-flow";
 import React, { useEffect, useRef, useState } from "react";
@@ -678,7 +679,15 @@ export function Workspace({
   }, [id, user?.id, reload]);
   useEffect(() => {
     const controller = new AbortController();
-    if (["activity", "room", "decisions", "room-activity"].includes(tab))
+    if (
+      [
+        "activity",
+        "room",
+        "decisions",
+        "room-activity",
+        "contributions",
+      ].includes(tab)
+    )
       return () => controller.abort();
     setRequests(null);
     setListError("");
@@ -753,11 +762,24 @@ export function Workspace({
           <strong>{project.name}</strong>
           <small>Project room · Shared work</small>
         </div>
-        <nav aria-label="Workspace navigation">
+        <nav
+          aria-label="Workspace navigation"
+          ref={(node) => {
+            if (node && window.innerWidth <= 700) {
+              const active = node.querySelector('[aria-current="page"]');
+              if (active)
+                node.scrollLeft +=
+                  active.getBoundingClientRect().left -
+                  node.getBoundingClientRect().left -
+                  12;
+            }
+          }}
+        >
           {[
             ["overview", "Overview", LayoutDashboard],
             ["room", "Room board", LayoutDashboard],
             ["decisions", "Decisions", CheckCircle2],
+            ["contributions", "Contributions", GitPullRequest],
             ["room-activity", "All activity", MessageSquare],
             ["work", "Work requests", GitPullRequest],
             ["review", "Code review", Code2],
@@ -862,7 +884,9 @@ export function Workspace({
             </div>
           </>
         )}
-        {["room", "decisions", "room-activity"].includes(tab) ? (
+        {tab === "contributions" ? (
+          <Contributions project={project} user={user} onChange={refresh} />
+        ) : ["room", "decisions", "room-activity"].includes(tab) ? (
           <RoomSurface
             project={project}
             user={user}

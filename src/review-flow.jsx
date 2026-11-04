@@ -72,7 +72,10 @@ export function FlowDialog({ plan, close, done }) {
             Object.keys(old).map((k) => [
               k,
               typeof saved.values[k] === "string"
-                ? saved.values[k].slice(0, 5000)
+                ? saved.values[k].slice(
+                    0,
+                    plan.fields?.find((f) => f.key === k)?.max || 5000,
+                  )
                 : old[k],
             ]),
           ),

@@ -145,6 +145,52 @@ test("script Rooms share tasks and decision history with real browser accounts",
       String(pin.id),
     );
     assert.equal(history.items.length, 2);
+    const result = await peer.cli(
+      "contributions",
+      "submit",
+      String(project),
+      String(post),
+      "--body",
+      "Implemented and tested the bounded queue.",
+      "--yes",
+    );
+    assert.ok(result.id);
+    await owner.cli(
+      "contributions",
+      "changes",
+      String(project),
+      String(result.id),
+      "--body",
+      "Add cancellation coverage.",
+      "--yes",
+    );
+    await peer.cli(
+      "contributions",
+      "submit",
+      String(project),
+      String(post),
+      "--body",
+      "Added and verified cancellation coverage.",
+      "--yes",
+    );
+    await owner.cli(
+      "contributions",
+      "accept",
+      String(project),
+      String(result.id),
+      "--body",
+      "Verified both tests. Accepted.",
+      "--yes",
+    );
+    const results = await peer.cli("contributions", String(project));
+    assert.equal(results.items[0].state, "accepted");
+    const resultHistory = await peer.cli(
+      "contributions",
+      "history",
+      String(project),
+      String(result.id),
+    );
+    assert.equal(resultHistory.items.length, 2);
     const activity = await peer.cli("room", "activity", String(project));
     assert.ok(activity.items.some((e) => e.type === "decision_updated"));
   } finally {

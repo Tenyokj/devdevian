@@ -1,5 +1,12 @@
 #!/usr/bin/env node
 import {
+  contributionRoot,
+  requireContributions,
+  contributionSubmitPlan,
+  contributionDecisionPlan,
+  contributionPayload,
+} from "../lib/contributions.mjs";
+import {
   loadRoom,
   requireRoom,
   roomTaskPlan,
@@ -162,6 +169,10 @@ const help = `Devdevian CLI ${version} · alpha
   devdevian reviews [--section open|awaiting] [--page 2]
   devdevian work [--section mine|reviews|saved|following] [--page 2]
   devdevian room [PROJECT_ID] [--state open|in_progress|ready] [--mine]
+  devdevian contributions PROJECT_ID [--page 2]
+  devdevian contributions submit PROJECT_ID POST_ID --body "..." [--pr PR_URL]
+  devdevian contributions accept|changes|withdraw PROJECT_ID CONTRIBUTION_ID --body "..."
+  devdevian contributions history PROJECT_ID CONTRIBUTION_ID
   devdevian room decisions PROJECT_ID [--archived]
   devdevian room activity PROJECT_ID
   devdevian room claim|release|assign|state PROJECT_ID POST_ID [--username NAME] [--state ready]
@@ -526,6 +537,56 @@ async function execute(args, flags) {
     await confirm({ audience: plan.audience, ...plan.payload }, flags);
     show(
       await api(plan.url, { method: plan.method, body: plan.payload }),
+      flags.json,
+    );
+    return;
+  }
+  if (command === "contributions") {
+    const action = args[1];
+    if (["submit", "accept", "changes", "withdraw"].includes(action)) {
+      const project = workspaceId(args[2]);
+      const plan =
+        action === "submit"
+          ? await contributionSubmitPlan(api, project, args[3])
+          : await contributionDecisionPlan(
+              api,
+              project,
+              args[3],
+              {
+                accept: "accepted",
+                changes: "changes_requested",
+                withdraw: "withdrawn",
+              }[action],
+            );
+      const values = {
+        ...plan.values,
+        body: await message(flags, plan.values.body),
+      };
+      if (action === "submit") values.pr = flags.pr || values.pr;
+      const prepared = await contributionPayload(api, plan, values);
+      await confirm(
+        {
+          audience: plan.audience,
+          ...prepared.payload,
+          ...(prepared.pull ? { checked_public_pr: prepared.pull } : {}),
+        },
+        flags,
+      );
+      show(
+        await api(plan.url, { method: plan.method, body: prepared.payload }),
+        flags.json,
+      );
+      return;
+    }
+    const project = workspaceId(action === "history" ? args[2] : action);
+    show(
+      requireContributions(
+        await api(
+          contributionRoot(project) +
+            (action === "history" ? `/${workspaceId(args[3])}/history` : "") +
+            `?page=${page}`,
+        ),
+      ),
       flags.json,
     );
     return;

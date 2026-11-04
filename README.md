@@ -22,6 +22,10 @@
 
 Find the next task, take responsibility and keep the decisions with the work. Project rooms add a shared Open / In progress / Ready board, named assignees, pinned decisions with edit history and permission-scoped activity in browser and CLI. Code reviews gain syntax colors while preserving exact snapshots and line anchors. [Rooms guide](docs/rooms.md)
 
+## From task to contribution
+
+Pick up a Room task, submit a result or a checked public GitHub PR, and get feedback from the project owner. Results and decisions keep their exact revision history in the browser and terminal. [Contributions guide](docs/contributions.md)
+
 ## Review Flow
 
 Ask a specific developer to review an immutable code version. Follow **Waiting for me**, accept an invitation and share **Changes requested** or **No objections** for the exact snapshot you inspected. New revisions can link back to earlier remarks without silently resolving them or inheriting an old verdict. Available across browser and CLI with the same private access rules. [Review Flow guide](docs/review-flow.md)

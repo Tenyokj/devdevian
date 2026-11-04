@@ -711,6 +711,8 @@ pre.dw-preview-file {
     gap: 6px;
   }
   .dw-nav nav a {
+    flex: 0 0 auto;
+    min-height: 44px;
     white-space: nowrap;
     padding: 10px 9px;
   }

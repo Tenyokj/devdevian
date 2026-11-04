@@ -56,3 +56,7 @@ Local fixtures verify behavior, not provider availability or deployment correctn
 ### Workspaces development branch
 
 `workspaces.mjs` and `review-revisions.mjs` extend existing Projects and conversations with owner-controlled associations and immutable review snapshots. `src/workspaces.jsx` / `src/review-versions.jsx` implement the browser workflow. The CLI companion in `packages/cli/lib/project-workspace.mjs` handles explicit local project binding, request plans and revision preparation; `workspace.mjs` remains the separate filesystem/Git picker. Both clients inherit parent conversation visibility and optimistic version checks. See [the 0.2 contract](workspaces-0.2.md) for the staged migration and current development/publication boundary.
+
+## Contributions and public PR evidence
+
+`contributions.mjs` owns task-bound result revisions and decisions; `github-pulls.mjs` validates and reads a fixed public GitHub endpoint with bounded responses and no credentials. Optional schema preparation is explicit for existing production databases. `src/contributions.jsx` implements browser submission/review/history; `packages/cli/lib/contributions.mjs` shares terminal action plans with script and TUI clients. Every decision captures the exact revision and version. Acceptance is distinct from task state, code feedback, conversation solutions and GitHub merge. See [the workflow and operator contract](contributions.md).
