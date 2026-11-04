@@ -46,3 +46,5 @@ Documentation describes the current implementation. Free provider quotas, consol
 - [Workspaces 0.2](workspaces-0.2.md): server contracts, real browser and CLI workflows, isolated demos, migration/recovery plan and release-candidate stages. See the release guide for rollout status and compatibility.
 
 - [Contributions](contributions.md): submit assigned work, review exact result revisions and attach checked public GitHub PRs.
+
+- [GitHub workspace](github-app.md): GitHub App connection, installed public/private repositories, PRs/issues/diffs/checks, explicit sharing and operations.

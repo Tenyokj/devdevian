@@ -4,6 +4,13 @@ The CLI is a separately versioned Devdevian client. Its npm version does not hav
 
 Every published npm artifact has a unique immutable version. We record each version here, even when several ship in one working session. A GitHub release can summarize a day's work and link to the individual entries; it does not need to be created for every npm publication. An unfinished change stays under **Unreleased** until its package version is assigned. Alpha packages use the `alpha` npm tag.
 
+## 0.19.0-alpha.1 — GitHub workspace
+
+- Browse installed repositories, public/private PRs, issues, file diffs and exact-commit checks through your separate GitHub App connection.
+- `/github`, `/connected-pr`, navigation/context actions and matching script commands share the same server authorization. Public readers continue without login; `--connected` explicitly selects App access.
+- Private review source boundaries survive drafts/baskets. Publication requires a private community and explicit preview/confirmation; GitHub tokens remain on the server.
+- Companion to Browser/API 0.6.0 and optional GitHub App schema v1. No new package dependencies or GitHub write permissions. See [the full guide](../../docs/github-app.md).
+
 ## 0.18.0-alpha.1 — Contributions
 
 - Submit a versioned result for your assigned Room task, request changes, resubmit and accept an exact revision. Browser and terminal share immutable result/decision history and current task visibility.

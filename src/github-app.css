@@ -1,0 +1,255 @@
+.github-hub {
+  display: grid;
+  gap: 24px;
+  min-width: 0;
+}
+.gh-hero {
+  display: flex;
+  gap: 20px;
+  padding: 28px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: linear-gradient(125deg, #518ee516, transparent);
+}
+.gh-hero > svg {
+  flex-shrink: 0;
+  color: var(--accent);
+}
+.gh-hero h2 {
+  font-size: clamp(22px, 3vw, 34px);
+  margin: 12px 0;
+}
+.gh-hero p,
+.github-connection p,
+.gh-repository p {
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+.github-connection {
+  border: 1px solid var(--line);
+  padding: 22px;
+  border-radius: 18px;
+  background: var(--surface-soft);
+  min-width: 0;
+}
+.github-connection > header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.github-connection h3 {
+  margin: 0;
+}
+.github-connection p {
+  margin: 14px 0;
+}
+.gh-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+.github-hub button,
+.github-connection button {
+  min-height: 42px;
+}
+.gh-notice {
+  display: grid;
+  gap: 12px;
+  border-left: 3px solid #6ca8ef;
+  padding: 16px;
+  margin-top: 16px;
+  background: #4e8ee50a;
+}
+.gh-repo-form {
+  display: flex;
+  gap: 12px;
+  align-items: end;
+}
+.gh-repo-form label {
+  display: grid;
+  gap: 10px;
+  flex: 1;
+}
+.gh-repo-form input {
+  width: 100%;
+}
+.gh-repository {
+  display: flex;
+  gap: 15px;
+  align-items: start;
+  padding: 20px 0;
+}
+.gh-repository h3 {
+  margin: 0 0 8px;
+}
+.gh-pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 18px 0;
+  font-size: 12px;
+}
+.gh-files {
+  display: grid;
+  gap: 10px;
+  margin: 18px 0;
+}
+.gh-files button {
+  text-align: left;
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px;
+  overflow-wrap: anywhere;
+}
+.gh-files button[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.gh-files small {
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+.gh-items {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.gh-items article {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 20px;
+  background: var(--surface);
+}
+.gh-items h3 {
+  overflow-wrap: anywhere;
+}
+.gh-items small,
+.github-pr-view small {
+  color: var(--text-secondary);
+}
+.github-pr-view {
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+}
+.github-pr-view > header {
+  display: grid;
+  gap: 12px;
+}
+.github-pr-view h2 {
+  font-size: 26px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.github-pr-view code {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.gh-status {
+  font-size: 12px;
+  width: max-content;
+  border-radius: 20px;
+  padding: 8px 14px;
+  background: #4c9d7b20;
+  color: #2c9e71;
+}
+.gh-status.merged {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.gh-status.closed {
+  background: #d2515c20;
+  color: #d2515c;
+}
+.gh-checks {
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+.gh-checks p {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-size: 13px;
+}
+.gh-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #d7af68;
+  flex-shrink: 0;
+}
+.gh-dot.success {
+  background: #53b98c;
+}
+.gh-dot.failure,
+.gh-dot.error,
+.gh-dot.timed_out {
+  background: #e58383;
+}
+.gh-diff {
+  min-width: 0;
+}
+.gh-diff h3 {
+  overflow-wrap: anywhere;
+}
+.gh-diff pre {
+  max-height: 600px;
+  max-width: 100%;
+  overflow: auto;
+  white-space: pre;
+  font-size: 12px;
+  line-height: 1.8;
+  background: var(--surface-soft);
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+.gh-diff pre span {
+  display: block;
+  min-width: max-content;
+}
+.gh-diff .added {
+  background: #4faa8620;
+  color: #29986a;
+}
+.gh-diff .removed {
+  background: #d9757520;
+  color: #d97575;
+}
+.gh-diff .hunk {
+  color: var(--accent);
+}
+@media (max-width: 700px) {
+  .gh-hero {
+    padding: 20px;
+    gap: 12px;
+  }
+  .gh-repo-form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .gh-items {
+    grid-template-columns: 1fr;
+  }
+  .gh-files button {
+    flex-direction: column;
+    gap: 6px;
+  }
+  .github-connection {
+    padding: 16px;
+  }
+  .gh-pager {
+    flex-wrap: wrap;
+  }
+  .gh-diff pre {
+    font-size: 11px;
+    padding: 12px;
+  }
+}

@@ -1,3 +1,4 @@
+import { GitHubConnection } from "./github-app";
 import { CliSessions } from "./cli";
 import React, { useState, useEffect } from "react";
 import { Shield, LogIn, Trash2, Github, Globe } from "lucide-react";
@@ -220,6 +221,7 @@ export function Settings({
           )}
         </div>
       </div>
+      <GitHubConnection />
       <CliSessions />
       <div className="settings-section">
         <h3>Your accounts</h3>

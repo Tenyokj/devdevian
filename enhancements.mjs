@@ -768,6 +768,14 @@ export function registerEnhancements(app, db, required, seed) {
       });
     db.exec("BEGIN");
     try {
+      if (db.githubAppReady) {
+        db.prepare("DELETE FROM github_connections WHERE user_id=?").run(
+          req.user.id,
+        );
+        db.prepare("DELETE FROM github_app_states WHERE user_id=?").run(
+          req.user.id,
+        );
+      }
       db.prepare(
         "UPDATE users SET email=?,password='',name='Deleted member',bio='',location='',role='',stack='',github='',website='',username=?,deleted_at=CURRENT_TIMESTAMP WHERE id=?",
       ).run(

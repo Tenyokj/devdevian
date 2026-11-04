@@ -173,6 +173,7 @@ test(
       await send("/");
       await send("logo.png");
       await send("\r");
+      await wait("› logo.png");
       await send("\r");
       await wait("Image selected");
       await send("\r");

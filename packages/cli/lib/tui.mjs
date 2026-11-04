@@ -1,3 +1,5 @@
+import { githubRepository } from "./github-context.mjs";
+import { connectedGitHubReader } from "./github-connected.mjs";
 import {
   contributionSubmitPlan,
   contributionDecisionPlan,
@@ -537,7 +539,19 @@ function listRows(route, data, index, width, colors, density = "comfortable") {
     let title = item.title || item.name || "",
       meta = "",
       body = "";
-    if (["contributions", "contribution-history"].includes(route.view)) {
+    if (
+      [
+        "github-app",
+        "github-repositories",
+        "github-pulls",
+        "github-issues",
+        "github-checks",
+      ].includes(route.view)
+    ) {
+      title = item.name || item.account || item.title || "GitHub resource";
+      meta = item.state || (item.private ? "Private repository" : "GitHub");
+      body = item.description || item.body || "";
+    } else if (["contributions", "contribution-history"].includes(route.view)) {
       title =
         route.view === "contributions"
           ? `${item.task_title} · v${item.revision}`
@@ -963,11 +977,22 @@ function App({ initialConfig, flags, root, initialAppearance }) {
         const before = liveView.current;
         if (
           before.blocked ||
-          !["inbox", "post", "feedback", "thread"].includes(before.route.view)
+          !(
+            [
+              "inbox",
+              "post",
+              "feedback",
+              "thread",
+              "github-pulls",
+              "github-issues",
+            ].includes(before.route.view) ||
+            (before.route.connected && before.route.view === "pr")
+          )
         ) {
           setLiveStatus("");
           return;
         }
+        if (before.route.connected) connectedGitHubReader(api).clear();
         const next = await loadPage(api, before.route, signal);
         const after = liveView.current;
         if (
@@ -987,6 +1012,16 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       {
         activity: () => activity.current,
         onError: (e) => {
+          const active = liveView.current;
+          if (active?.route?.connected && [403, 404, 409].includes(e.status)) {
+            connectedGitHubReader(api).clear();
+            cache.current.clear();
+            setData(null);
+            setError(e.message);
+            setLiveStatus("GitHub access changed. Reconnect or refresh.");
+            return;
+          }
+
           setLiveStatus(
             e.status === 401 || e.status === 403
               ? "Live updates paused: sign in again. Local draft preserved."
@@ -1318,7 +1353,7 @@ function App({ initialConfig, flags, root, initialAppearance }) {
   }
   function invalidate(message) {
     if (["pr", "pr-files", "pr-diff"].includes(route.view))
-      githubReader.clear();
+      (route.connected ? connectedGitHubReader(api) : githubReader).clear();
     if (route.view === "pr-diff") {
       setReviewLine(0);
       setReviewAnchor(null);
@@ -1621,6 +1656,10 @@ function App({ initialConfig, flags, root, initialAppearance }) {
   async function chooseNav(i) {
     const name = navigation[i]?.[0];
     setNavIndex(i);
+    if (name === "github-app") {
+      navigate({ view: "github-app", page: 1 });
+      return;
+    }
     if (name === "github-pr") {
       setFocus("prompt");
       setCommand("/pr ");
@@ -2181,6 +2220,10 @@ function App({ initialConfig, flags, root, initialAppearance }) {
         if (payload.kind === "review") {
           if (form.prSelection) {
             const selected = validatePRSelection(form.prSelection);
+            if (selected.private && !payload.community_id)
+              throw Error(
+                "Private GitHub code requires an explicitly selected private community. Change Audience before sharing.",
+              );
             payload.code = selected.code;
             payload.details = { github_context: selected.context };
             payload.body +=
@@ -2379,6 +2422,37 @@ function App({ initialConfig, flags, root, initialAppearance }) {
     });
   }
   async function openSelected() {
+    if (route.view === "github-app") {
+      if (selected)
+        navigate({
+          view: "github-repositories",
+          installation: selected.id,
+          page: 1,
+        });
+      return;
+    }
+    if (route.view === "github-repositories") {
+      if (selected)
+        navigate({
+          view: "github-pulls",
+          repository: selected.repository,
+          page: 1,
+        });
+      return;
+    }
+    if (["github-pulls", "github-issues"].includes(route.view)) {
+      if (selected?.pull)
+        navigate({
+          view: "pr",
+          url: route.repository + "/pull/" + selected.number,
+          page: 1,
+          connected: true,
+        });
+      else if (selected) readItem(selected);
+      return;
+    }
+    if (route.view === "github-checks") return;
+
     if (route.view === "contribution-history") return;
     if (route.view === "contributions") {
       if (selected)
@@ -2501,6 +2575,7 @@ function App({ initialConfig, flags, root, initialAppearance }) {
           url: route.url,
           page: route.page,
           path: selected.path,
+          connected: route.connected,
         });
       return;
     }
@@ -3033,6 +3108,29 @@ function App({ initialConfig, flags, root, initialAppearance }) {
   }
   function runAction(id) {
     setActionIndex(null);
+    if (id === "github-connect") {
+      openBrowser(config.origin + "/app#github");
+      setNotice("Connect GitHub App in the browser, then refresh this view.");
+      return;
+    }
+    if (id === "github-open") {
+      openSelected();
+      return;
+    }
+    if (["github-pulls", "github-issues"].includes(id)) {
+      navigate({ view: id, repository: route.repository, page: 1 });
+      return;
+    }
+    if (id === "github-checks") {
+      navigate({
+        view: "github-checks",
+        url: route.url,
+        commit: current?.pull?.commit,
+        page: 1,
+      });
+      return;
+    }
+
     if (id?.startsWith("contribution-")) {
       if (id === "contribution-list") {
         openRoom(route.id, "contributions");
@@ -3145,7 +3243,12 @@ function App({ initialConfig, flags, root, initialAppearance }) {
         page: 1,
       });
     else if (id === "pr-files")
-      navigate({ view: "pr-files", url: route.url, page: route.page || 1 });
+      navigate({
+        view: "pr-files",
+        url: route.url,
+        page: route.page || 1,
+        connected: route.connected,
+      });
     else if (id === "pr-review") requestPRReview();
     else if (id === "pr-browser") openBrowser(current.pull.url);
     else if (id === "reply") reply();
@@ -3232,6 +3335,24 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       const parsed = value.startsWith("/")
         ? parseCommand(value)
         : { command: "search", arg: value };
+      if (parsed.command === "github") {
+        if (parsed.arg) {
+          const repo = githubRepository(parsed.arg);
+          if (!repo)
+            throw Error("Use /github https://github.com/owner/repository.");
+          navigate({ view: "github-pulls", repository: repo, page: 1 });
+        } else navigate({ view: "github-app", page: 1 });
+        return;
+      }
+      if (parsed.command === "connected-pr") {
+        navigate({
+          view: "pr",
+          url: pullRequestRef(parsed.arg).url,
+          page: 1,
+          connected: true,
+        });
+        return;
+      }
       if (parsed.command === "assigned") {
         const section = parsed.arg || "waiting";
         if (!flowSections.some(([id]) => id === section))
@@ -4063,7 +4184,12 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       }
     }
     if (route.view === "pr" && (input === "f" || input === "F")) {
-      navigate({ view: "pr-files", url: route.url, page: route.page || 1 });
+      navigate({
+        view: "pr-files",
+        url: route.url,
+        page: route.page || 1,
+        connected: route.connected,
+      });
       return;
     }
     if (["pr-files", "pr-diff"].includes(route.view)) {
@@ -4703,6 +4829,12 @@ function App({ initialConfig, flags, root, initialAppearance }) {
         "",
         ...(payload.title || payload.name
           ? [payload.title || payload.name, ""]
+          : []),
+        ...(form?.prSelection?.private
+          ? [
+              "PRIVATE GITHUB SOURCE · Sharing creates a saved copy visible to every member of the selected private community, including members without GitHub access.",
+              "",
+            ]
           : []),
         payload.body || payload.reason || payload.description || "",
         ...(preview.checkedPull

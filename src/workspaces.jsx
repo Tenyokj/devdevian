@@ -1,3 +1,4 @@
+import { GitHubHub } from "./github-app";
 import { Contributions } from "./contributions";
 import { RoomSurface } from "./rooms";
 import { ReviewProjectActivity } from "./review-flow";
@@ -624,6 +625,7 @@ function WorkspaceReview({ projectId, postId, user, requireUser, go }) {
 }
 
 export function Workspace({
+  onGitHubReview,
   id,
   route,
   user,
@@ -686,6 +688,7 @@ export function Workspace({
         "decisions",
         "room-activity",
         "contributions",
+        "github",
       ].includes(tab)
     )
       return () => controller.abort();
@@ -780,6 +783,7 @@ export function Workspace({
             ["room", "Room board", LayoutDashboard],
             ["decisions", "Decisions", CheckCircle2],
             ["contributions", "Contributions", GitPullRequest],
+            ["github", "GitHub", GitPullRequest],
             ["room-activity", "All activity", MessageSquare],
             ["work", "Work requests", GitPullRequest],
             ["review", "Code review", Code2],
@@ -884,7 +888,14 @@ export function Workspace({
             </div>
           </>
         )}
-        {tab === "contributions" ? (
+        {tab === "github" ? (
+          <GitHubHub
+            project={project}
+            user={user}
+            requireUser={requireUser}
+            onReview={onGitHubReview}
+          />
+        ) : tab === "contributions" ? (
           <Contributions project={project} user={user} onChange={refresh} />
         ) : ["room", "decisions", "room-activity"].includes(tab) ? (
           <RoomSurface

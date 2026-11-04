@@ -4,6 +4,26 @@ export function contextActions({ route, data, selected, user, live }) {
   const actions = catalogActions(route, data, user),
     post = data?.post;
   const add = (id, label) => actions.push({ id, label });
+  if (
+    [
+      "github-app",
+      "github-repositories",
+      "github-pulls",
+      "github-issues",
+      "github-checks",
+    ].includes(route.view)
+  ) {
+    if (selected) add("github-open", "Open selected GitHub item");
+    if (route.repository) {
+      add("github-pulls", "Repository pull requests");
+      add("github-issues", "Repository issues");
+    }
+    add("github-connect", "Connect or choose repositories in browser");
+    add("sync", "Refresh this view");
+    return actions;
+  }
+  if (route.connected && ["pr", "pr-files", "pr-diff"].includes(route.view))
+    add("github-checks", "Checks for this PR commit");
   if (["contributions", "contribution-history"].includes(route.view)) {
     if (selected && route.view === "contributions") {
       add("contribution-history", "Read result and history");

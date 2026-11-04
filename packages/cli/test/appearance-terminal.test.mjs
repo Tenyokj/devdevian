@@ -144,7 +144,9 @@ test(
       await wait("preview cancelled");
       await assert.rejects(access(config));
       await send(",");
+      await wait("LIVE PREVIEW");
       await send("\x1b[C".repeat(2));
+      await wait("Daylight · light");
       await send("\t");
       await send("\x1b[C");
       for (let i = 0; i < 5; i++) {

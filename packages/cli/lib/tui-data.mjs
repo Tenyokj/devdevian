@@ -1,3 +1,4 @@
+import { connectedGitHubReader, githubList } from "./github-connected.mjs";
 import { contributionRoot, requireContributions } from "./contributions.mjs";
 import { loadRoom, requireRoom } from "./rooms.mjs";
 import { flowPage, requireFlow } from "./review-flow.mjs";
@@ -44,6 +45,11 @@ export const navigation = [
   ["reviews", "Review queue", "Open requests & awaiting you"],
   ["workspace", "Project workspace", "Linked directory & work requests"],
   ["assigned", "Waiting for me", "Named review requests"],
+  [
+    "github-app",
+    "GitHub workspace",
+    "Installed repositories, issues & private PRs",
+  ],
 ];
 export async function notificationRoute(api, item) {
   if (item.code_review_id)
@@ -79,6 +85,73 @@ export async function notificationRoute(api, item) {
       };
 }
 export async function loadPage(api, route, signal) {
+  const github = route.connected ? connectedGitHubReader(api) : githubReader;
+  if (
+    [
+      "github-app",
+      "github-repositories",
+      "github-pulls",
+      "github-issues",
+    ].includes(route.view)
+  )
+    return githubList(
+      api,
+      {
+        "github-app": "installations",
+        "github-repositories": "repositories",
+        "github-pulls": "pulls",
+        "github-issues": "issues",
+      }[route.view],
+      {
+        repository: route.repository,
+        installation: route.installation,
+        page: route.page || 1,
+        signal,
+      },
+    );
+  if (route.view === "github-checks") {
+    const reader = connectedGitHubReader(api),
+      pr = await reader.load(route.url, { signal, fresh: true });
+    if (route.commit && pr.pull.commit !== route.commit)
+      throw Error("PR changed. Refresh before inspecting checks.");
+    const root =
+      "/repos" +
+      new URL(pr.pull.repository).pathname +
+      "/commits/" +
+      pr.pull.commit;
+    const [runs, states] = await Promise.all([
+      api(
+        "/github/read?" +
+          new URLSearchParams({ path: root + "/check-runs?per_page=20" }),
+        { signal },
+      ),
+      api(
+        "/github/read?" +
+          new URLSearchParams({ path: root + "/status?per_page=20" }),
+        { signal },
+      ),
+    ]);
+    const after = await reader.load(route.url, { signal, fresh: true });
+    if (after.pull.commit !== pr.pull.commit)
+      throw Error("PR changed while loading checks. Refresh first.");
+    return {
+      title: "GitHub checks",
+      subtitle: "Head " + pr.pull.commit,
+      items: [
+        ...(runs.data.check_runs || []).map((r) => ({
+          id: "run-" + r.id,
+          title: r.name,
+          state: r.conclusion || r.status,
+        })),
+        ...(states.data.statuses || []).map((r) => ({
+          id: "status-" + r.id,
+          title: r.context,
+          state: r.state,
+        })),
+      ],
+    };
+  }
+
   if (["contributions", "contribution-history"].includes(route.view)) {
     const root = contributionRoot(route.id);
     const d = requireContributions(
@@ -229,13 +302,13 @@ export async function loadPage(api, route, signal) {
   if (route.view === "start")
     return { title: "Getting started", items: starterChoices };
   if (route.view === "pr-diff")
-    return githubReader.loadDiff(route.url, {
+    return github.loadDiff(route.url, {
       page: route.page || 1,
       path: route.path,
       signal,
     });
   if (route.view === "pr-files") {
-    const data = await githubReader.load(route.url, {
+    const data = await github.load(route.url, {
       page: route.page || 1,
       signal,
     });
@@ -246,7 +319,7 @@ export async function loadPage(api, route, signal) {
     };
   }
   if (route.view === "pr")
-    return githubReader.load(route.url, { page: route.page || 1, signal });
+    return github.load(route.url, { page: route.page || 1, signal });
   if (isCatalog(route)) return loadCatalog(api, route, signal);
   const get = (path) => api(path, { signal }),
     page = route.page || 1;

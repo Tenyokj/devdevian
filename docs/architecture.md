@@ -60,3 +60,8 @@ Local fixtures verify behavior, not provider availability or deployment correctn
 ## Contributions and public PR evidence
 
 `contributions.mjs` owns task-bound result revisions and decisions; `github-pulls.mjs` validates and reads a fixed public GitHub endpoint with bounded responses and no credentials. Optional schema preparation is explicit for existing production databases. `src/contributions.jsx` implements browser submission/review/history; `packages/cli/lib/contributions.mjs` shares terminal action plans with script and TUI clients. Every decision captures the exact revision and version. Acceptance is distinct from task state, code feedback, conversation solutions and GitHub merge. See [the workflow and operator contract](contributions.md).
+
+
+## GitHub App boundary
+
+`github-app-core.mjs` owns encrypted token primitives, fixed-host provider reads, strict transport paths and signatures. `github-app.mjs` owns optional schema, browser-bound OAuth/PKCE, leased refresh, per-viewer repository reads, project bindings and signed webhook generations. `src/github-app.jsx` and `packages/cli/lib/github-connected.mjs` expose browser/terminal workflows. `github-pulls.mjs` remains the separate public Contributions metadata check. Private source enters ordinary Devdevian data only through explicit user sharing into a private community. [Operator and privacy contract](github-app.md).

@@ -1,3 +1,4 @@
+import { registerGitHubApp } from "./github-app.mjs";
 import { registerContributions } from "./contributions.mjs";
 import { registerRooms } from "./rooms.mjs";
 import { registerReviewFlow } from "./review-flow.mjs";
@@ -84,6 +85,16 @@ export async function createApp({ migrationOnly = false } = {}) {
     const app = express();
     app.disable("x-powered-by");
     app.use(requestContext);
+    app.use(
+      "/api/github/webhook",
+      express.json({
+        limit: "1mb",
+        inflate: false,
+        verify: (req, res, bytes) => {
+          req.githubRawBody = Buffer.from(bytes);
+        },
+      }),
+    );
     app.use(express.json({ limit: "256kb" }));
     app.use("/api", (req, res, next) => {
       res.setHeader("Cache-Control", "no-store");
@@ -513,6 +524,7 @@ export async function createApp({ migrationOnly = false } = {}) {
     registerReviewFlow(app, db, required, { migrate: migrationOnly });
     registerRooms(app, db, required, { migrate: migrationOnly });
     registerContributions(app, db, required, { migrate: migrationOnly });
+    registerGitHubApp(app, db, required, { migrate: migrationOnly });
     if (!db.schemaCurrent)
       db.exec(`
   CREATE INDEX IF NOT EXISTS memberships_item ON memberships(kind,item,user_id);

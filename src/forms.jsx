@@ -1,3 +1,4 @@
+import { validatePRSelection } from "../packages/cli/lib/pr-diff.mjs";
 import { draftKey, readDraft, saveDraft } from "./drafts";
 import {
   Select,
@@ -390,12 +391,28 @@ export function Composer({
   communities,
   topics = [],
   communityId = null,
+  githubSelection = null,
   defaultKind = "discussion",
   defaultTopic = "web",
   close,
   done,
 }) {
-  const key = user?.id ? draftKey(user.id, communityId) : null;
+  const source = githubSelection ? validatePRSelection(githubSelection) : null;
+  const key = user?.id
+    ? draftKey(user.id, communityId) +
+      (source
+        ? ":github:" +
+          source.context.commit +
+          ":" +
+          source.context.path +
+          ":" +
+          source.context.hunk_start +
+          ":" +
+          source.context.hunk_end
+        : "")
+    : null;
+  const [privateConsent, setPrivateConsent] = useState(false);
+
   const [restored] = useState(() => {
     try {
       return key ? readDraft(window.localStorage, key) : null;
@@ -404,9 +421,14 @@ export function Composer({
     }
   });
   const [kind, setKind] = useState(
-      types[restored?.kind] ? restored.kind : defaultKind,
+      source ? "review" : types[restored?.kind] ? restored.kind : defaultKind,
     ),
-    [body, setBody] = useState(restored?.body || ""),
+    [body, setBody] = useState(
+      restored?.body ||
+        (source
+          ? "Review these selected GitHub changes. Lines refer to the frozen published patch, including headers."
+          : ""),
+    ),
     [preview, setPreview] = useState(false),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
@@ -503,6 +525,7 @@ export function Composer({
           <button
             key={key}
             className={kind === key ? "selected" : ""}
+            disabled={!!source}
             onClick={() => setKind(key)}
           >
             <span className={"type-dot " + t.color} />
@@ -517,10 +540,23 @@ export function Composer({
           setError("");
           setBusy(true);
           try {
+            if (source?.private && (!audience || !privateConsent))
+              throw Error(
+                "Choose a private community and confirm sharing this private GitHub code.",
+              );
             const post = await api("/posts", {
               method: "POST",
               body: {
                 ...formObject(e.currentTarget),
+                ...(source
+                  ? {
+                      code: source.code,
+                      details: {
+                        ...formObject(e.currentTarget).details,
+                        github_context: source.context,
+                      },
+                    }
+                  : {}),
                 repo_url:
                   kind === "review"
                     ? formObject(e.currentTarget).details?.links?.[0]?.url || ""
@@ -582,9 +618,16 @@ export function Composer({
           <Select
             aria-label="Publication audience"
             value={audience}
-            onChange={(e) => setAudience(e.target.value)}
+            onChange={(e) => {
+              setAudience(e.target.value);
+              setPrivateConsent(false);
+            }}
           >
-            <option value="">Public feed · everyone</option>
+            <option value="" disabled={!!source?.private}>
+              {source?.private
+                ? "Choose a private community"
+                : "Public feed · everyone"}
+            </option>
             {audiences
               .filter((c) => c.is_member !== false)
               .map((c) => (
@@ -594,6 +637,29 @@ export function Composer({
               ))}
           </Select>
         </Field>
+        {source && (
+          <div className="gh-notice">
+            <strong>
+              Frozen GitHub PR snapshot · {source.context.commit.slice(0, 10)}
+            </strong>
+            <span>
+              {source.context.path} · hunks {source.context.hunk_start}–
+              {source.context.hunk_end}
+            </span>
+            {source.private && (
+              <label>
+                <input
+                  type="checkbox"
+                  checked={privateConsent}
+                  onChange={(e) => setPrivateConsent(e.target.checked)}
+                />{" "}
+                I want to save this private code in the chosen community. All
+                approved community members will be able to read it, including
+                members without GitHub access.
+              </label>
+            )}
+          </div>
+        )}
         <div className="type-explanation">
           <strong>{types[kind].label}</strong>
           <span>
@@ -640,7 +706,10 @@ export function Composer({
         <Field label="Title">
           <input
             name="title"
-            defaultValue={restored?.title || ""}
+            defaultValue={
+              restored?.title ||
+              (source ? "Review: " + source.context.path : "")
+            }
             minLength={5}
             maxLength={160}
             required
@@ -661,7 +730,8 @@ export function Composer({
             >
               <MentionTextarea
                 name="code"
-                defaultValue={restored?.code || ""}
+                defaultValue={source?.code || restored?.code || ""}
+                readOnly={!!source}
                 rows={6}
                 maxLength={20000}
                 placeholder="Paste the relevant code here…"

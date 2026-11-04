@@ -118,7 +118,8 @@ export function cursorLines(value, cursor, width) {
 export function parseCommand(text) {
   const [cmd, ...rest] = text.trim().replace(/^\//, "").split(/\s+/);
   const arg = rest.join(" ");
-  if (cmd === "pr") return { command: "pr", arg };
+  if (["pr", "github", "connected-pr"].includes(cmd))
+    return { command: cmd, arg };
   if (
     [
       "contributions",

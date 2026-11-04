@@ -22,6 +22,10 @@
 
 Find the next task, take responsibility and keep the decisions with the work. Project rooms add a shared Open / In progress / Ready board, named assignees, pinned decisions with edit history and permission-scoped activity in browser and CLI. Code reviews gain syntax colors while preserving exact snapshots and line anchors. [Rooms guide](docs/rooms.md)
 
+## Your GitHub workspace
+
+Connect a GitHub App to selected repositories, inspect public/private PRs and issues, read diffs and commit checks, and prepare an explicit Devdevian review from chosen changes. Browser and CLI use your own GitHub permissions. [GitHub workspace guide](docs/github-app.md)
+
 ## From task to contribution
 
 Pick up a Room task, submit a result or a checked public GitHub PR, and get feedback from the project owner. Results and decisions keep their exact revision history in the browser and terminal. [Contributions guide](docs/contributions.md)

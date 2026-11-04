@@ -56,6 +56,7 @@ import {
   saveAppearance,
 } from "../lib/appearance.mjs";
 import { selectPRHunks, combinePRSelections } from "../lib/pr-diff.mjs";
+import { connectedGitHubReader, githubList } from "../lib/github-connected.mjs";
 import { githubReader, pullRequestLines } from "../lib/github-reader.mjs";
 import { readGitHubContext, workspaceRoot } from "../lib/workspace.mjs";
 import { githubContextLines } from "../lib/github-context.mjs";
@@ -81,6 +82,9 @@ const options = {
   focus: { type: "string" },
   "github-context": { type: "boolean" },
   pr: { type: "string" },
+  connected: { type: "boolean" },
+  repository: { type: "string" },
+  installation: { type: "string" },
   hunks: { type: "string" },
   selections: { type: "string" },
   "start-line": { type: "string" },
@@ -203,6 +207,14 @@ const help = `Devdevian CLI ${version} · alpha
   devdevian review resolve POST_ID REVIEW_ID
   devdevian review reopen POST_ID REVIEW_ID
   devdevian communities [--page 2]
+  devdevian github connect                  Connect the GitHub App in your browser
+  devdevian github status
+  devdevian github installations
+  devdevian github repositories --installation ID
+  devdevian github pulls|issues --repository https://github.com/owner/repo
+  devdevian github checks PR_URL
+  devdevian github pr PR_URL --connected    Use your GitHub App access (including private PRs)
+  devdevian github diff PR_URL --connected --file src/retry.ts
   devdevian github pr https://github.com/owner/repo/pull/42 [--page 2]
   devdevian github diff PR_URL --file src/retry.ts [--page 2]
   devdevian github review PR_URL --file src/retry.ts --hunks 1:2 --title "..." --focus "..." --body "..."
@@ -416,6 +428,32 @@ async function execute(args, flags) {
     if (!report.ok) process.exitCode = 1;
     return;
   }
+  const readingGitHub =
+    command === "github" && ["pr", "diff"].includes(args[1]);
+  if (readingGitHub && flags.connected) {
+    const c = await loadConfig();
+    if (!c?.token) throw Error("Sign in to Devdevian first.");
+    const a = client(c.origin, c.token),
+      reader = connectedGitHubReader(a);
+    const d =
+      args[1] === "diff"
+        ? await reader.loadDiff(args[2], {
+            page: positive(flags.page || "1"),
+            path: flags.file,
+          })
+        : await reader.load(args[2], { page: positive(flags.page || "1") });
+    if (flags.json) process.stdout.write(JSON.stringify(d) + "\n");
+    else
+      out(
+        args[1] === "diff"
+          ? d.title +
+              "\n" +
+              (d.patch.reason ||
+                d.patch.hunks.map((h) => h.lines.join("\n")).join("\n"))
+          : pullRequestLines(d).join("\n"),
+      );
+    return;
+  }
   if (command === "github" && args[1] === "diff") {
     const data = await githubReader.loadDiff(args[2], {
       page: positive(flags.page || "1", "Page"),
@@ -539,6 +577,67 @@ async function execute(args, flags) {
       await api(plan.url, { method: plan.method, body: plan.payload }),
       flags.json,
     );
+    return;
+  }
+  const reviewGitHubReader = flags.connected
+    ? connectedGitHubReader(api)
+    : githubReader;
+  if (
+    command === "github" &&
+    [
+      "connect",
+      "status",
+      "installations",
+      "repositories",
+      "pulls",
+      "issues",
+      "checks",
+    ].includes(args[1])
+  ) {
+    const kind = args[1];
+    if (kind === "connect") {
+      const url = config.origin + "/app#github";
+      out("Connect the GitHub App in your browser: " + url);
+      if (!flags["no-open"]) openBrowser(url);
+      return;
+    }
+    if (kind === "status") {
+      show(await api("/github/status"), flags.json);
+      return;
+    }
+    if (kind === "checks") {
+      const data = await connectedGitHubReader(api).load(args[2]);
+      const root =
+        "/repos" +
+        new URL(data.pull.repository).pathname +
+        "/commits/" +
+        data.pull.commit;
+      const [runs, states] = await Promise.all([
+        api(
+          "/github/read?" +
+            new URLSearchParams({ path: root + "/check-runs?per_page=20" }),
+        ),
+        api(
+          "/github/read?" +
+            new URLSearchParams({ path: root + "/status?per_page=20" }),
+        ),
+      ]);
+      show(
+        {
+          commit: data.pull.commit,
+          checks: runs.data.check_runs,
+          status: states.data,
+        },
+        flags.json,
+      );
+      return;
+    }
+    const d = await githubList(api, kind, {
+      repository: flags.repository,
+      installation: flags.installation,
+      page,
+    });
+    show(d, flags.json);
     return;
   }
   if (command === "contributions") {
@@ -909,7 +1008,7 @@ async function execute(args, flags) {
         const [start, end = start] = item.hunks.split(":").map(Number);
         snapshots.push(
           selectPRHunks(
-            await githubReader.loadDiff(args[2], {
+            await reviewGitHubReader.loadDiff(args[2], {
               path: item.path,
               page: positive(String(item.page ?? 1), "Page"),
             }),
@@ -932,7 +1031,7 @@ async function execute(args, flags) {
         );
       const [start, end = start] = flags.hunks.split(":").map(Number);
       prSelection = selectPRHunks(
-        await githubReader.loadDiff(args[2], {
+        await reviewGitHubReader.loadDiff(args[2], {
           page: positive(flags.page || "1", "Page"),
           path: flags.file,
         }),
@@ -975,6 +1074,10 @@ async function execute(args, flags) {
       ...(flags.community ? { community_id: flags.community } : {}),
     };
     if (review) {
+      if (prSelection?.private && !payload.community_id)
+        throw Error(
+          "Private GitHub code requires an explicitly selected private community. Use --community ID.",
+        );
       payload.code = prSelection?.code || code;
       if (prSelection) {
         payload.details = { github_context: prSelection.context };

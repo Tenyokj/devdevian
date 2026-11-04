@@ -125,6 +125,7 @@ export function selectPRHunks(data, start = 1, end = start) {
   return {
     code,
     context,
+    ...(data.pull?.private ? { private: true } : {}),
     label: `${path} · hunks ${start}–${end}`,
     fetched_at: pull.fetched_at,
   };
@@ -156,7 +157,11 @@ export function validatePRSelection(selection) {
     )
       throw Error("Saved PR file ranges do not match the published patch.");
   }
-  return { code: selection.code, context };
+  return {
+    code: selection.code,
+    context,
+    ...(selection.private ? { private: true } : {}),
+  };
 }
 
 // Combine frozen selections only when every file belongs to the same PR revision.
@@ -205,6 +210,7 @@ export function combinePRSelections(selections) {
   return {
     code,
     context,
+    ...(valid.some((s) => s.private) ? { private: true } : {}),
     label: `${files.length} file${files.length === 1 ? "" : "s"} · PR #${first.pull_request.split("/").at(-1)}`,
   };
 }

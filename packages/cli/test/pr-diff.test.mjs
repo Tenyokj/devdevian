@@ -223,3 +223,14 @@ test("multi-file reviews retain exact patch offsets, freeze drafts, replace rang
   badPath.files[1].path = "../secret";
   assert.throws(() => normalizeGitHubContext(badPath));
 });
+test("private PR selections preserve their sharing boundary through validation and baskets", () => {
+  const data = {
+    file,
+    pull: { ...pull, private: true },
+    patch: parsePRPatch(patch, file),
+  };
+  const selected = selectPRHunks(data, 1, 1);
+  assert.equal(selected.private, true);
+  assert.equal(validatePRSelection(selected).private, true);
+  assert.equal(combinePRSelections([selected]).private, true);
+});

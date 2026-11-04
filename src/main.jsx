@@ -1,3 +1,4 @@
+import { GitHubHub } from "./github-app";
 import { ReviewFlowQueue } from "./review-flow";
 import { Workspace } from "./workspaces";
 import { takeConversationReturn } from "./auth-return";
@@ -116,6 +117,7 @@ const navigation = [
   ["review-flow", "Waiting for me", CheckCircle2],
   ["communities", "Communities", Users],
   ["projects", "Projects", FolderGit2],
+  ["github", "GitHub workspace", Github],
   ["events", "Events", CalendarDays],
 ];
 function useRoute() {
@@ -228,6 +230,8 @@ export function App() {
     setDetail(null);
     setMember(null);
     setTopics([]);
+    setComposer(null);
+    setSettingsOpen(false);
   }, []);
   const refresh = useCallback(async () => {
     const version = ++requestVersion.current;
@@ -490,6 +494,15 @@ export function App() {
       page === "following" ||
       (page === "community" ? p.community_id === id : !p.community_id),
   );
+  const shareGitHubReview = (selection) =>
+    authorized(() =>
+      setComposer({
+        kind: "review",
+        topic: "web",
+        community_id: null,
+        githubSelection: selection,
+      }),
+    );
   const create = (
     kind = "discussion",
     topic = (page === "tag" || page === "following") && id ? id : "web",
@@ -809,11 +822,20 @@ export function App() {
                   requireUser={authorized}
                 />
               )}
+              {page === "github" && (
+                <GitHubHub
+                  key={user?.id || "guest"}
+                  user={user}
+                  requireUser={authorized}
+                  onReview={shareGitHubReview}
+                />
+              )}
               {page === "workspace" && (
                 <Workspace
                   key={`${user?.id || "guest"}:${id}`}
                   id={id}
                   route={rawPage === "room" ? `workspace/${id}/room` : route}
+                  onGitHubReview={shareGitHubReview}
                   user={user}
                   requireUser={authorized}
                   go={go}
@@ -1618,13 +1640,24 @@ export function App() {
       )}
       {composer && (
         <Composer
-          key={String(user?.id) + ":" + (composer.community_id || "public")}
+          key={
+            String(user?.id) +
+            ":" +
+            (composer.community_id || "public") +
+            (composer.githubSelection
+              ? ":" +
+                composer.githubSelection.context.commit +
+                ":" +
+                composer.githubSelection.context.path
+              : "")
+          }
           user={user}
           communities={joinedCommunities}
           topics={topics}
           communityId={composer.community_id}
           defaultKind={composer.kind}
           defaultTopic={composer.topic}
+          githubSelection={composer.githubSelection}
           close={closeComposer}
           done={async (p) => {
             setComposer(null);

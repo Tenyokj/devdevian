@@ -28,7 +28,11 @@ export function pullRequestRef(value) {
 }
 const text = (s, max = 1000) => clean(s).slice(0, max);
 const count = (n) => (Number.isSafeInteger(n) && n >= 0 ? n : 0);
-export function createGitHubReader({ fetchImpl = fetch, now = Date.now } = {}) {
+export function createGitHubReader({
+  fetchImpl = fetch,
+  now = Date.now,
+  connected = false,
+} = {}) {
   const cache = new Map();
   let blockedUntil = 0;
   async function get(url, signal, fresh = false) {
@@ -55,7 +59,8 @@ export function createGitHubReader({ fetchImpl = fetch, now = Date.now } = {}) {
         ]),
       });
     } catch (e) {
-      if (signal?.aborted) throw e;
+      if (signal?.aborted || (connected && Number.isSafeInteger(e.status)))
+        throw e;
       throw Error(
         "Could not reach GitHub. Check your connection and retry; the forum is unaffected.",
       );
@@ -154,6 +159,8 @@ export function createGitHubReader({ fetchImpl = fetch, now = Date.now } = {}) {
         throw Error(
           "This PR changed while loading its diff. Refresh the file list and select again.",
         );
+      if (after._devdevian_private || after.base?.repo?.private)
+        data.pull.private = true;
       const file = data.files.find((f) => f.path === path);
       const original = raw.find((f) => f.filename === path);
       if (!file || !original)
@@ -208,8 +215,12 @@ export function createGitHubReader({ fetchImpl = fetch, now = Date.now } = {}) {
       return {
         title: `PR #${ref.number} · ${text(p.title, 256)}`,
         subtitle:
-          "Public GitHub · F choose file / diff · [ ] file pages · Shift+R refresh",
+          (p._devdevian_private ? "Private GitHub · " : "Public GitHub · ") +
+          "F choose file / diff · [ ] file pages · Shift+R refresh",
         pull: {
+          ...(p._devdevian_private || p.base?.repo?.private
+            ? { private: true }
+            : {}),
           url: ref.url,
           repository: ref.repository,
           title: text(p.title, 256),
@@ -253,7 +264,9 @@ export function pullRequestLines(data) {
     `Base: ${p.base || "unknown"}`,
     `Head commit: ${p.commit || "unavailable"}`,
     `Fetched: ${p.fetched_at} · cached up to 60 seconds`,
-    "Read-only GitHub data. Not posted to Devdevian.",
+    p.private
+      ? "Private GitHub data. Review sharing requires an explicitly selected private community."
+      : "Read-only GitHub data. Not posted to Devdevian.",
     "",
     `CHANGED FILES · page ${data.pagination.page}/${data.pagination.pages} · ${p.changed_files} total`,
     ...data.files.map(

@@ -3,6 +3,34 @@
 export const repository = "https://github.com/Tenyokj/devdevian";
 export const updates = [
   {
+    id: "github-workspace-0-6",
+    channel: "Browser",
+    version: "0.6.0",
+    title: "Your repository. A shared next step.",
+    summary:
+      "Connect selected GitHub repositories and inspect PRs, issues, changes and commit checks beside your project.",
+    points: [
+      "Separate GitHub App authorization preserves each viewer's own public/private repository access.",
+      "Choose exact changes for a frozen review draft. Private code sharing requires a private community and explicit consent.",
+    ],
+    link: repository + "/blob/main/docs/github-app.md",
+    label: "GitHub workspace guide",
+  },
+  {
+    id: "cli-github-workspace-0-19",
+    channel: "CLI",
+    version: "0.19.0-alpha.1",
+    title: "A GitHub workspace beside your code.",
+    summary:
+      "Browse installed repositories, private PRs, issues and checks in the live terminal or scripts.",
+    points: [
+      "Use /github, /connected-pr or --connected. GitHub tokens stay on the server.",
+      "Existing diff selection and review baskets preserve commit provenance and private sharing boundaries.",
+    ],
+    link: repository + "/blob/main/docs/github-app.md#terminal",
+    label: "Connected terminal guide",
+  },
+  {
     id: "contributions-0-5",
     channel: "Browser",
     version: "0.5.0",

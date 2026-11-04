@@ -91,6 +91,67 @@ test(
                     items: [post],
                     pagination: { page: 1, pages: 1, total: 1 },
                   };
+        const incoming = new URL(req.url, "http://fixture");
+        if (path === "/api/github/installations")
+          data = {
+            items: [{ id: 12, account: "fixture-app-account" }],
+            has_next: false,
+          };
+        if (path === "/api/github/installations/12/repositories")
+          data = {
+            items: [
+              {
+                id: 2,
+                name: "example/private-project",
+                repository: "https://github.com/example/private-project",
+                private: true,
+              },
+            ],
+            has_next: false,
+          };
+        if (path === "/api/github/read") {
+          const target = incoming.searchParams.get("path");
+          let result;
+          if (target.includes("/check-runs"))
+            result = {
+              check_runs: [
+                { id: 3, name: "Private retry checks", conclusion: "success" },
+              ],
+            };
+          else if (target.includes("/status"))
+            result = { state: "success", statuses: [] };
+          else if (target.includes("/files?"))
+            result = [
+              {
+                filename: "src/private-retry.ts",
+                status: "modified",
+                additions: 1,
+                deletions: 1,
+                patch: "@@ -1 +1 @@\n-const retry = 0;\n+const retry = 3;",
+              },
+            ];
+          else if (/\/pulls\?/.test(target))
+            result = [
+              {
+                id: 42,
+                number: 42,
+                title: "Private retry result",
+                state: "open",
+                user: { login: "fixture" },
+              },
+            ];
+          else
+            result = {
+              ...summary,
+              title: "Private retry result",
+              changed_files: 1,
+              additions: 1,
+              deletions: 1,
+              base: { ...summary.base, sha: "b".repeat(40) },
+              _devdevian_private: true,
+            };
+          data = { data: result, private: true, has_next: false };
+        }
         res.setHeader("content-type", "application/json");
         res.end(JSON.stringify(data));
       });
@@ -189,6 +250,31 @@ test(
         .map(JSON.parse);
       assert.equal(requests.length, 5);
       assert.ok(requests.every((r) => r.method === "GET" && !r.auth));
+      assert.equal(writes, 0);
+      term.resize(120, 36);
+      child.stdin.write(JSON.stringify({ resize: [120, 36] }) + "\n");
+      const command = async (text) => {
+        await send("/");
+        await send(text);
+        await send("\r");
+      };
+      await command("/github");
+      await wait("fixture-app-account");
+      await send("\r");
+      await wait("example/private-project");
+      await send("\r");
+      await wait("Private retry result");
+      await send("\r");
+      await wait("Private GitHub");
+      await send("f");
+      await wait("src/private-retry.ts");
+      await send("\r");
+      await wait("const retry = 3;");
+      await send("\x0b");
+      await wait("QUICK ACTIONS");
+      await send("Checks for this PR commit");
+      await send("\r");
+      await wait("Private retry checks");
       assert.equal(writes, 0);
     } finally {
       child?.kill();

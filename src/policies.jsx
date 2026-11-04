@@ -50,9 +50,27 @@ const privacy = [
       </p>
       <p>
         Google and GitHub provide an account identifier and verified email,
-        together with basic profile information. Their access tokens are used
-        during sign-in; the application does not store them for later access to
-        your repositories, Gmail, or Google Drive.
+        together with basic profile information. Their sign-in access tokens are
+        used during sign-in and are not retained for repository access, Gmail,
+        or Google Drive.
+      </p>
+      <p>
+        A separate, optional GitHub App connection stores your GitHub account
+        identifier and encrypted expiring access and refresh tokens to read
+        repositories available to both you and the installed app. Each viewer
+        authorizes independently. Disconnecting removes this connection; account
+        deletion also removes it. GitHub connections are omitted from
+        application backups, so restoration requires reconnecting.
+      </p>
+      <p>
+        Repository, pull-request, issue, diff and check data requested through
+        this connection is processed to display your GitHub workspace. Signed
+        webhooks retain delivery hashes and repository change markers, not PR
+        bodies or patches. Explicitly sharing selected code creates a saved
+        Devdevian review. Private source requires choosing a private community
+        and confirming that all approved members can read the saved copy,
+        including members without GitHub access. Removing GitHub access does not
+        delete copies you already chose to publish in Devdevian.
       </p>
       <p>
         When you connect Devdevian CLI, we store the device name, authorization
@@ -418,7 +436,7 @@ export default function PolicyPage({ type }) {
             : "A shared space works better when expectations are clear."}
         </p>
         <span className="policy-date">
-          Updated October 17, 2026 · Hosted service policy
+          Updated November 4, 2026 · Hosted service policy
         </span>
       </header>
       <div className="policy-layout">

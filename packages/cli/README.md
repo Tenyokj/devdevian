@@ -289,3 +289,8 @@ This release does not write anything back to GitHub or add new OAuth permissions
 ## Contributions
 
 Use `/contributions PROJECT_ID` for shared results and history. In `/room`, select your assigned task and choose **X → Submit work**. Owner decisions, withdrawal and opening an attached public PR are available in result actions. Every write keeps preview and confirmation. [Workflow, script commands and GitHub boundaries](../../docs/contributions.md).
+
+
+## Connected GitHub workspace
+
+Run `devdevian github connect`, then use `/github` in the live terminal or the `github installations/repositories/pulls/issues/checks` commands. `github pr/diff/review --connected` uses your GitHub App access, including private repositories. Public readers keep their existing behavior. [Setup, keys, private sharing and security](../../docs/github-app.md).

@@ -181,6 +181,7 @@ test(
       await wait("Open requests");
       await send("\x1b[C");
       await wait("Awaiting you");
+      await wait("Public · Awaiting your reply");
       await send("\r");
       await wait("The exact reply from the queue.");
       assert.ok(calls.some((p) => p.includes("/replies?page=1&target_id=77")));
