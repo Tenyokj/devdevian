@@ -1194,18 +1194,20 @@ export function App() {
                             </span>
                             <p>{p.help}</p>
                           </div>
-                          <a
-                            className="button secondary"
-                            href={"#workspace/" + p.id}
-                          >
-                            Open workspace <ArrowUpRight size={15} />
-                          </a>
-                          <a
-                            className="text-button project-room-link"
-                            href={"#room/" + p.id}
-                          >
-                            Enter room <ArrowUpRight size={15} />
-                          </a>
+                          <div className="project-actions">
+                            <a
+                              className="button secondary"
+                              href={"#workspace/" + p.id}
+                            >
+                              Open workspace <ArrowUpRight size={15} />
+                            </a>
+                            <a
+                              className="text-button project-room-link"
+                              href={"#room/" + p.id}
+                            >
+                              Enter room <ArrowUpRight size={15} />
+                            </a>
+                          </div>
                           <div className="project-footer">
                             <button onClick={() => go("member/" + p.user_id)}>
                               <Avatar name={p.founder_name} size="small" />
@@ -1983,15 +1985,20 @@ function PostDetail({
         </button>
         {p.project && (
           <>
-            <a className="button secondary" href={"#workspace/" + p.project.id}>
-              Open workspace <ArrowUpRight size={15} />
-            </a>
-            <a
-              className="text-button project-room-link"
-              href={"#room/" + p.project.id}
-            >
-              Enter room <ArrowUpRight size={15} />
-            </a>
+            <div className="project-actions">
+              <a
+                className="button secondary"
+                href={"#workspace/" + p.project.id}
+              >
+                Open workspace <ArrowUpRight size={15} />
+              </a>
+              <a
+                className="text-button project-room-link"
+                href={"#room/" + p.project.id}
+              >
+                Enter room <ArrowUpRight size={15} />
+              </a>
+            </div>
             <Carousel images={p.project.screenshots} />
             <EntityLinks links={p.project.links} />
             {p.project.tagline && <h3>{p.project.tagline}</h3>}

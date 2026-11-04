@@ -487,11 +487,23 @@
   border-top: 2px solid #72d8b5;
 }
 
+.app .project-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 20px;
+  margin: 20px 0;
+}
+.app .project-actions > a {
+  max-width: 100%;
+  min-height: 44px;
+}
 .app .project-room-link {
   color: var(--accent);
   display: inline-flex;
   align-items: center;
   gap: 8px;
   font-size: 12px;
-  margin: 14px 0;
+  margin: 0;
+  padding: 8px 4px;
 }
