@@ -77,6 +77,15 @@ const pages = [
   },
 ];
 const template = readFileSync("dist/index.html", "utf8");
+const manifest = JSON.parse(readFileSync("dist/.vite/manifest.json", "utf8"));
+const docCss = new Set();
+function collectDocCss(key) {
+  const chunk = manifest[key];
+  if (!chunk) return;
+  for (const file of chunk.css || []) docCss.add(file);
+  for (const entry of chunk.imports || []) collectDocCss(entry);
+}
+collectDocCss("src/docs/page.jsx");
 const vite = await createServer({
   // This server renders HTML only; it never serves a development browser.
   optimizeDeps: { noDiscovery: true, include: [] },
@@ -89,6 +98,22 @@ try {
   const { default: PublicPage } = await vite.ssrLoadModule(
     "/src/public/pages.jsx",
   );
+  const { default: DocsPage } = await vite.ssrLoadModule("/src/docs/page.jsx");
+  const { documents, docPath } = await vite.ssrLoadModule(
+    "/src/docs/content.mjs",
+  );
+  for (const doc of documents)
+    pages.push({
+      path: docPath(doc.slug),
+      file: docPath(doc.slug).slice(1) + "/index.html",
+      title: doc.title + " · Devdevian Docs",
+      description:
+        "Practical Devdevian documentation: " +
+        doc.title +
+        ". Guides for the browser, terminal and shared developer workflows.",
+      index: true,
+      docSlug: doc.slug,
+    });
   for (const page of pages) {
     const canonical = origin + (page.path === "/" ? "/" : page.path);
     const image = origin + "/screenshots/feed-screen.png";
@@ -145,9 +170,17 @@ try {
           '"/>',
       )
       .replace("</head>", head + "</head>");
+    if (page.docSlug)
+      html = html.replace(
+        "</head>",
+        [...docCss]
+          .map((file) => `<link rel="stylesheet" href="/${escape(file)}"/>`)
+          .join("") + "</head>",
+      );
     if (page.index) {
-      const element =
-        page.path === "/"
+      const element = page.docSlug
+        ? React.createElement(DocsPage, { slug: page.docSlug })
+        : page.path === "/"
           ? React.createElement(Landing)
           : ["/faq", "/updates"].includes(page.path)
             ? React.createElement(PublicPage, { type: page.path.slice(1) })

@@ -394,7 +394,7 @@ try {
     name: "Footer navigation",
     exact: true,
   });
-  await expect(footerDirectory.getByRole("link")).toHaveCount(13);
+  await expect(footerDirectory.getByRole("link")).toHaveCount(14);
   await expect(
     footerDirectory.getByRole("link", {
       name: "CLI documentation",

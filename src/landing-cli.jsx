@@ -10,8 +10,7 @@ import {
   Pause,
   Play,
 } from "lucide-react";
-const docs =
-  "https://github.com/Tenyokj/devdevian/blob/main/packages/cli/README.md";
+const docs = "/docs/cli";
 export const reviewCommand =
   'devdevian review create --file src/retry.ts --lines 1:18 --title "Review my retry strategy" --focus "Timeouts and idempotency"';
 const views = [

@@ -20,6 +20,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { api, dateStamp, types } from "./data";
+import { ProjectContributors } from "./project-contributors";
 import { Avatar, ErrorMessage, MD, Modal } from "./ui";
 import { Select } from "./controls";
 import { Pagination } from "./content";
@@ -836,6 +837,7 @@ export function Workspace({
         </header>
         {tab === "overview" && (
           <>
+            <ProjectContributors projectId={project.id} />
             <div className="dw-stats">
               {Object.entries(labels).map(([key, label]) => (
                 <button
@@ -1002,6 +1004,8 @@ export function Workspace({
                       onClick={() => go("member/" + r.user_id)}
                     >
                       <Avatar
+                        userId={r.user_id}
+                        image={r.author_avatar}
                         name={r.author_name || "Developer"}
                         size="small"
                       />

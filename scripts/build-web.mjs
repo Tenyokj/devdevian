@@ -2,6 +2,7 @@ import { build } from "vite";
 import { mkdir, readFile, writeFile, rm } from "node:fs/promises";
 await build({
   build: {
+    manifest: true,
     rollupOptions: {
       input: { main: "index.html", conversation: "conversation.html" },
     },

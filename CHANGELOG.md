@@ -1,5 +1,13 @@
 # Changelog
 
+## Browser & API 0.10.0 — Developer documentation and contributor credits
+
+- Publish 25 searchable, server-rendered documentation guides at `/docs`, with source-aware links, section navigation, code copying, mobile navigation and sitemap metadata. Load the documentation code separately from the forum.
+- Add paginated Contributors to project overview, Room and introduction. Attribute visible conversations, discussion, reviews, assignments and results without publishing approval lists or private-work identities.
+- Resolve profile photos by user ID across shared avatar surfaces; retain initials when a photo is absent or fails.
+- No database migrations, permission changes or CLI package release.
+
+
 ## Browser & API 0.9.0 / CLI 0.22.0-alpha.1 — Project participation
 
 - Separate project visibility from Open / Approved contributors. Choose the mode atomically during creation; owners manage a bounded username list with captured versions and explicit preview. Team credits remain independent.

@@ -52,7 +52,7 @@ export function roomEvent(
       "INSERT INTO room_events(project_id,post_id,actor_id,type,target_id,state) VALUES(?,?,?,?,?,?)",
     ).run(project, post, actor, type, target, state);
 }
-const boardSelect = `SELECT p.id,p.title,p.kind,p.user_id,p.community_id,p.created,p.archived_at,p.locked_at,substr(p.body,1,200) excerpt,w.state,w.version work_version,w.project_id,u.name author_name,a.user_id assignee_id,au.username assignee_username,au.name assignee_name FROM project_work_requests w JOIN posts p ON p.id=w.post_id JOIN users u ON u.id=p.user_id LEFT JOIN room_assignments a ON a.post_id=p.id AND a.project_id=w.project_id LEFT JOIN users au ON au.id=a.user_id AND au.deleted_at IS NULL`;
+const boardSelect = `SELECT p.id,p.title,p.kind,p.user_id,p.community_id,p.created,p.archived_at,p.locked_at,substr(p.body,1,200) excerpt,w.state,w.version work_version,w.project_id,u.name author_name,a.user_id assignee_id,au.username assignee_username,au.name assignee_name,(SELECT json_extract(photo.data,'$.avatar') FROM entity_details photo WHERE photo.kind='user' AND photo.entity_id=CAST(au.id AS TEXT)) assignee_avatar FROM project_work_requests w JOIN posts p ON p.id=w.post_id JOIN users u ON u.id=p.user_id LEFT JOIN room_assignments a ON a.post_id=p.id AND a.project_id=w.project_id LEFT JOIN users au ON au.id=a.user_id AND au.deleted_at IS NULL`;
 const clean = (row) =>
   Object.fromEntries(
     Object.entries(row).filter(([key]) => key !== "_metadata"),
@@ -121,6 +121,36 @@ export function registerRooms(app, db, required, { migrate = false } = {}) {
       },
       participation_mode: projectPolicy(db, pr.id).mode,
       paused: !!(pr.archived_at || pr.locked_at),
+    });
+  });
+  // Attribution comes from readable work, never from the private approval list.
+  app.get("/api/projects/:id/contributors", project, (req, res) => {
+    const pr = req.room;
+    const sql = `WITH readable AS (
+      SELECT p.id,p.user_id FROM posts p WHERE p.removed_at IS NULL AND ${scopeSQL("p", req.user)}
+      AND (p.id=? OR EXISTS(SELECT 1 FROM project_work_requests w WHERE w.post_id=p.id AND w.project_id=? AND w.linked=1))
+    ), credits AS (
+      SELECT ? user_id,'Owner' kind
+      UNION ALL SELECT user_id,'Conversation' FROM readable WHERE id<>?
+      UNION ALL SELECT r.user_id,'Discussion' FROM replies r JOIN readable p ON p.id=r.post_id
+        WHERE NOT EXISTS(SELECT 1 FROM entity_details d WHERE d.kind='reply' AND d.entity_id=CAST(r.id AS TEXT) AND json_extract(d.data,'$.deleted_at') IS NOT NULL)
+      UNION ALL SELECT r.user_id,'Code review' FROM code_reviews r JOIN readable p ON p.id=r.post_id WHERE r.deleted_at IS NULL
+      UNION ALL SELECT r.user_id,'Code review' FROM code_review_replies r JOIN code_reviews c ON c.id=r.review_id JOIN readable p ON p.id=c.post_id WHERE r.deleted_at IS NULL AND c.deleted_at IS NULL
+      UNION ALL SELECT a.user_id,'Assigned work' FROM room_assignments a JOIN readable p ON p.id=a.post_id WHERE a.project_id=? AND a.user_id IS NOT NULL
+      UNION ALL SELECT c.user_id,'Contribution' FROM contributions c JOIN readable p ON p.id=c.post_id WHERE c.project_id=? AND c.state<>'withdrawn'
+    ) SELECT u.id,u.name,u.username,(SELECT json_extract(photo.data,'$.avatar') FROM entity_details photo WHERE photo.kind='user' AND photo.entity_id=CAST(u.id AS TEXT)) avatar,GROUP_CONCAT(DISTINCT c.kind) roles FROM credits c JOIN users u ON u.id=c.user_id
+      WHERE u.deleted_at IS NULL AND u.privacy='public'
+      GROUP BY u.id ORDER BY (u.id=${Number(pr.user_id)}) DESC,u.name COLLATE NOCASE,u.id`;
+    res.json({
+      ...pageRows(db, req, sql, [
+        pr.post_id,
+        pr.id,
+        pr.user_id,
+        pr.post_id,
+        pr.id,
+        pr.id,
+      ]),
+      capabilities: { contributors: 1 },
     });
   });
   app.get("/api/projects/:id/room/tasks", project, (req, res) => {

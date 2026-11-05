@@ -11,7 +11,7 @@
     <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/Node.js-24%2B-84bc95" alt="Node.js 24 or newer" /></a>
     <img src="https://img.shields.io/badge/status-active_development-b2a0ff" alt="Active development" />
   </p>
-  <p><a href="https://devdevian.vercel.app/">Website</a> · <a href="https://devdevian.vercel.app/app">Open the forum</a> · <a href="https://devdevian.vercel.app/updates">What’s new</a> · <a href="https://devdevian.vercel.app/faq">FAQ</a> · <a href="docs/README.md">Documentation</a> · <a href="CONTRIBUTING.md">Contribute</a> · <a href="https://github.com/Tenyokj/devdevian/issues">Report a bug</a></p>
+  <p><a href="https://devdevian.vercel.app/">Website</a> · <a href="https://devdevian.vercel.app/app">Open the forum</a> · <a href="https://devdevian.vercel.app/updates">What’s new</a> · <a href="https://devdevian.vercel.app/faq">FAQ</a> · <a href="https://devdevian.vercel.app/docs">Documentation</a> · <a href="CONTRIBUTING.md">Contribute</a> · <a href="https://github.com/Tenyokj/devdevian/issues">Report a bug</a></p>
 </div>
 
 [Latest combined release: CLI 0.14 — Keep the review moving](https://github.com/Tenyokj/devdevian/releases/tag/cli-v0.14.0-alpha.1)

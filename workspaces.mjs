@@ -75,7 +75,7 @@ export function registerWorkspaces(app, db, required) {
     const page = pageRows(
       db,
       req,
-      `SELECT p.id,p.title,p.kind,p.user_id,p.community_id,p.created,p.revision,substr(p.body,1,200) excerpt,u.name author_name,(SELECT COUNT(*) FROM replies r WHERE r.post_id=p.id) reply_count,w.project_id,w.state,w.version work_version,w.updated_at FROM project_work_requests w JOIN posts p ON p.id=w.post_id JOIN users u ON u.id=p.user_id WHERE ${where.join(" AND ")} ORDER BY p.id DESC`,
+      `SELECT p.id,p.title,p.kind,p.user_id,p.community_id,p.created,p.revision,substr(p.body,1,200) excerpt,u.name author_name,(SELECT json_extract(photo.data,'$.avatar') FROM entity_details photo WHERE photo.kind='user' AND photo.entity_id=CAST(u.id AS TEXT)) author_avatar,(SELECT COUNT(*) FROM replies r WHERE r.post_id=p.id) reply_count,w.project_id,w.state,w.version work_version,w.updated_at FROM project_work_requests w JOIN posts p ON p.id=w.post_id JOIN users u ON u.id=p.user_id WHERE ${where.join(" AND ")} ORDER BY p.id DESC`,
       params,
     );
     // Whitelist data columns; the libSQL adapter can attach row metadata.

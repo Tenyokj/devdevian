@@ -19,6 +19,10 @@ On the project conversation or Room board, open **Manage participation**. Select
 
 Only the owner can see or edit the approved list. Other viewers see their own working/observer status and the project mode. Changing settings preserves captured versions: a conflicting save fails without silently overwriting another change. Close and reopen the editor to load current settings before preparing a new attempt.
 
+## Contributor credits
+
+The **Contributors** section on a project overview, Room and introduction credits the owner and public profiles associated with readable conversations, replies, code feedback, current assignments and non-withdrawn task contributions. It is paginated and reflects only the work the viewer can read. Deleted profiles and hidden profiles are omitted. Private work linked to a public project does not expose its contributors to outsiders. This is attribution, not the private approval list, a ranking, or a mirror of GitHub commit authors. Team credits remain separately edited by the project author.
+
 ## Working rights
 
 Approved contributors can use existing participant workflows: pick up an unassigned task, update their assigned task, submit a result, and reply or add code feedback in related conversations. They do not become co-owners. Assignment, project editing, pinned decisions and result acceptance retain their existing owner/author rules.

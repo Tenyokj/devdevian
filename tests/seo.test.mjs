@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { JSDOM } from "jsdom";
 test("public pages contain crawlable HTML and unique canonical/social metadata without JavaScript", () => {
   const titles = new Set();
@@ -51,10 +51,20 @@ test("sitemap lists only public pages while API, app and missing pages stay out 
     contentType: "text/xml",
   }).window.document;
   assert.deepEqual(
-    [...document.querySelectorAll("loc")].map(
-      (n) => new URL(n.textContent).pathname,
-    ),
-    ["/", "/privacy", "/terms", "/updates", "/faq"],
+    [...document.querySelectorAll("loc")]
+      .map((n) => new URL(n.textContent).pathname)
+      .sort(),
+    [
+      "/",
+      "/privacy",
+      "/terms",
+      "/updates",
+      "/faq",
+      "/docs",
+      ...readdirSync("dist/docs")
+        .filter((n) => n !== "index.html")
+        .map((n) => "/docs/" + n),
+    ].sort(),
   );
   const robots = readFileSync("dist/robots.txt", "utf8");
   assert.match(robots, /Disallow: \/api\//);

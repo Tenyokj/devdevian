@@ -1,5 +1,7 @@
 # Devdevian documentation
 
+Read the searchable [Devdevian documentation website](https://devdevian.vercel.app/docs). These guides also remain readable directly in the repository.
+
 Devdevian is an open-source developer forum. The hosted early release is at [devdevian.vercel.app](https://devdevian.vercel.app/), with the forum at [/app](https://devdevian.vercel.app/app).
 
 [Source map](source-map.md) · [What’s new](https://devdevian.vercel.app/updates) · [Searchable FAQ](https://devdevian.vercel.app/faq) · [Launch film](https://www.youtube.com/watch?v=ssUCB1Jpf-Q)

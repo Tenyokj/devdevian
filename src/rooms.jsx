@@ -1,3 +1,4 @@
+import { ProjectContributors } from "./project-contributors";
 import { ProjectParticipation } from "./project-access";
 import React, { useEffect, useState } from "react";
 import {
@@ -13,7 +14,7 @@ import {
   Activity,
 } from "lucide-react";
 import { api, dateStamp, types } from "./data";
-import { MD, Modal, ErrorMessage } from "./ui";
+import { MD, Modal, ErrorMessage, Avatar } from "./ui";
 import { Pagination } from "./content";
 import { FlowDialog } from "./review-flow";
 import "./rooms.css";
@@ -125,7 +126,12 @@ function TaskColumn({
             </button>
             <p>{t.excerpt}</p>
             <div className="room-assignee">
-              <span className="room-person">{t.assignee_name?.[0] || "+"}</span>
+              <Avatar
+                name={t.assignee_name || "Unassigned"}
+                userId={t.assignee_id}
+                image={t.assignee_avatar}
+                size="small"
+              />
               {t.assignee_name ? (
                 <span>
                   {t.assignee_name}
@@ -392,6 +398,7 @@ export function RoomSurface({
         </button>
       </div>
       <ProjectParticipation project={project} user={user} onChange={done} />
+      <ProjectContributors projectId={project.id} />
       {room.data.paused && (
         <p className="dw-notice">
           This room is paused. Published work is still readable.

@@ -275,7 +275,7 @@ function ReplyRow({ r, depth }) {
           className="post-author"
           onClick={() => go("member/" + r.user_id)}
         >
-          <Avatar name={r.name} image={r.author_avatar} size="small" />
+          <Avatar name={r.name} userId={r.user_id} image={r.author_avatar} size="small" />
           <span>{r.name}</span>
         </button>
         <span>

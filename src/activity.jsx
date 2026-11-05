@@ -191,7 +191,7 @@ export function NotificationCenter({ user, onNavigate }) {
                   onClick={() => read(item)}
                   disabled={pending}
                 >
-                  <Avatar name={item.actor_name} />
+                  <Avatar name={item.actor_name} userId={item.actor_id} image={item.actor_avatar} />
                   <span>
                     <strong>{item.actor_name}</strong>{" "}
                     {messages[item.type] || "shared an update"}

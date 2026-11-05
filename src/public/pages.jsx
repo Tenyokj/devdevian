@@ -365,7 +365,7 @@ export default function PublicPage({ type }) {
         </p>
         <nav aria-label="Footer navigation">
           <a href="/updates">What’s new</a>
-          <a href="/faq">FAQ</a>
+          <a href="/docs">Documentation</a><a href="/faq">FAQ</a>
           <a href={repository}>GitHub</a>
           <a href="/privacy">Privacy & Security</a>
           <a href="/terms">Terms of Use</a>

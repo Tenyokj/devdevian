@@ -1,6 +1,6 @@
 import { createPortal } from "react-dom";
 import { TaxonomyPicker } from "./controls";
-import React, { useEffect, useRef, lazy, Suspense } from "react";
+import React, { useEffect, useRef, useState, lazy, Suspense } from "react";
 import { X, ArrowUpRight, ArrowRight, Code2 } from "lucide-react";
 const MarkdownContent = lazy(() => import("./markdown.jsx"));
 export function Brand() {
@@ -13,15 +13,25 @@ export function Brand() {
     </a>
   );
 }
-export function Avatar({ name = "D", size = "", onClick, image }) {
+export function Avatar({ name = "D", size = "", onClick, image, userId }) {
+  name = String(name || "Developer");
+  const source = image
+    ? "/api/uploads/" + image
+    : image !== null && userId
+      ? `/api/people/${userId}/avatar`
+      : "";
+  const [failed, setFailed] = useState(false);
+  useEffect(() => setFailed(false), [source]);
+  const showImage = source && !failed;
   const colors = ["purple", "blue", "green", "orange", "pink"];
   const color = colors[(name.charCodeAt(0) || 0) % colors.length];
   const props = {
-    className: `avatar ${image ? "has-image" : color} ${size}`,
+    className: `avatar ${showImage ? "has-image" : color} ${size}`,
     title: name,
-    children: image ? (
+    children: showImage ? (
       <img
-        src={"/api/uploads/" + image}
+        src={source}
+        onError={() => setFailed(true)}
         alt=""
         loading="lazy"
         decoding="async"

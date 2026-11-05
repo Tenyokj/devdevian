@@ -228,7 +228,7 @@ export function FeedbackReplies({
               }
             >
               <header>
-                <Avatar name={r.name} image={r.author_avatar} />
+                <Avatar name={r.name} userId={r.user_id} image={r.author_avatar} />
                 <strong>{r.name}</strong>
                 <time>{dateStamp(r.created)}</time>
               </header>

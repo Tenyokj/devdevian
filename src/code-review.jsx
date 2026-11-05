@@ -529,7 +529,7 @@ export function CodeReview({
                 className="line-feedback-author"
                 onClick={() => go("member/" + item.user_id)}
               >
-                <Avatar name={item.name} image={item.author_avatar} />
+                <Avatar name={item.name} userId={item.user_id} image={item.author_avatar} />
                 {item.name}
               </button>
               <time>{dateStamp(item.created)}</time>

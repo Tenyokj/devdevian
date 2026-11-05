@@ -250,6 +250,7 @@ export default function Landing() {
             <a href="#community">Communities</a>
             <a href="#open-source">Open source</a>
             <a href="/updates">What’s new</a>
+            <a href="/docs">Docs</a>
             <a href="/faq">FAQ</a>
           </div>
           <div className="landing-nav-actions">
@@ -725,7 +726,7 @@ export default function Landing() {
                       "CLI documentation",
                       repository + "/blob/main/packages/cli/README.md",
                     ],
-                    ["Documentation", repository + "/blob/main/docs/README.md"],
+                    ["Documentation", "/docs"],
                     ["Contributing", repository + "/blob/main/CONTRIBUTING.md"],
                   ],
                 ],
@@ -734,6 +735,7 @@ export default function Landing() {
                   [
                     ["Privacy & Security", "/privacy"],
                     ["Terms of Use", "/terms"],
+                    ["CLI handbook", "/docs/cli"],
                     ["Questions & answers", "/faq"],
                     ["What’s new", "/updates"],
                     ["Report an issue", repository + "/issues"],

@@ -1,3 +1,4 @@
+import { ProjectContributors } from "./project-contributors";
 import { ProjectParticipation } from "./project-access";
 import { MyWork } from "./my-work";
 import { rememberConversation, workStorage } from "./work-memory";
@@ -1243,6 +1244,8 @@ export function App() {
                                   onClick={() => go("member/" + m.user_id)}
                                 >
                                   <Avatar
+                                    userId={m.user_id}
+                                    image={m.avatar}
                                     name={m.name || "Builder"}
                                     size="small"
                                   />
@@ -1276,7 +1279,12 @@ export function App() {
                           </div>
                           <div className="project-footer">
                             <button onClick={() => go("member/" + p.user_id)}>
-                              <Avatar name={p.founder_name} size="small" />
+                              <Avatar
+                                name={p.founder_name}
+                                userId={p.user_id}
+                                image={p.founder_avatar}
+                                size="small"
+                              />
                               {p.founder_name}
                             </button>
                             <a href={"#post/" + p.post_id}>
@@ -1631,6 +1639,7 @@ export function App() {
                 Report a bug <ArrowUpRight size={12} />
               </a>
               <a href="/updates">What’s new</a>
+              <a href="/docs">Documentation</a>
               <a href="/faq">FAQ</a>
               <a href="/privacy">Privacy &amp; Security</a>
               <a href="/terms">Terms of Use</a>
@@ -1841,7 +1850,12 @@ function PostCard({
       </div>
       <div className="post-card-footer">
         <button className="post-author" onClick={onMember}>
-          <Avatar name={p.name} image={p.author_avatar} size="small" />
+          <Avatar
+            name={p.name}
+            userId={p.user_id}
+            image={p.author_avatar}
+            size="small"
+          />
           <span>{p.name}</span>
         </button>
         <div className="post-actions">
@@ -2057,7 +2071,7 @@ function PostDetail({
           className="detail-author"
           onClick={() => go("member/" + p.user_id)}
         >
-          <Avatar name={p.name} image={p.author_avatar} />
+          <Avatar name={p.name} userId={p.user_id} image={p.author_avatar} />
           <span>
             {p.name}
             <small>{p.role || "Developer"}</small>
@@ -2101,7 +2115,11 @@ function PostDetail({
                     key={m.user_id}
                     onClick={() => go("member/" + m.user_id)}
                   >
-                    <Avatar name={m.name || "Builder"} />
+                    <Avatar
+                      userId={m.user_id}
+                      image={m.avatar}
+                      name={m.name || "Builder"}
+                    />
                     <span>
                       {m.name}
                       <small>{m.role}</small>
@@ -2231,11 +2249,14 @@ function PostDetail({
         </div>
       </article>
       {p.project && (
-        <ProjectParticipation
-          project={{ ...p.project, community_id: p.community_id }}
-          user={user}
-          onChange={refresh}
-        />
+        <>
+          <ProjectContributors projectId={p.project.id} />
+          <ProjectParticipation
+            project={{ ...p.project, community_id: p.community_id }}
+            user={user}
+            onChange={refresh}
+          />
+        </>
       )}
       {p.project && (
         <ProjectTimeline
@@ -2551,6 +2572,7 @@ function EventCard({
         <button className="event-organizer" onClick={onMember}>
           <Avatar
             name={e.organizer_name}
+            userId={e.user_id}
             image={e.organizer_avatar}
             size="small"
           />
@@ -2665,7 +2687,12 @@ function Profile({
           }
         ></div>
         <div className="profile-info">
-          <Avatar name={p.name} image={p.avatar} size="profile-size" />
+          <Avatar
+            name={p.name}
+            userId={p.id}
+            image={p.avatar}
+            size="profile-size"
+          />
           <div className="profile-main">
             <div>
               <h1>{p.name}</h1>
@@ -2986,28 +3013,38 @@ function Participation({ user, go }) {
 // client-rendered. Keep public routes in sync with prerender and both hosts.
 if (!import.meta.env.SSR) {
   const root = document.getElementById("root");
-  const page = ["/faq", "/updates"].includes(window.location.pathname) ? (
-    <PublicPage type={window.location.pathname.slice(1)} />
-  ) : ["/privacy", "/terms"].includes(window.location.pathname) ? (
-    <PolicyPage type={window.location.pathname.slice(1)} />
-  ) : window.location.pathname === "/" &&
-    (!window.location.hash ||
-      [
-        "#cli",
-        "#possibilities",
-        "#your-people",
-        "#how-it-works",
-        "#explore",
-        "#community",
-        "#open-source",
-        "#faq",
-      ].includes(window.location.hash)) ? (
-    <Landing />
-  ) : (
-    <App />
-  );
-  const isPublic = page.type !== App;
-  if (isPublic && root.dataset.prerender === location.pathname)
-    hydrateRoot(root, page);
-  else createRoot(root).render(page);
+  if (/^\/docs(?:\/|$)/.test(location.pathname)) {
+    import("./docs/page").then(({ default: DocsPage }) => {
+      const page = (
+        <DocsPage slug={location.pathname.split("/")[2] || "overview"} />
+      );
+      if (root.dataset.prerender === location.pathname) hydrateRoot(root, page);
+      else createRoot(root).render(page);
+    });
+  } else {
+    const page = ["/faq", "/updates"].includes(window.location.pathname) ? (
+      <PublicPage type={window.location.pathname.slice(1)} />
+    ) : ["/privacy", "/terms"].includes(window.location.pathname) ? (
+      <PolicyPage type={window.location.pathname.slice(1)} />
+    ) : window.location.pathname === "/" &&
+      (!window.location.hash ||
+        [
+          "#cli",
+          "#possibilities",
+          "#your-people",
+          "#how-it-works",
+          "#explore",
+          "#community",
+          "#open-source",
+          "#faq",
+        ].includes(window.location.hash)) ? (
+      <Landing />
+    ) : (
+      <App />
+    );
+    const isPublic = page.type !== App;
+    if (isPublic && root.dataset.prerender === location.pathname)
+      hydrateRoot(root, page);
+    else createRoot(root).render(page);
+  }
 }

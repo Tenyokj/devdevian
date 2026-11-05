@@ -43,6 +43,14 @@
       "destination": "/faq/index.html"
     },
     {
+      "source": "/docs",
+      "destination": "/docs/index.html"
+    },
+    {
+      "source": "/docs/:slug",
+      "destination": "/docs/:slug/index.html"
+    },
+    {
       "source": "/updates",
       "destination": "/updates/index.html"
     }

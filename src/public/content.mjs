@@ -3,6 +3,20 @@
 export const repository = "https://github.com/Tenyokj/devdevian";
 export const updates = [
   {
+    id: "documentation-0-10",
+    channel: "Browser",
+    version: "0.10.0",
+    title: "A field guide for people who build.",
+    summary:
+      "Searchable documentation for the forum, terminal, shared work and self-hosting.",
+    points: [
+      "25 crawlable guides with practical workflows, commands, section navigation and source links.",
+      "Project contributor credits respect readable work; profile photos follow people across project, task and notification surfaces.",
+    ],
+    link: "/docs",
+    label: "Open the documentation",
+  },
+  {
     id: "project-participation-0-9",
     channel: "Browser",
     version: "0.9.0",

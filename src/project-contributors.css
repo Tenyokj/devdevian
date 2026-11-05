@@ -1,0 +1,77 @@
+.project-contributors {
+  margin: 24px 0;
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: linear-gradient(
+    130deg,
+    rgba(92, 162, 230, 0.08),
+    transparent 70%
+  );
+}
+.project-contributors header {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.project-contributors h3 {
+  margin: 0 0 6px;
+}
+.project-contributors h3 > span {
+  font-size: 13px;
+  opacity: 0.65;
+  margin-left: 8px;
+}
+.project-contributors p {
+  color: var(--text-muted);
+  font-size: 13px;
+  margin: 0 0 18px;
+}
+.contributor-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(230px, 100%), 1fr));
+  gap: 12px;
+}
+.contributor-grid > a {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--line);
+  padding: 14px;
+  border-radius: 15px;
+  color: inherit;
+  text-decoration: none;
+  transition:
+    background 0.2s,
+    transform 0.2s;
+}
+.contributor-grid > a:hover {
+  background: rgba(118, 140, 255, 0.1);
+  transform: translateY(-2px);
+}
+.contributor-grid strong,
+.contributor-grid small,
+.contributor-grid em {
+  display: block;
+  overflow-wrap: anywhere;
+}
+.contributor-grid small {
+  color: var(--text-muted);
+  font-size: 12px;
+  margin-top: 3px;
+}
+.contributor-grid em {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 7px;
+}
+.contributor-grid .avatar {
+  flex-shrink: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .contributor-grid > a {
+    transition: none;
+    transform: none;
+  }
+}

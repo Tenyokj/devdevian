@@ -335,15 +335,19 @@ export function registerEnhancements(app, db, required, seed) {
           }
         : {}),
       ...(kind === "post"
-        ? { author_avatar: readDetails("user", item.user_id).avatar }
+        ? { author_avatar: readDetails("user", item.user_id).avatar || null }
         : {}),
       ...(kind === "event"
-        ? { organizer_avatar: readDetails("user", item.user_id).avatar }
+        ? { organizer_avatar: readDetails("user", item.user_id).avatar || null }
+        : {}),
+      ...(kind === "project"
+        ? { founder_avatar: readDetails("user", item.user_id).avatar || null }
         : {}),
       ...(d.team
         ? {
             team: d.team.map((m) => ({
               ...m,
+              avatar: readDetails("user", m.user_id).avatar || null,
               ...(cache?.get("person:" + m.user_id) ||
                 db
                   .prepare("SELECT name,username FROM users WHERE id=?")
@@ -620,7 +624,7 @@ export function registerEnhancements(app, db, required, seed) {
         const keys = [];
         for (const item of items) {
           keys.push([kind, String(item.id)]);
-          if (["post", "event"].includes(kind) && item.user_id)
+          if (["post", "event", "project"].includes(kind) && item.user_id)
             keys.push(["user", String(item.user_id)]);
         }
         for (const [k, id] of keys) detailCache.set(k + ":" + id, {});
@@ -644,6 +648,13 @@ export function registerEnhancements(app, db, required, seed) {
       ];
       for (const id of topicIds) detailCache.set("topic:" + id, {});
       for (const id of peopleIds) detailCache.set("person:" + id, {});
+      if (peopleIds.length)
+        for (const row of db
+          .prepare(
+            `SELECT entity_id,data FROM entity_details WHERE kind='user' AND entity_id IN (${peopleIds.map(() => "?").join(",")})`,
+          )
+          .all(...peopleIds.map(String)))
+          detailCache.set("user:" + row.entity_id, JSON.parse(row.data));
       if (topicIds.length)
         for (const row of db
           .prepare(
