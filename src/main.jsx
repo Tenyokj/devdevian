@@ -1,5 +1,5 @@
 import { MyWork } from "./my-work";
-import { rememberConversation } from "./work-memory";
+import { rememberConversation, workStorage } from "./work-memory";
 import { GitHubHub } from "./github-app";
 import { ReviewFlowQueue } from "./review-flow";
 import { Workspace } from "./workspaces";
@@ -205,7 +205,7 @@ export function App() {
   }, [user?.id, user?.username_locked]);
   useEffect(() => {
     if (user && page === "post" && detail?.id === Number(id))
-      rememberConversation(localStorage, user.id, detail.id);
+      rememberConversation(workStorage(), user.id, detail.id);
   }, [user?.id, page, id, detail?.id]);
   const go = (path) => {
     location.hash = path;

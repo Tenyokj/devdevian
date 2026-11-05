@@ -4,6 +4,7 @@ import {
   rememberConversation,
   recentConversations,
   localWorkDrafts,
+  workStorage,
 } from "../src/work-memory.js";
 import { saveDraft, draftKey } from "../src/drafts.js";
 function storage() {
@@ -48,4 +49,8 @@ test("Continue offers current-account regular drafts, excludes frozen GitHub con
     localWorkDrafts(s, 1).map((x) => x.title),
     ["Local thought"],
   );
+});
+
+test("Optional continuation tolerates missing or blocked browser storage",()=>{
+ assert.deepEqual(recentConversations(null,1),[]);assert.deepEqual(localWorkDrafts(null,1),[]);assert.doesNotThrow(()=>rememberConversation(null,1,2));
 });

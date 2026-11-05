@@ -14,7 +14,7 @@ import { Pagination } from "./content";
 import { ReviewFlowPanel } from "./review-flow";
 import { Contributions } from "./contributions";
 import { GitHubTaskContext } from "./github-work";
-import { recentConversations, localWorkDrafts } from "./work-memory";
+import { recentConversations, localWorkDrafts, workStorage } from "./work-memory";
 import "./my-work.css";
 const tabs = [
   ["attention", "Next up"],
@@ -103,8 +103,8 @@ export function MyWork({
     setResumeError("");
     setDrafts([]);
     if (!user || selected !== "continue") return;
-    setDrafts(localWorkDrafts(localStorage, user.id));
-    const rows = recentConversations(localStorage, user.id);
+    setDrafts(localWorkDrafts(workStorage(), user.id));
+    const rows = recentConversations(workStorage(), user.id);
     const c = new AbortController();
     api(
       "/my-work/recent?" +

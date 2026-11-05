@@ -61,3 +61,12 @@ export function localWorkDrafts(storage, user) {
   } catch {}
   return rows;
 }
+
+// Browser storage may be disabled by privacy settings; continuation is optional.
+export function workStorage() {
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
