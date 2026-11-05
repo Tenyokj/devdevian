@@ -102,6 +102,15 @@ try {
   const { documents, docPath } = await vite.ssrLoadModule(
     "/src/docs/content.mjs",
   );
+  pages.push({
+    path: "/docs",
+    file: "docs/index.html",
+    title: "Documentation · Devdevian",
+    description:
+      "Start building with Devdevian: guides for the developer forum, terminal client, shared projects and GitHub workflows.",
+    index: true,
+    docSlug: "home",
+  });
   for (const doc of documents)
     pages.push({
       path: docPath(doc.slug),
@@ -173,9 +182,11 @@ try {
     if (page.docSlug)
       html = html.replace(
         "</head>",
-        [...docCss]
-          .map((file) => `<link rel="stylesheet" href="/${escape(file)}"/>`)
-          .join("") + "</head>",
+        '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;550;600;650;700;800&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap"/>' +
+          [...docCss]
+            .map((file) => `<link rel="stylesheet" href="/${escape(file)}"/>`)
+            .join("") +
+          "</head>",
       );
     if (page.index) {
       const element = page.docSlug

@@ -11,6 +11,10 @@ Browser/API **0.9.0** and CLI **0.22 alpha** separate **who can see a project** 
 
 Approval never adds someone to a private community, grants project ownership, or changes their GitHub repository access.
 
+
+> [!IMPORTANT]
+> An approved contributor is not a project co-owner. Approval does not add community membership or grant GitHub repository access.
+
 ## Browser
 
 Select **Project participation** while creating a project. Approved mode initially allows only its owner, so there is no temporary open window during publication.

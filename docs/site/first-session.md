@@ -2,6 +2,10 @@
 
 This walkthrough takes you from a new account to a useful conversation. You do not need a GitHub repository or the CLI to start.
 
+
+> [!TIP]
+> Start with one focused question. Include what you expected, what happened, and the smallest example someone else can inspect.
+
 ## 1. Create one account
 
 Open [the forum](https://devdevian.vercel.app/app) and choose Google, GitHub or email/password. Email registration completes after you enter the verification code. Choose your permanent username carefully: usernames are case-insensitively unique and cannot be changed later. Your display name and profile photo remain editable.

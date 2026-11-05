@@ -1,0 +1,148 @@
+.landing-workspace-showcase {
+  padding: 85px 0 95px;
+  max-width: 1180px;
+  margin: auto;
+}
+.workspace-showcase-heading {
+  max-width: 650px;
+  margin-bottom: 35px;
+}
+.workspace-showcase-heading h2 {
+  margin: 20px 0;
+  font-size: clamp(35px, 4vw, 59px);
+  line-height: 1.12;
+  letter-spacing: -2px;
+}
+.workspace-showcase-heading h2 em {
+  font-style: normal;
+  color: #b99afa;
+}
+.workspace-showcase-heading > p {
+  font-size: 16px;
+  line-height: 1.9;
+  color: #b5b5cb;
+}
+.workspace-showcase-tabs {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 23px;
+}
+.workspace-showcase-tabs button {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 11px 17px;
+  color: #b1abc7;
+  border: 1px solid #66538555;
+  border-radius: 9px;
+  font-size: 12px;
+  background: #20183266;
+  transition:
+    background 0.2s,
+    border-color 0.2s;
+}
+.workspace-showcase-tabs button[aria-pressed="true"] {
+  color: #e8d8ff;
+  background: #8c60d52e;
+  border-color: #b28bf0;
+}
+.landing-workspace-showcase figure {
+  margin: 0;
+  animation: workspace-shot-in 0.3s ease-out;
+}
+.landing-workspace-showcase figure > img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+  box-shadow: 0 0 70px #9a5ae61a;
+}
+.landing-workspace-showcase figcaption {
+  display: flex;
+  align-items: center;
+  gap: 25px;
+  justify-content: space-between;
+  padding: 24px 4px 0;
+}
+.landing-workspace-showcase figcaption strong {
+  font-size: 17px;
+  line-height: 1.6;
+  color: #e7e2f5;
+}
+.landing-workspace-showcase figcaption p {
+  font-size: 12px;
+  line-height: 1.9;
+  color: #aaa9c3;
+  margin: 9px 0;
+}
+.landing-workspace-showcase figcaption small {
+  font-size: 8px;
+  letter-spacing: 1px;
+  color: #88809e;
+}
+.landing-workspace-showcase figcaption a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+  font-size: 12px;
+  color: #cdb5f5;
+  text-decoration: none;
+}
+.landing-workspace-showcase figcaption a:hover {
+  text-decoration: underline;
+}
+@keyframes workspace-shot-in {
+  from {
+    opacity: 0.5;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (max-width: 760px) {
+  .landing-workspace-showcase {
+    padding: 55px 0 60px;
+  }
+  .workspace-showcase-heading h2 {
+    letter-spacing: -1px;
+  }
+  .workspace-showcase-heading > p {
+    font-size: 14px;
+  }
+  .workspace-showcase-tabs {
+    gap: 7px;
+  }
+  .workspace-showcase-tabs button {
+    font-size: 10px;
+    padding: 9px 11px;
+    gap: 6px;
+  }
+  .workspace-showcase-tabs svg {
+    width: 14px;
+  }
+  .landing-workspace-showcase figcaption {
+    display: block;
+    padding-top: 18px;
+  }
+  .landing-workspace-showcase figcaption strong {
+    font-size: 15px;
+  }
+  .landing-workspace-showcase figcaption a {
+    margin-top: 15px;
+  }
+  .landing-workspace-showcase figcaption p {
+    font-size: 11px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .landing-workspace-showcase figure {
+    animation: none;
+  }
+  .workspace-showcase-tabs button {
+    transition: none;
+  }
+}

@@ -240,6 +240,44 @@ try {
   await command("/appearance");
   await wait("LIVE PREVIEW");
   await capture("cli-appearance");
+  const projectResult = await author("/projects", {
+    name: "Orbit Queue",
+    description:
+      "Reliable background work with context, reviews and a clear next step.",
+    topic: "web",
+    stage: "Beta",
+    help: "Review retry limits and keep worker shutdown predictable.",
+  });
+  if (projectResult.status !== 201)
+    throw Error("Could not create isolated capture project");
+  const project = projectResult.data;
+  const published = (await author("/posts?limit=10")).data;
+  for (const [i, p] of (published.items || published)
+    .filter(
+      (p) =>
+        p.id !== project.post_id &&
+        ["question", "discussion", "review"].includes(p.kind),
+    )
+    .slice(0, 3)
+    .entries()) {
+    const linked = await author(
+      `/projects/${project.id}/work-requests/${p.id}`,
+      { state: ["open", "in_progress", "ready"][i], expected_version: 0 },
+      "PUT",
+    );
+    if (linked.status !== 201)
+      throw Error(
+        "Could not link isolated capture task: " +
+          linked.status +
+          " " +
+          JSON.stringify(linked.data),
+      );
+  }
+  await send("\x1b");
+  await command("/room " + project.id);
+  await wait("Orbit Queue");
+  await wait("in progress");
+  await capture("cli-room-current");
 } finally {
   child?.kill();
   term?.dispose();

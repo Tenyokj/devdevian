@@ -293,7 +293,10 @@ try {
       },
     }),
   );
-  await page.locator(".landing-activity").scrollIntoViewIfNeeded();
+  // Centre the live section deterministically instead of racing a smooth scroll.
+  await page.locator(".landing-activity").evaluate((section) =>
+    section.scrollIntoView({ block: "center", behavior: "instant" }),
+  );
   await expect(
     page.getByRole("status", { name: "12 public conversations", exact: true }),
   ).toBeVisible();
@@ -364,7 +367,8 @@ try {
     await page
       .locator(".stack-ribbon")
       .evaluate((e) =>
-        e.previousElementSibling.classList.contains("landing-projects"),
+        e.previousElementSibling.classList.contains("landing-workspace-showcase") &&
+        e.previousElementSibling.previousElementSibling.classList.contains("landing-projects"),
       ),
   ).toBeTruthy();
   await page.locator(".stack-window").hover();
@@ -458,7 +462,10 @@ try {
     ["mobile", 390, 844],
   ]) {
     await page.setViewportSize({ width, height });
-    await page.locator(".landing-activity").scrollIntoViewIfNeeded();
+    // Centre the live section deterministically instead of racing a smooth scroll.
+    await page.locator(".landing-activity").evaluate((section) =>
+      section.scrollIntoView({ block: "center", behavior: "instant" }),
+    );
     await page.evaluate(() => document.fonts.ready);
     await page.locator(".landing-activity").screenshot({
       path: artifacts + "/activity-" + name + ".png",

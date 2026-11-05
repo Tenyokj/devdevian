@@ -1,5 +1,6 @@
 import FAQItem from "./public/accordion";
 import { CLISection, CLIReview, PublicActivity } from "./landing-cli";
+import WorkspaceShowcase from "./landing-workspaces";
 import StackRibbon from "./stack";
 import React, { useEffect, useRef, useState } from "react";
 import {
@@ -592,6 +593,7 @@ export default function Landing() {
             />
           </section>
 
+          <WorkspaceShowcase />
           <StackRibbon />
           <PublicActivity />
 

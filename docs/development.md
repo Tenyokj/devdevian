@@ -1,5 +1,9 @@
 # Development
 
+
+> [!WARNING]
+> Use an isolated local database and development credentials. Production records and provider secrets do not belong in disposable fixtures or source control.
+
 ## Normal local setup
 
 Use Node.js 24+ and npm:

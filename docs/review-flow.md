@@ -4,6 +4,10 @@ Source milestone: browser/API **0.3.0**, CLI **0.16.0-alpha.1**. Deployment and 
 
 Review Flow connects a named reviewer, an immutable code revision and an explicit outcome across the browser and CLI. It extends Workspaces; ordinary conversations, feedback resolution and accepted solutions keep their existing behavior.
 
+
+> [!NOTE]
+> Review outcomes belong to an exact code snapshot. They do not silently accept an answer, resolve every remark, or close a conversation.
+
 ## Browser workflow
 
 1. Open your code review and choose **Request a reviewer**. Enter their public `@username`, inspect the preview and confirm. A private conversation requires their existing approved community membership; an invitation grants no access.

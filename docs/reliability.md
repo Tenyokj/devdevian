@@ -2,6 +2,10 @@
 
 Version 0.1.1 adds recovery and operational safeguards. Passing automated tests is not an independent security audit, an uptime guarantee, or proof that a particular deployment's backups are enabled.
 
+
+> [!IMPORTANT]
+> A backup is useful only when it can be restored. Rehearse recovery into a separate database and file location, never over the active production data.
+
 ## Database migrations and release order
 
 Hosted request handlers **do not migrate the database**. The same rule applies to any production process and any cloud database connection, including a developer shell outside Vercel. Only local development/test databases initialize automatically. A cold function checks the schema version and reuses one initialized app. A missing/outdated schema returns JSON 503 with a request ID. This avoids repeating catalog imports and schema writes across cold instances when database capacity is limited.

@@ -3016,7 +3016,7 @@ if (!import.meta.env.SSR) {
   if (/^\/docs(?:\/|$)/.test(location.pathname)) {
     import("./docs/page").then(({ default: DocsPage }) => {
       const page = (
-        <DocsPage slug={location.pathname.split("/")[2] || "overview"} />
+        <DocsPage slug={location.pathname.split("/")[2] || "home"} />
       );
       if (root.dataset.prerender === location.pathname) hydrateRoot(root, page);
       else createRoot(root).render(page);

@@ -2,6 +2,10 @@
 
 Browser/API **0.4.0** and CLI **0.17.0-alpha.1** extend the existing project workspace into a shared task board, pinned decisions and project activity. Source versions, deployment and npm publication are recorded separately.
 
+
+> [!NOTE]
+> A Room coordinates existing conversations and task results. Changing a task to Ready is separate from accepting a contribution.
+
 ## Start with a project
 
 Open **Projects → Enter room**, or open a workspace and choose **Room board**. The room uses the existing project's description and requested help as its goal. Its owner creates/links work requests with the existing controls; each card opens that same conversation or code review.

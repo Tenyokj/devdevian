@@ -1,5 +1,14 @@
 # Changelog
 
+## Browser & API 0.10.1 — Documentation reading experience
+
+- Rebuild documentation with plum/violet and pink accents, larger Inter typography, light/dark themes saved independently from the app, and a full-width layout with collapsible navigation.
+- Add a keyboard-search dialog with ranked section links, highlighted contextual matches and guide numbering; support Cmd/Ctrl+K, arrows, Enter and Escape.
+- Add semantic callouts, glossary tips, labeled code blocks, copy feedback, Markdown export, contextual screenshots and distinct interactive system, task, access and revision illustrations. Add a documentation home with three entry paths and a complete resources footer; existing guides remain available under /docs/:slug.
+- Highlight search terms at their destination and scroll to the matching section. Animate sidebar layout changes and the table-of-contents indicator, respecting reduced motion.
+- Capture current project overview, Room, illustrative GitHub workspace and CLI Room on disposable demo accounts; add a selectable landing gallery and updated documentation figures.
+
+
 ## Browser & API 0.10.0 — Developer documentation and contributor credits
 
 - Publish 25 searchable, server-rendered documentation guides at `/docs`, with source-aware links, section navigation, code copying, mobile navigation and sitemap metadata. Load the documentation code separately from the forum.

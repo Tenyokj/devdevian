@@ -7,7 +7,7 @@ test("all documentation guides render substantive HTML, reachable local links an
     "",
     ...readdirSync("dist/docs").filter((n) => n !== "index.html"),
   ];
-  assert.equal(dirs.length, 25);
+  assert.equal(dirs.length, 26);
   for (const dir of dirs) {
     const path = "/docs" + (dir ? "/" + dir : "");
     const doc = new JSDOM(readFileSync("dist" + path + "/index.html", "utf8"), {
@@ -15,7 +15,8 @@ test("all documentation guides render substantive HTML, reachable local links an
     }).window.document;
     assert.equal(doc.querySelectorAll("h1").length, 1, path);
     assert.ok(
-      doc.querySelector("#docs-article").textContent.length > 1500,
+      doc.querySelector("#docs-article").textContent.length >
+        (dir ? 1500 : 700),
       path,
     );
     assert.equal(

@@ -4,6 +4,10 @@ Devdevian is an **open-source developer forum**, available in the browser and yo
 
 Use the forum to ask a focused question, discuss a tradeoff, publish a project, or ask another developer to inspect an implementation. Projects add a shared workspace, task board, versioned results and decisions. GitHub context brings repository issues, pull requests and changes beside that work.
 
+
+> [!NOTE]
+> The browser and terminal share the same forum. Local drafts and appearance preferences stay on your device; published work follows your account.
+
 ## Choose your first path
 
 | Your goal | Start here |

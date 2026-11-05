@@ -76,8 +76,7 @@ export const documents = docGroups.flatMap(([group, entries]) =>
     body: special[source] || files["../../" + source],
   })),
 );
-export const docPath = (slug) =>
-  slug === "overview" ? "/docs" : "/docs/" + slug;
+export const docPath = (slug) => "/docs/" + slug;
 export const headingId = (text) =>
   String(text)
     .toLowerCase()
