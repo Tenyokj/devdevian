@@ -1,5 +1,12 @@
 # Changelog
 
+## Browser & API 0.9.0 / CLI 0.22.0-alpha.1 — Project participation
+
+- Separate project visibility from Open / Approved contributors. Choose the mode atomically during creation; owners manage a bounded username list with captured versions and explicit preview. Team credits remain independent.
+- Enforce observer read-only access across tasks, related conversations, results and GitHub work changes; keep personal saves/follows, reports and own-content removal available. Approval never grants community membership.
+- Release non-approved assignments transactionally on revocation while retaining published work and history. Add optional database barriers and explicit backup-first preparation, encrypted restore and legacy-writer checks.
+- Expose browser, live terminal and script controls without new dependencies or provider scopes. Existing projects retain open participation.
+
 ## Browser & API 0.8.1 — GitHub workspace layout
 
 - Separate connected-account identity, connection actions and account/repository selection into clear responsive surfaces.

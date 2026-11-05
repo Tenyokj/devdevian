@@ -496,6 +496,16 @@ test("v6 preparation is repeatable, retains the marker and never fabricates lost
       "  return request();",
       "Retained current remark.",
     );
+    // Reconstruct a genuine pre-participation v6 fixture, without cross-table barriers.
+    for (const { name } of db
+      .prepare(
+        "SELECT name FROM sqlite_master WHERE type='trigger' AND name LIKE 'participation_%'",
+      )
+      .all()) {
+      assert.match(name, /^participation_[a-z_]+$/);
+      db.exec('DROP TRIGGER "' + name + '"');
+    }
+    db.exec("DROP TABLE participation_schema");
     db.exec(
       "UPDATE app_schema SET version=6; DROP TABLE workspace_schema; DROP TABLE project_work_requests; DROP TABLE review_revisions; DROP INDEX code_reviews_snapshot; ALTER TABLE code_reviews DROP COLUMN snapshot_id",
     );

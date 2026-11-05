@@ -1,5 +1,9 @@
 #!/usr/bin/env node
 import {
+  participationPlan,
+  participationPayload,
+} from "../lib/project-access.mjs";
+import {
   githubWorkPlan,
   githubTaskRoot,
   githubTaskLines,
@@ -78,6 +82,8 @@ const options = {
   page: { type: "string" },
   topic: { type: "string" },
   section: { type: "string" },
+  mode: { type: "string" },
+  members: { type: "string" },
   state: { type: "string" },
   query: { type: "string" },
   community: { type: "string" },
@@ -219,6 +225,8 @@ const help = `Devdevian CLI ${version} · alpha
   devdevian review reply POST_ID REVIEW_ID --body "..."
   devdevian review resolve POST_ID REVIEW_ID
   devdevian review reopen POST_ID REVIEW_ID
+  devdevian participation PROJECT_ID [--json]
+  devdevian participation set PROJECT_ID --mode approved --members "alice,bob"
   devdevian communities [--page 2]
   devdevian github connect                  Connect the GitHub App in your browser
   devdevian github status
@@ -960,6 +968,28 @@ async function execute(args, flags) {
   }
   if (command === "reviews") {
     show(await loadReviewQueue(api, flags.section || "open", page), flags.json);
+    return;
+  }
+  if (command === "participation") {
+    const editing = args[1] === "set",
+      id = editing ? args[2] : args[1],
+      plan = await participationPlan(api, id);
+    if (!editing) {
+      show(plan.data, flags.json);
+      return;
+    }
+    if (!plan.data.can_manage)
+      throw Error("Only the project owner can manage participation.");
+    const payload = participationPayload(
+      flags.mode || plan.values.mode,
+      flags.members === undefined ? plan.values.members : flags.members,
+      plan.payload.expected_version,
+    );
+    await confirm(
+      { project_id: id, ...payload, audience: plan.audience },
+      flags,
+    );
+    show(await api(plan.url, { method: "PUT", body: payload }), flags.json);
     return;
   }
   if (command === "work") {

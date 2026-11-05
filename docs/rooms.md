@@ -72,4 +72,4 @@ See [tests](../tests/README.md), [Review Flow](review-flow.md), [Workspaces](wor
 
 ## Project visibility and participation
 
-Current Rooms use the project and task visibility rules. Any signed-in reader can claim an unassigned active task. Only its current assignee can submit a contribution; the project owner reviews the result. A private community project restricts readers to community members, but any such member can claim a free readable task. The project Team list is presentation/credits, not an allowlist. There is currently no separate “publicly visible, approved contributors only” project mode.
+[Project participation](project-participation.md) separates visibility from **Open participation / Approved contributors**. Existing projects stay open. An owner can restrict new work and related discussions to approved usernames, without hiding the project. Private community membership is still required separately; Team credits grant no access. Revocation releases current assignments and preserves published work/history.

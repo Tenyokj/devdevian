@@ -29,7 +29,7 @@ export async function loadRoom(
     ...tasks,
     room,
     title: room.project.name + " · Room",
-    subtitle: `${state || "All tasks"} · ← → states · X task actions · /decisions ${id}`,
+    subtitle: `${room.participation_mode === "approved" ? (room.permissions.participate ? "Approved contributor" : "Observer · approval required") : "Open participation"} · ${state || "All tasks"} · ← → states · X task actions · /decisions ${id}`,
   };
 }
 export async function roomTaskPlan(

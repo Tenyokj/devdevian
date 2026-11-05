@@ -2,7 +2,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { writeFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
-import { spawn } from "node:child_process";
+import { spawn, execFile } from "node:child_process";
+import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
 import headless from "@xterm/headless";
 import { startTestServer } from "../../../tests/http-fixture.mjs";
@@ -229,6 +230,43 @@ test(
       await send("\r");
       await wait("Contribution history");
       await wait("Implemented a bounded queue");
+      await command("/participation " + project);
+      await wait("Participation mode");
+      await send("\x1b[C");
+      await send("\x13");
+      await wait("ROOM CHANGE");
+      assert.equal(
+        (await api(`/projects/${project}/participation`)).data.mode,
+        "open",
+      );
+      await send("\x1b[C");
+      await send("\r");
+      await wait("Saved to the project room.");
+      assert.equal(
+        (await api(`/projects/${project}/participation`)).data.mode,
+        "approved",
+      );
+      const bin =
+        process.env.CLI_TEST_BIN ||
+        fileURLToPath(new URL("../bin/devdevian.mjs", import.meta.url));
+      const scripted = await promisify(execFile)(
+        process.execPath,
+        [
+          bin,
+          "participation",
+          "set",
+          String(project),
+          "--mode",
+          "open",
+          "--members",
+          "",
+          "--yes",
+          "--json",
+        ],
+        { env: { ...process.env, DEVDEVIAN_CONFIG_DIR: dir } },
+      );
+      assert.equal(JSON.parse(scripted.stdout).mode, "open");
+      assert.deepEqual(JSON.parse(scripted.stdout).members, []);
       term.resize(60, 18);
       child.stdin.write(JSON.stringify({ resize: [60, 18] }) + "\n");
       await delay(250);

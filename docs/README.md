@@ -11,6 +11,7 @@ Devdevian is an open-source developer forum. The hosted early release is at [dev
 
 ## Using the forum
 
+- [Project participation](project-participation.md): open work, approved contributors, observer rights and private community boundaries.
 - [My work](my-work.md): next actions, assigned tasks, results and local continuation in browser and CLI.
 
 - [User guide](user-guide.md): accounts, conversations, replies, projects, events, search, and account controls.

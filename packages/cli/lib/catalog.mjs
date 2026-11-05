@@ -168,6 +168,14 @@ export function catalogFields(form) {
     ...(!form.entityId
       ? [
           {
+            key: "participation_mode",
+            label: "Project participation",
+            options: [
+              ["open", "Open participation"],
+              ["approved", "Approved contributors only"],
+            ],
+          },
+          {
             key: "community_id",
             label: "Project visibility",
             options: form.communities || [["", "Public project"]],
@@ -222,6 +230,7 @@ export function initialCatalog(entity, row = {}) {
     ...values,
     topic: row.topic || "web",
     community_id: row.community_id || "",
+    participation_mode: row.participation?.mode || "open",
     ...(entity === "project"
       ? {
           stage: row.stage || "Idea",
@@ -299,6 +308,10 @@ export function catalogDocument(route, data) {
       p.stack && "## Technologies\n" + p.stack,
       p.url && "Project: " + p.url,
       p.repo && "Source: " + p.repo,
+      "Participation: " +
+        (p.participation?.mode === "approved"
+          ? "Approved contributors only"
+          : "Open participation"),
       p.team?.length &&
         "## Team\n" +
           p.team
@@ -475,7 +488,18 @@ export async function prepareCatalog(api, root, form) {
         "repo",
       ].map((k) => [k, v[k] || ""]),
     );
-    if (!form.entityId) payload.community_id = v.community_id || null;
+    if (!form.entityId) {
+      payload.community_id = v.community_id || null;
+      payload.participation_mode = v.participation_mode || "open";
+      if (
+        payload.participation_mode === "approved" &&
+        (await api("/participation/config")).capabilities
+          ?.project_participation !== 1
+      )
+        throw Error(
+          "This server does not support approved project participation.",
+        );
+    }
     webURL(v.url, true);
     webURL(v.repo, true);
     Object.assign(details, {

@@ -124,6 +124,7 @@ export function parseCommand(text) {
     [
       "contributions",
       "room",
+      "participation",
       "decisions",
       "room-activity",
       "pin",

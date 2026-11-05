@@ -4,6 +4,13 @@ The CLI is a separately versioned Devdevian client. Its npm version does not hav
 
 Every published npm artifact has a unique immutable version. We record each version here, even when several ship in one working session. A GitHub release can summarize a day's work and link to the individual entries; it does not need to be created for every npm publication. An unfinished change stays under **Unreleased** until its package version is assigned. Alpha packages use the `alpha` npm tag.
 
+## 0.22.0-alpha.1 — Project participation
+
+- Choose Open / Approved participation when creating a project, independently of public/private visibility. Approved creation checks server readiness before publishing.
+- `/participation ID`, Room context actions and script `participation` commands read permissions or manage a captured mode/username list with preview and explicit confirmation.
+- Observer Room actions hide claim/state/submission writes; current server and database checks prevent revoked assignments or old drafts from retaining access. Existing work/history remain readable within the project audience.
+- Companion to Browser/API 0.9.0 and explicit optional participation preparation. No new dependencies, OAuth scopes or GitHub writes. npm publication is recorded separately from source version.
+
 ## 0.21.0-alpha.1 — A clear next step
 
 - `/work` opens Next up: named review requests, current-revision changes, involved feedback needing a reply and results needing attention. Tasks, Results and Continue sit alongside Mine, Reviews, Saved and Following.

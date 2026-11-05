@@ -286,6 +286,9 @@ export function Contributions({ project, user, onChange, targetPost = null }) {
   }
   async function submit(t) {
     try {
+      const access = await api(`/projects/${project.id}/participation`);
+      if (!access.can_participate)
+        throw Error("Only approved project contributors can submit work.");
       const rows = await api(`${root}?mine=1&post=${t.id}`);
       const prev = rows.items[0];
       if (prev && ["submitted", "accepted"].includes(prev.state))

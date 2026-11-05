@@ -240,7 +240,8 @@ export function PublicActivity() {
       stopped = false,
       controller,
       timer,
-      busy = false;
+      busy = false,
+      resync = false;
     const clear = () => {
       clearTimeout(timer);
       controller?.abort();
@@ -248,6 +249,7 @@ export function PublicActivity() {
     const refresh = async () => {
       if (stopped || !visible || document.hidden || busy) return;
       busy = true;
+      resync = false;
       controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 10000);
       try {
@@ -265,17 +267,20 @@ export function PublicActivity() {
           setStatus("live");
         }
       } catch (e) {
-        if (!stopped && visible && !document.hidden) setStatus("unavailable");
+        if (!stopped && visible && !document.hidden && !resync)
+          setStatus("unavailable");
       } finally {
         clearTimeout(timeout);
         busy = false;
         if (!stopped && visible && !document.hidden)
-          timer = setTimeout(refresh, 30000);
+          timer = setTimeout(refresh, resync ? 0 : 30000);
       }
     };
     const sync = () => {
       if (stopped) return;
       setEffectsActive(visible && !document.hidden);
+      // Preserve one follow-up refresh when visibility changes during a read.
+      resync = visible && !document.hidden;
       clear();
       if (visible && !document.hidden) refresh();
     };

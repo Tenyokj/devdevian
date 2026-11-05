@@ -1,3 +1,4 @@
+import { ProjectParticipation } from "./project-access";
 import React, { useEffect, useState } from "react";
 import {
   Flag,
@@ -85,6 +86,7 @@ function TaskColumn({
   search,
   epoch,
   paused,
+  participate,
   openAction,
   openRequest,
   openGitHub,
@@ -130,7 +132,11 @@ function TaskColumn({
                   <small>@{t.assignee_username}</small>
                 </span>
               ) : (
-                <span>Available to pick up</span>
+                <span>
+                  {participate
+                    ? "Available to pick up"
+                    : "Unassigned · approval required"}
+                </span>
               )}
             </div>
             <div className="room-task-actions">
@@ -138,17 +144,17 @@ function TaskColumn({
                 <button onClick={() => openGitHub(t)}>GitHub context</button>
               )}
               {canChange(t) &&
-                (!t.assignee_name ? (
-                  <button onClick={() => openAction(t, "claim")}>
-                    Pick up task
-                  </button>
-                ) : (
-                  (owner || t.assignee_id === user?.id) && (
-                    <button onClick={() => openAction(t, "release")}>
-                      Release task
-                    </button>
-                  )
-                ))}
+                (!t.assignee_name
+                  ? participate && (
+                      <button onClick={() => openAction(t, "claim")}>
+                        Pick up task
+                      </button>
+                    )
+                  : (owner || t.assignee_id === user?.id) && (
+                      <button onClick={() => openAction(t, "release")}>
+                        Release task
+                      </button>
+                    ))}
               {canChange(t) && owner && (
                 <button
                   aria-label={`Assign ${t.title}`}
@@ -159,6 +165,7 @@ function TaskColumn({
                 </button>
               )}
               {canChange(t) &&
+                participate &&
                 (owner || t.assignee_id === user?.id) &&
                 states
                   .filter(([key]) => key !== state)
@@ -384,6 +391,7 @@ export function RoomSurface({
           <RefreshCw size={17} />
         </button>
       </div>
+      <ProjectParticipation project={project} user={user} onChange={done} />
       {room.data.paused && (
         <p className="dw-notice">
           This room is paused. Published work is still readable.
@@ -434,6 +442,7 @@ export function RoomSurface({
                 project={project.id}
                 openGitHub={setGitHubTask}
                 paused={room.data.paused}
+                participate={room.data.permissions.participate}
                 owner={owner && !room.data.paused}
                 openAction={room.data.paused ? () => {} : taskAction}
                 openRequest={(t) =>

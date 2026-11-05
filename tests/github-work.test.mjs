@@ -336,3 +336,48 @@ test("CLI GitHub work plans require explicit private sharing and use exact previ
     await f.close();
   }
 });
+
+test("GitHub PR publication rechecks contributor approval after provider waits", async () => {
+  const f = await fixture();
+  try {
+    const { post } = await imported(f),
+      root = `/projects/1/room/tasks/${post}/github`;
+    f.db.prepare("INSERT INTO room_assignments VALUES(?,1,2)").run(post);
+    f.db.exec(
+      "CREATE TABLE entity_details(kind TEXT,entity_id TEXT,data TEXT,PRIMARY KEY(kind,entity_id))",
+    );
+    f.db
+      .prepare("INSERT INTO entity_details VALUES('project_access','1',?)")
+      .run(JSON.stringify({ mode: "approved", members: [2], version: 1 }));
+    const p = (await f.call(root + "/preview", { url: pull }, 2)).data;
+    f.change({
+      hook: async (path) => {
+        if (path.endsWith("/pulls/5"))
+          f.db
+            .prepare(
+              "UPDATE entity_details SET data=? WHERE kind='project_access'",
+            )
+            .run(JSON.stringify({ mode: "approved", members: [], version: 2 }));
+      },
+    });
+    const r = await f.call(
+      root,
+      {
+        url: pull,
+        fingerprint: p.ticket.fingerprint,
+        expected_version: p.expected_version,
+        task_version: p.task_version,
+        operation_key: randomUUID(),
+        share_private: true,
+      },
+      2,
+    );
+    assert.equal(r.status, 403);
+    assert.equal(
+      f.db.prepare("SELECT COUNT(*) n FROM github_task_pulls").get().n,
+      0,
+    );
+  } finally {
+    await f.close();
+  }
+});

@@ -59,10 +59,16 @@ export function contextActions({ route, data, selected, user, live }) {
         !selected.locked_at
       ) {
         const owner = data?.room?.permissions?.manage;
-        if (!selected.assignee_name) add("room-claim", "Pick up task");
+        if (
+          !selected.assignee_name &&
+          data?.room?.permissions?.participate !== false
+        )
+          add("room-claim", "Pick up task");
         if (selected.assignee_id === user.id || owner) {
           if (selected.assignee_name) add("room-release", "Release task");
-          for (const state of ["open", "in_progress", "ready"])
+          for (const state of data?.room?.permissions?.participate === false
+            ? []
+            : ["open", "in_progress", "ready"])
             if (state !== selected.state)
               add(
                 "room-state-" + state,
@@ -70,10 +76,19 @@ export function contextActions({ route, data, selected, user, live }) {
               );
         }
         if (owner) add("room-assign", "Assign a teammate");
-        if (selected.assignee_id === user.id)
+        if (
+          selected.assignee_id === user.id &&
+          data?.room?.permissions?.participate !== false
+        )
           add("contribution-submit", "Submit work");
       }
     }
+    add(
+      "room-participation",
+      data?.room?.permissions?.manage
+        ? "Manage participation"
+        : "Participation rules",
+    );
     add("contribution-list", "Contributions");
     add("room-decisions", "Pinned decisions");
     add("room-activity", "Room activity");
@@ -139,7 +154,8 @@ export function contextActions({ route, data, selected, user, live }) {
     if (
       data?.post?.user_id === user?.id &&
       !data.post.archived_at &&
-      !data.post.locked_at
+      !data.post.locked_at &&
+      !data.post.participation?.read_only
     )
       add("flow-invite", "Request a reviewer");
     add("sync", "Refresh this view");
@@ -162,7 +178,12 @@ export function contextActions({ route, data, selected, user, live }) {
     (route.view === "post" && route.tab === "replies");
   if (selected && !route.view.startsWith("pr"))
     add("read", "Read selected item");
-  if (post && !post.archived_at && !post.locked_at) {
+  if (
+    post &&
+    !post.archived_at &&
+    !post.locked_at &&
+    !post.participation?.read_only
+  ) {
     add("reply", "Write a reply");
     if (post.code) add("comment", "Comment on selected code lines");
   }
@@ -199,7 +220,12 @@ export function contextActions({ route, data, selected, user, live }) {
   // Keep actions on the selected reply/remark visible before global review tools.
   if (post?.code) {
     add("flow-reviewers", "Reviewers and outcomes");
-    if (post.user_id === user?.id && !post.archived_at && !post.locked_at) {
+    if (
+      post.user_id === user?.id &&
+      !post.archived_at &&
+      !post.locked_at &&
+      !post.participation?.read_only
+    ) {
       add("flow-invite", "Request a reviewer");
       const note = route.view === "feedback" ? data.note : selected;
       if (note?.outdated && note.snapshot_available)
@@ -208,7 +234,12 @@ export function contextActions({ route, data, selected, user, live }) {
   }
   if (post?.code) {
     add("versions", "Review revision history");
-    if (user?.id === post.user_id && !post.archived_at && !post.locked_at)
+    if (
+      user?.id === post.user_id &&
+      !post.archived_at &&
+      !post.locked_at &&
+      !post.participation?.read_only
+    )
       add("revision", "Share another review revision");
     const note = route.view === "feedback" ? data.note : selected;
     if (note?.snapshot_available)

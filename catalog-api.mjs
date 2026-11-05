@@ -1,3 +1,4 @@
+import { canParticipate, projectPolicy } from "./project-access.mjs";
 import { createHash } from "node:crypto";
 import { canRead } from "./spaces.mjs";
 import { transaction } from "./activity.mjs";
@@ -58,7 +59,13 @@ export function registerCatalog(app, db, required) {
   app.get("/api/projects/:id", (req, res) => {
     const row = project(req.params.id, req.user);
     if (!row) return res.status(404).json({ error: "Project not found." });
-    res.json(row);
+    res.json({
+      ...row,
+      participation: {
+        mode: projectPolicy(db, row.id).mode,
+        can_participate: canParticipate(db, row, req.user),
+      },
+    });
   });
   app.patch("/api/projects/:id", required, (req, res) => {
     const row = project(req.params.id, req.user);

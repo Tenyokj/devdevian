@@ -388,7 +388,8 @@ export function ReviewFlowPanel({
       </section>
     );
   const owner = user?.id === post.user_id,
-    paused = post.archived_at || post.locked_at;
+    paused =
+      post.archived_at || post.locked_at || post.participation?.read_only;
   const audience = post.community_id
     ? "Private community"
     : "Public conversation";

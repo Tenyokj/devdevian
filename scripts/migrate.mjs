@@ -5,6 +5,7 @@ process.env.DEVDEVIAN_EXPLICIT_ENV = "1";
 try {
   const actions = new Set([
     "--prepare-github-app",
+    "--prepare-participation",
     "--prepare-github-work",
     "--prepare-contributions",
     "--prepare-rooms",
@@ -20,7 +21,24 @@ try {
     throw Error(
       "Use no argument to finalize, or one supported --prepare-* action. No migration was run.",
     );
-  if (process.argv.includes("--prepare-github-work")) {
+  if (process.argv.includes("--prepare-participation")) {
+    const { openDatabase } = await import("../database.mjs");
+    const { prepareParticipation } = await import(
+      "../project-participation-schema.mjs"
+    );
+    const db = await openDatabase();
+    try {
+      if (
+        db.prepare("SELECT version FROM app_schema WHERE id=1").get()
+          ?.version !== 7
+      )
+        throw Error("Project participation requires schema v7.");
+      prepareParticipation(db);
+    } finally {
+      db.close();
+    }
+    console.log("Project participation prepared; global schema preserved.");
+  } else if (process.argv.includes("--prepare-github-work")) {
     const { openDatabase } = await import("../database.mjs");
     const { prepareGitHubWork } = await import("../github-work.mjs");
     const db = await openDatabase();

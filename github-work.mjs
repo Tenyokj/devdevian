@@ -1,3 +1,4 @@
+import { canParticipate } from "./project-access.mjs";
 import { createHash } from "node:crypto";
 import { transaction } from "./activity.mjs";
 import { canRead } from "./spaces.mjs";
@@ -106,7 +107,8 @@ export function registerGitHubWork(
     }
     if (
       write &&
-      (pr.archived_at ||
+      (!canParticipate(db, pr, req.user) ||
+        pr.archived_at ||
         pr.locked_at ||
         task?.archived_at ||
         task?.locked_at ||
@@ -498,6 +500,7 @@ export function registerGitHubWork(
           !ctx.pr.locked_at &&
           !ctx.task.archived_at &&
           !ctx.task.locked_at &&
+          canParticipate(db, ctx.pr, req.user) &&
           (ctx.pr.user_id === req.user.id ||
             ctx.task.assignee_id === req.user.id),
       },

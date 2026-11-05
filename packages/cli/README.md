@@ -304,3 +304,7 @@ Run `devdevian github connect`, then use `/github` in the live terminal or the `
 ### GitHub room work (0.20 alpha)
 
 Use `devdevian room import PROJECT_ID ISSUE_URL`, `devdevian room link-pr PROJECT_ID POST_ID PR_URL [--contribution ID]`, or `devdevian room github PROJECT_ID POST_ID`. Private sources require `--share-private`. The TUI room action menu offers the same workflow with a preview and explicit confirmation. Project creation can choose a private community. [Full guide](../../docs/github-room-work.md).
+
+## Project participation
+
+`/participation PROJECT_ID` opens current participation rules; owners can select Open / Approved contributors and manage usernames with preview/confirmation. Room actions expose the same settings. `devdevian participation PROJECT_ID --json` reads them, while `devdevian participation set PROJECT_ID --mode approved --members "alice,bob"` prepares an explicit change. Omitting members preserves the list; an explicit empty string clears it. Approved mode never grants private community or GitHub access. [Permissions, observer behavior and rollout](../../docs/project-participation.md).

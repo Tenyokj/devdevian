@@ -569,6 +569,7 @@ export function contentLines(route, data) {
       "H / U in review History / share revision · B on old remark opens original",
       "/reviews         Open review requests / Awaiting you · ← → sections",
       "Review summary   Current open/resolved and earlier remarks · G version filter",
+      "/participation ID  Project participation and owner approval settings",
       "/work            Next up / Tasks / Results / Continue · ← → tabs · I inbox · D drafts",
       "/start           Getting-started guide and safe first actions",
       "/doctor          Read-only environment and connection checks",

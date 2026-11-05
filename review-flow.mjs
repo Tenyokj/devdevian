@@ -1,3 +1,4 @@
+import { postParticipation } from "./project-access.mjs";
 import { canRead, scopeSQL, pageRows } from "./spaces.mjs";
 import { transaction, notify } from "./activity.mjs";
 import { revisionHead } from "./review-revisions.mjs";
@@ -241,6 +242,13 @@ export function registerReviewFlow(
           "SELECT id FROM users WHERE username=? AND deleted_at IS NULL AND privacy='public'",
         )
         .get(username);
+      if (reviewer && postParticipation(db, p.id, reviewer).read_only)
+        return res
+          .status(403)
+          .json({
+            error:
+              "This reviewer needs approval to participate in the project.",
+          });
       if (!reviewer || !canRead(db, reviewer, p))
         return res
           .status(404)

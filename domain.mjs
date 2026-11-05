@@ -1,3 +1,7 @@
+import {
+  saveInitialParticipation,
+  postParticipation,
+} from "./project-access.mjs";
 import { awaitingReviewSQL } from "./review-queue.mjs";
 import { captureReviewRevision } from "./review-revisions.mjs";
 import { details, validatedDetails } from "./enhancements.mjs";
@@ -417,6 +421,7 @@ export function registerDomain(app, db, required, profile) {
       : { items: [], pagination: { page: 1, pages: 1, total: 0, limit: 5 } };
     res.json({
       ...decorate(p, req.user),
+      participation: postParticipation(db, p.id, req.user),
       replies: r.items,
       reply_pagination: r.pagination,
       reply_path: path,
@@ -650,7 +655,7 @@ export function registerDomain(app, db, required, profile) {
     res.status(201).json({ ok: true });
   });
   const projectsSelect =
-    "SELECT pr.*,parent.community_id,u.name founder_name,u.role founder_role,(SELECT COUNT(*) FROM replies r WHERE r.post_id=pr.post_id) feedback_count FROM projects pr JOIN users u ON u.id=pr.user_id JOIN posts parent ON parent.id=pr.post_id";
+    "SELECT pr.*,parent.community_id,COALESCE((SELECT json_extract(data,'$.mode') FROM entity_details WHERE kind='project_access' AND entity_id=CAST(pr.id AS TEXT)),'open') participation_mode,u.name founder_name,u.role founder_role,(SELECT COUNT(*) FROM replies r WHERE r.post_id=pr.post_id) feedback_count FROM projects pr JOIN users u ON u.id=pr.user_id JOIN posts parent ON parent.id=pr.post_id";
   app.get("/api/projects", (req, res) => {
     const params = [];
     let where =
@@ -700,8 +705,10 @@ export function registerDomain(app, db, required, profile) {
       stage,
       help,
       community_id = null,
+      participation_mode = "open",
     } = req.body;
     if (
+      !["open", "approved"].includes(participation_mode) ||
       (community_id !== null &&
         community_id !== "" &&
         (typeof community_id !== "string" ||
@@ -724,6 +731,10 @@ export function registerDomain(app, db, required, profile) {
         error:
           "Add a name, description (20+ characters), a specific request (10+ characters), valid links, community and stage.",
       });
+    if (participation_mode === "approved" && !db.participationReady)
+      return res.status(503).json({
+        error: "Approved participation is not prepared on this server.",
+      });
     if (recentLimit(req.user, "projects", 1440, 2))
       return res.status(429).json({
         error:
@@ -743,12 +754,10 @@ export function registerDomain(app, db, required, profile) {
     try {
       if (community_id && !memberOf(db, req.user, community_id)) {
         db.exec("ROLLBACK");
-        return res
-          .status(403)
-          .json({
-            error:
-              "Community membership changed. Refresh before creating this project.",
-          });
+        return res.status(403).json({
+          error:
+            "Community membership changed. Refresh before creating this project.",
+        });
       }
       const p = db
         .prepare(
@@ -779,6 +788,11 @@ export function registerDomain(app, db, required, profile) {
           stage,
           help.trim(),
         );
+      saveInitialParticipation(
+        db,
+        Number(result.lastInsertRowid),
+        participation_mode,
+      );
       notifyTopic(
         db,
         {

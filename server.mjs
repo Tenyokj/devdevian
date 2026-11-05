@@ -1,3 +1,8 @@
+import {
+  participationReady,
+  prepareParticipation,
+} from "./project-participation-schema.mjs";
+import { registerProjectAccess } from "./project-access.mjs";
 import { registerMyWork } from "./my-work.mjs";
 import { securityHeaders } from "./security-headers.mjs";
 import { registerGitHubApp } from "./github-app.mjs";
@@ -268,6 +273,7 @@ export async function createApp({ migrationOnly = false } = {}) {
         });
       next();
     }
+    registerProjectAccess(app, db, required);
     registerEnhancements(app, db, required, communities);
     registerSpaces(app, db, required, communities);
     registerUploads(app, db, required);
@@ -529,6 +535,8 @@ export async function createApp({ migrationOnly = false } = {}) {
     registerRooms(app, db, required, { migrate: migrationOnly });
     registerContributions(app, db, required, { migrate: migrationOnly });
     registerGitHubApp(app, db, required, { migrate: migrationOnly });
+    if (!db.schemaCurrent || migrationOnly) prepareParticipation(db);
+    db.participationReady = participationReady(db);
     registerMyWork(app, db, required);
     if (!db.schemaCurrent)
       db.exec(`

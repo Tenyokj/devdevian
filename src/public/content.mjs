@@ -3,6 +3,34 @@
 export const repository = "https://github.com/Tenyokj/devdevian";
 export const updates = [
   {
+    id: "project-participation-0-9",
+    channel: "Browser",
+    version: "0.9.0",
+    title: "Open to see. Clear about who can join.",
+    summary:
+      "Choose open work or approved contributors, independently of project visibility.",
+    points: [
+      "Owners manage contributor usernames with preview and version checks. Approval never grants private community access.",
+      "Observers can follow the work; revocation releases active assignments and preserves published results and history.",
+    ],
+    link: repository + "/blob/main/docs/project-participation.md",
+    label: "Project participation guide",
+  },
+  {
+    id: "cli-participation-0-22",
+    channel: "CLI",
+    version: "0.22.0-alpha.1",
+    title: "The right people. The same terminal.",
+    summary:
+      "Read project participation rules or manage an approved team from your workspace.",
+    points: [
+      "Project creation, Room actions and /participation share the same server-enforced permissions.",
+      "Captured versions, explicit previews and database barriers keep old drafts from retaining revoked working access.",
+    ],
+    link: repository + "/blob/main/docs/project-participation.md#terminal",
+    label: "Terminal controls",
+  },
+  {
     id: "my-work-0-8",
     channel: "Browser",
     version: "0.8.0",

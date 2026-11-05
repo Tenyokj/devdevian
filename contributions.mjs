@@ -1,3 +1,4 @@
+import { canParticipate } from "./project-access.mjs";
 import { randomUUID } from "node:crypto";
 import { transaction, notify } from "./activity.mjs";
 import { canRead, scopeSQL, pageRows } from "./spaces.mjs";
@@ -228,6 +229,7 @@ export function registerContributions(
       permissions: {
         submit:
           writable &&
+          canParticipate(db, req.project, req.user) &&
           t.assignee_id === req.user?.id &&
           c.user_id === req.user?.id &&
           !["accepted", "submitted"].includes(c.state),
@@ -292,7 +294,8 @@ export function registerContributions(
         paused(req) ||
         t.archived_at ||
         t.locked_at ||
-        t.assignee_id !== req.user.id
+        t.assignee_id !== req.user.id ||
+        !canParticipate(db, req.project, req.user)
       )
         return null;
       let c = db

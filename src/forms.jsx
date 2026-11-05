@@ -859,6 +859,15 @@ export function ProjectForm({
             ))}
           </Select>
         </Field>
+        <Field
+          label="Project participation"
+          hint="Independent of visibility. Manage approved usernames in the project room after creating it; Team below is credits only."
+        >
+          <Select name="participation_mode">
+            <option value="open">Open participation</option>
+            <option value="approved">Approved contributors only</option>
+          </Select>
+        </Field>
         <div className="form-grid">
           <Field label="Project name">
             <input
@@ -936,8 +945,8 @@ export function ProjectForm({
           />
         </Field>
         <div className="form-note">
-          Your project appears in the public project directory and feed under
-          its topic tag. No cross-posting or messaging.
+          Your project follows the visibility and participation settings
+          selected above.
         </div>
         <ErrorMessage error={error} />
         <button className="button primary full" disabled={busy}>

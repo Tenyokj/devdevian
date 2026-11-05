@@ -507,3 +507,65 @@
   margin: 0;
   padding: 8px 4px;
 }
+.project-participation {
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+  padding: 22px;
+  margin: 20px 0;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface-soft);
+}
+.participation-icon {
+  display: grid;
+  place-items: center;
+  color: var(--room-mint, var(--accent));
+  background: var(--accent-soft);
+  padding: 12px;
+  border-radius: 12px;
+}
+.project-participation h3 {
+  font-size: 15px;
+  margin: 0 0 9px;
+}
+.project-participation p {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.8;
+}
+.project-participation small {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.7;
+  margin-top: 9px;
+}
+.project-participation > .button {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+@media (max-width: 700px) {
+  .project-participation {
+    flex-wrap: wrap;
+    padding: 18px;
+  }
+  .project-participation > div:not(.participation-icon) {
+    flex: 1;
+    min-width: 150px;
+  }
+  .project-participation > .button {
+    margin-left: 0;
+    width: 100%;
+  }
+}
+
+.project-participation-label {
+  display: block;
+  font-size: 10px;
+  color: var(--text-muted);
+  margin: 14px 0;
+  letter-spacing: 0.5px;
+}

@@ -98,7 +98,11 @@ export function CodeReview({
         : null,
     targetReply = parts[4] === "reply" ? parts[5] : null;
   const lines = post.code ? post.code.split("\n") : [],
-    paused = !!(post.archived_at || post.locked_at);
+    paused = !!(
+      post.archived_at ||
+      post.locked_at ||
+      post.participation?.read_only
+    );
   const coloredLines = useCodeTokens(post.code);
   const files = useMemo(() => {
     const navigation = reviewNavigation(post.code, post.github_context);

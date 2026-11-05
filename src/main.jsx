@@ -1,3 +1,4 @@
+import { ProjectParticipation } from "./project-access";
 import { MyWork } from "./my-work";
 import { rememberConversation, workStorage } from "./work-memory";
 import { GitHubHub } from "./github-app";
@@ -1217,6 +1218,11 @@ export function App() {
                               {p.stage}
                             </span>
                           </div>
+                          <small className="project-participation-label">
+                            {p.participation_mode === "approved"
+                              ? "Approved contributors"
+                              : "Open participation"}
+                          </small>
                           <a href={"#post/" + p.post_id}>
                             <h2>
                               {p.name}
@@ -2172,6 +2178,7 @@ function PostDetail({
         <div className="detail-actions">
           <button
             className={"vote-button " + (p.voted ? "voted" : "")}
+            disabled={!!p.participation?.read_only}
             onClick={onVote}
           >
             <ArrowUp size={16} />
@@ -2223,6 +2230,13 @@ function PostDetail({
           </button>
         </div>
       </article>
+      {p.project && (
+        <ProjectParticipation
+          project={{ ...p.project, community_id: p.community_id }}
+          user={user}
+          onChange={refresh}
+        />
+      )}
       {p.project && (
         <ProjectTimeline
           project={p.project}
@@ -2284,12 +2298,25 @@ function PostDetail({
           </p>
         </div>
       )}
-      <div className="reply-dock">
-        <span>Have something to add?</span>
-        <button className="button primary" onClick={() => setReplyModal(true)}>
-          Add your perspective <MessagesSquare size={14} />
-        </button>
-      </div>
+      {p.participation?.read_only ? (
+        <div className="closed-replies">
+          <MessagesSquare size={20} />
+          <p>
+            Observer access: only approved project contributors can reply or
+            join the work.
+          </p>
+        </div>
+      ) : (
+        <div className="reply-dock">
+          <span>Have something to add?</span>
+          <button
+            className="button primary"
+            onClick={() => setReplyModal(true)}
+          >
+            Add your perspective <MessagesSquare size={14} />
+          </button>
+        </div>
+      )}
       {replyModal && (
         <Modal
           title={replyTo ? "Reply to " + replyTo.name : "Add your perspective"}
@@ -2311,7 +2338,15 @@ function PostDetail({
                 </button>
               </div>
             )}
-            {p.archived_at || p.locked_at ? (
+            {p.participation?.read_only ? (
+              <div className="closed-replies">
+                <MessagesSquare size={20} />
+                <p>
+                  Observer access: only approved project contributors can reply
+                  or join the work.
+                </p>
+              </div>
+            ) : p.archived_at || p.locked_at ? (
               <div className="closed-replies">
                 <MessagesSquare size={20} />
                 <p>

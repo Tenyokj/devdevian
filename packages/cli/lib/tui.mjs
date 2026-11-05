@@ -1,3 +1,8 @@
+import {
+  participationPlan,
+  participationPayload,
+  participationLines,
+} from "./project-access.mjs";
 import { RecentStore } from "./recent.mjs";
 import {
   githubWorkPlan,
@@ -2168,6 +2173,12 @@ function App({ initialConfig, flags, root, initialAppearance }) {
           return;
         }
         let payload = { ...form.plan.payload, ...form.values };
+        if (form.mode === "participation")
+          payload = participationPayload(
+            form.values.mode,
+            form.values.members,
+            form.plan.payload.expected_version,
+          );
         if (form.mode === "invite") {
           payload.message = payload.body;
           delete payload.body;
@@ -3261,8 +3272,36 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       );
     });
   }
+  function openParticipation(id) {
+    task(async () => {
+      const plan = await participationPlan(api, id);
+      if (!plan.data.can_manage) {
+        readItem({
+          id,
+          title: "Project participation",
+          body: participationLines(plan.data).join("\n"),
+        });
+        return;
+      }
+      openForm({
+        kind: "flow",
+        mode: "participation",
+        title: plan.title,
+        postId: plan.url,
+        plan,
+        fields: plan.fields,
+        values: plan.values,
+        audience: plan.audience,
+        roomRoute: plan.roomRoute,
+      });
+    });
+  }
   function runAction(id) {
     setActionIndex(null);
+    if (id === "room-participation") {
+      openParticipation(route.id);
+      return;
+    }
     if (id === "work-open") {
       openSelected();
       return;
@@ -3619,6 +3658,10 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       if (parsed.command === "reviews") {
         reviewQueueQuery(parsed.arg || "open");
         navigate({ view: "reviews", tab: parsed.arg || "open", page: 1 });
+        return;
+      }
+      if (parsed.command === "participation") {
+        openParticipation(parsed.arg || route.id);
         return;
       }
       if (parsed.command === "work") {

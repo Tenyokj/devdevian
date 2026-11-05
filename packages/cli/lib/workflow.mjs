@@ -14,7 +14,15 @@ export function formSteps(form, fields) {
         ? [
             [
               "Basics",
-              ["name", "tagline", "topic", "stage", "stack", "community_id"],
+              [
+                "name",
+                "tagline",
+                "topic",
+                "stage",
+                "stack",
+                "community_id",
+                "participation_mode",
+              ],
             ],
             ["Story", ["description", "help", "problem", "audience"]],
             ["People & links", ["url", "repo", "team", "links"]],

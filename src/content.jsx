@@ -304,7 +304,13 @@ function ReplyRow({ r, depth }) {
           <LinkIcon size={13} /> Link
         </a>
         <button
-          disabled={!!(post.archived_at || post.locked_at)}
+          disabled={
+            !!(
+              post.archived_at ||
+              post.locked_at ||
+              post.participation?.read_only
+            )
+          }
           onClick={() => requireUser(() => onReply(r))}
         >
           <MessageCircle size={13} />

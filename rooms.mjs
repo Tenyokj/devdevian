@@ -1,3 +1,4 @@
+import { canParticipate, projectPolicy } from "./project-access.mjs";
 import { canRead, scopeSQL, pageRows } from "./spaces.mjs";
 import { transaction, notify } from "./activity.mjs";
 import { consumeBudget } from "./limits.mjs";
@@ -116,7 +117,9 @@ export function registerRooms(app, db, required, { migrate = false } = {}) {
       ),
       permissions: {
         manage: req.user?.id === pr.user_id && !pr.archived_at && !pr.locked_at,
+        participate: canParticipate(db, pr, req.user),
       },
+      participation_mode: projectPolicy(db, pr.id).mode,
       paused: !!(pr.archived_at || pr.locked_at),
     });
   });
@@ -159,7 +162,10 @@ export function registerRooms(app, db, required, { migrate = false } = {}) {
     if (!task) return res.status(404).json({ error: "Task not found." });
     res.json({
       task: clean(task),
-      permissions: { manage: req.user?.id === req.room.user_id },
+      permissions: {
+        manage: req.user?.id === req.room.user_id,
+        participate: canParticipate(db, req.room, req.user),
+      },
       capabilities: { rooms: 1 },
     });
   });
@@ -198,6 +204,8 @@ export function registerRooms(app, db, required, { migrate = false } = {}) {
         )
           return null;
         const owner = pr.user_id === req.user.id;
+        if (!canParticipate(db, pr, req.user) && input.action !== "release")
+          return null;
         const assignment = db
           .prepare(
             "SELECT a.user_id FROM room_assignments a JOIN users u ON u.id=a.user_id AND u.deleted_at IS NULL WHERE a.post_id=? AND a.project_id=?",
@@ -220,7 +228,12 @@ export function registerRooms(app, db, required, { migrate = false } = {}) {
               "SELECT id FROM users WHERE username=? AND privacy='public' AND deleted_at IS NULL",
             )
             .get(input.username.toLowerCase());
-          if (!user || !canRead(db, user, pr) || !canRead(db, user, row))
+          if (
+            !user ||
+            !canRead(db, user, pr) ||
+            !canRead(db, user, row) ||
+            !canParticipate(db, pr, user)
+          )
             return null;
           assignee = user.id;
         }
