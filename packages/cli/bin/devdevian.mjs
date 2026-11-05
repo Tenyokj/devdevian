@@ -66,7 +66,9 @@ import { githubReader, pullRequestLines } from "../lib/github-reader.mjs";
 import { readGitHubContext, workspaceRoot } from "../lib/workspace.mjs";
 import { githubContextLines } from "../lib/github-context.mjs";
 import { conversationLinks } from "../lib/conversation-links.mjs";
-import { workQuery } from "../lib/my-work.mjs";
+import { workQuery, loadWork } from "../lib/my-work.mjs";
+import { RecentStore } from "../lib/recent.mjs";
+import { DraftStore } from "../lib/drafts.mjs";
 import { runDoctor, doctorLines } from "../lib/doctor.mjs";
 import { commandProblemMessage } from "../lib/problems.mjs";
 import { renderHelp } from "../lib/help.mjs";
@@ -178,7 +180,7 @@ const help = `Devdevian CLI ${version} · alpha
   devdevian review links POST_ID
   devdevian workspace activity PROJECT_ID
   devdevian reviews [--section open|awaiting] [--page 2]
-  devdevian work [--section mine|reviews|saved|following] [--page 2]
+  devdevian work [--section attention|tasks|results|continue|mine|reviews|saved|following] [--page 2]
   devdevian room [PROJECT_ID] [--state open|in_progress|ready] [--mine]
   devdevian contributions PROJECT_ID [--page 2]
   devdevian contributions submit PROJECT_ID POST_ID --body "..." [--pr PR_URL]
@@ -290,6 +292,7 @@ function show(data, json, kind = "posts") {
     process.stdout.write(JSON.stringify(data) + "\n");
     return;
   }
+  if (kind === "work") for (const warning of data.warnings || []) out(warning);
   const items = data.items || data;
   if (Array.isArray(items)) {
     if (!items.length) out("Nothing here yet.");
@@ -313,6 +316,10 @@ function show(data, json, kind = "posts") {
       else if (kind === "workspace")
         out(
           `#${item.id} ${item.title} · ${item.state.replaceAll("_", " ")} · ${item.kind}`,
+        );
+      else if (kind === "work" && item.type)
+        out(
+          `#${item.id} ${item.title}\n  ${item.action || "Open item"}${item.state ? " · " + item.state.replaceAll("_", " ") : ""}${item.project_name ? " · " + item.project_name : ""}${item.community_id ? " · Private" : ""}`,
         );
       else if (kind === "replies")
         out(
@@ -956,7 +963,27 @@ async function execute(args, flags) {
     return;
   }
   if (command === "work") {
-    show(await api(workQuery(flags.section || "mine", page)), flags.json);
+    const section = flags.section || "attention";
+    if (section === "continue") {
+      const me = (await api("/me")).user,
+        root = await workspaceRoot(flags.project || process.cwd());
+      show(
+        await loadWork(api, section, page, {
+          drafts: new DraftStore({
+            origin: config.origin,
+            userId: me.id,
+            root,
+          }),
+          recent: new RecentStore({
+            origin: config.origin,
+            userId: me.id,
+            root,
+          }),
+        }),
+        flags.json,
+        "work",
+      );
+    } else show(await loadWork(api, section, page), flags.json, "work");
     return;
   }
   if (command === "logout") {

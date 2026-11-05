@@ -56,7 +56,26 @@ test(
           ],
           pagination: { page, pages: 2, total: 13 },
         };
-      } else if (url.pathname === "/api/posts/42")
+      } else if (url.pathname === "/api/my-work")
+        data = {
+          items: [
+            {
+              id: "task-42",
+              type: "task",
+              post_id: 42,
+              project_id: 1,
+              title: "Assigned retry task",
+              state: "in_progress",
+              action: "Open task",
+            },
+          ],
+          pagination: { page: 1, pages: 1, total: 1 },
+        };
+      else if (url.pathname === "/api/my-work/recent")
+        data = {
+          items: [{ id: 42, title: "An owned conversation", kind: "question" }],
+        };
+      else if (url.pathname === "/api/posts/42")
         data = {
           id: 42,
           title: "An owned conversation",
@@ -148,7 +167,7 @@ test(
       assert.equal(screen(), still, "Reduced motion is static");
       release();
       await wait("Owned page 1");
-      await command("/work");
+      await command("/work mine");
       await wait("My work");
       await wait("Owned page 1");
       await send("\r");
@@ -172,6 +191,16 @@ test(
       await wait("Local drafts");
       await send("\x1b");
       await wait("My work");
+      await command("/work");
+      await wait("Assigned retry task");
+      await send("\r");
+      await wait("An owned conversation");
+      await send("\x1b");
+      await wait("Assigned retry task");
+      await command("/work continue");
+      await wait("Continue reading");
+      await command("/work following");
+      await wait("Following page 1");
       term.resize(60, 18);
       child.stdin.write(JSON.stringify({ resize: [60, 18] }) + "\n");
       await delay(250);
@@ -195,6 +224,13 @@ test(
         await readFile(join(directory, "credentials.json"), "utf8"),
         credentials,
       );
+      const scripted = await run(
+        process.execPath,
+        [bin, "work", "--section", "tasks"],
+        { env },
+      );
+      assert.match(scripted.stdout, /Assigned retry task/);
+      assert.match(scripted.stdout, /Open task/);
       assert.ok(calls.every((c) => c.method === "GET"));
       assert.ok(calls.some((c) => c.path.includes("author=me&kind=review")));
       child.kill();

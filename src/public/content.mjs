@@ -3,6 +3,34 @@
 export const repository = "https://github.com/Tenyokj/devdevian";
 export const updates = [
   {
+    id: "my-work-0-8",
+    channel: "Browser",
+    version: "0.8.0",
+    title: "A clear next step.",
+    summary:
+      "Reviews to answer, assigned tasks and results to review, together in My work.",
+    points: [
+      "Next up opens the exact review or task result. Project rooms and GitHub checks stay one explicit action away.",
+      "Continue local drafts and recently opened conversations; current permissions are checked before recent titles return.",
+    ],
+    link: repository + "/blob/main/docs/my-work.md",
+    label: "My work guide",
+  },
+  {
+    id: "cli-my-work-0-21",
+    channel: "CLI",
+    version: "0.21.0-alpha.1",
+    title: "Pick up where it matters.",
+    summary:
+      "Next up, Tasks, Results and Continue bring your working day into the terminal.",
+    points: [
+      "Open exact review requests and task results with Enter; read PR checks on demand.",
+      "Resume local drafts and recent conversations for this account and directory. Existing Mine, Reviews, Saved and Following remain available.",
+    ],
+    link: repository + "/blob/main/docs/my-work.md#terminal",
+    label: "Terminal workflow",
+  },
+  {
     id: "github-room-work-0-7",
     channel: "Browser",
     version: "0.7.0",

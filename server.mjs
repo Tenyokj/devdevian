@@ -1,3 +1,4 @@
+import { registerMyWork } from "./my-work.mjs";
 import { securityHeaders } from "./security-headers.mjs";
 import { registerGitHubApp } from "./github-app.mjs";
 import { registerContributions } from "./contributions.mjs";
@@ -528,6 +529,7 @@ export async function createApp({ migrationOnly = false } = {}) {
     registerRooms(app, db, required, { migrate: migrationOnly });
     registerContributions(app, db, required, { migrate: migrationOnly });
     registerGitHubApp(app, db, required, { migrate: migrationOnly });
+    registerMyWork(app, db, required);
     if (!db.schemaCurrent)
       db.exec(`
   CREATE INDEX IF NOT EXISTS memberships_item ON memberships(kind,item,user_id);

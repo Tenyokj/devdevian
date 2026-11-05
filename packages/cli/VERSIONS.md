@@ -4,6 +4,13 @@ The CLI is a separately versioned Devdevian client. Its npm version does not hav
 
 Every published npm artifact has a unique immutable version. We record each version here, even when several ship in one working session. A GitHub release can summarize a day's work and link to the individual entries; it does not need to be created for every npm publication. An unfinished change stays under **Unreleased** until its package version is assigned. Alpha packages use the `alpha` npm tag.
 
+## 0.21.0-alpha.1 — A clear next step
+
+- `/work` opens Next up: named review requests, current-revision changes, involved feedback needing a reply and results needing attention. Tasks, Results and Continue sit alongside Mine, Reviews, Saved and Following.
+- Enter opens the exact request/task/result. X exposes project room and PR checks separately, without GitHub calls during the primary list load.
+- Continue resumes existing account/project drafts and recent conversations. Only IDs/times are retained for history; the API rechecks visibility. A failed recent-items read preserves local drafts, and re-entering My work refreshes the current page.
+- Script `devdevian work --section attention|tasks|results|continue` offers the same selected reads. Companion to Browser/API 0.8.0; no new dependencies, migration or GitHub write scopes. Source version and npm publication are tracked separately.
+
 ## 0.19.0-alpha.1 — GitHub workspace
 
 - Browse installed repositories, public/private PRs, issues, file diffs and exact-commit checks through your separate GitHub App connection.

@@ -8,7 +8,7 @@ import {
   revisionFileRanges,
 } from "./project-workspace.mjs";
 import { loadReviewQueue } from "./review-queue.mjs";
-import { workQuery } from "./my-work.mjs";
+import { loadWork } from "./my-work.mjs";
 import { starterChoices } from "./doctor.mjs";
 import { githubReader, pullRequestLines } from "./github-reader.mjs";
 import { loadCatalog, isCatalog } from "./catalog.mjs";
@@ -41,7 +41,7 @@ export const navigation = [
   ["github-pr", "GitHub PR", "Read a public pull request"],
   ["help", "Help", "Keys & commands"],
   ["start", "Getting started", "Your first few minutes"],
-  ["work", "My work", "Your conversations & reviews"],
+  ["work", "My work", "Your next steps, tasks and results"],
   ["reviews", "Review queue", "Open requests & awaiting you"],
   ["workspace", "Project workspace", "Linked directory & work requests"],
   ["assigned", "Waiting for me", "Named review requests"],
@@ -160,7 +160,7 @@ export async function loadPage(api, route, signal) {
           (route.view === "contribution-history"
             ? `/${route.contributionId}/history`
             : "") +
-          `?page=${route.page || 1}`,
+          `?page=${route.page || 1}${route.view === "contributions" && route.post ? "&post=" + route.post : ""}`,
         { signal },
       ),
     );
@@ -332,7 +332,7 @@ export async function loadPage(api, route, signal) {
     };
   if (route.view === "work")
     return {
-      ...(await get(workQuery(route.tab || "mine", page))),
+      ...(await loadWork(api, route.tab || "attention", page, { signal })),
       title: "My work",
       subtitle:
         "Your account, same access rules. I opens Inbox · D opens local drafts.",
@@ -569,7 +569,7 @@ export function contentLines(route, data) {
       "H / U in review History / share revision · B on old remark opens original",
       "/reviews         Open review requests / Awaiting you · ← → sections",
       "Review summary   Current open/resolved and earlier remarks · G version filter",
-      "/work            Mine / Reviews / Saved / Following · ← → tabs · I inbox · D drafts",
+      "/work            Next up / Tasks / Results / Continue · ← → tabs · I inbox · D drafts",
       "/start           Getting-started guide and safe first actions",
       "/doctor          Read-only environment and connection checks",
       "/pr URL          Read a public GitHub PR and paginate changed files",

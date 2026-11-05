@@ -11,6 +11,8 @@ Devdevian is an open-source developer forum. The hosted early release is at [dev
 
 ## Using the forum
 
+- [My work](my-work.md): next actions, assigned tasks, results and local continuation in browser and CLI.
+
 - [User guide](user-guide.md): accounts, conversations, replies, projects, events, search, and account controls.
 - [Moderation](moderation.md): community ownership, validators, platform roles, and report decisions.
 - [Privacy & Security](https://devdevian.vercel.app/privacy): what is stored, visibility, cookies, providers, and deletion.

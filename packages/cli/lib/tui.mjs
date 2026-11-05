@@ -1,3 +1,4 @@
+import { RecentStore } from "./recent.mjs";
 import {
   githubWorkPlan,
   githubTaskRoot,
@@ -46,7 +47,7 @@ import {
   reviewSource,
   readGitHubContext,
 } from "./workspace.mjs";
-import { workTabs, workQuery } from "./my-work.mjs";
+import { workTabs, workQuery, loadWork, workItemRoute } from "./my-work.mjs";
 import { DeviPanel } from "./devi.mjs";
 import { WorkspacePicker } from "./picker.mjs";
 import { DraftStore, draftIdentity } from "./drafts.mjs";
@@ -544,7 +545,13 @@ function listRows(route, data, index, width, colors, density = "comfortable") {
     let title = item.title || item.name || "",
       meta = "",
       body = "";
-    if (
+    if (route.view === "work" && item.type) {
+      title = item.title;
+      meta = `${item.state?.replaceAll("_", " ") || item.type} · ${item.project_name || ""}${item.community_id ? " · Private" : ""}`;
+      body =
+        item.action +
+        (item.revision_number ? " · v" + item.revision_number : "");
+    } else if (
       [
         "github-app",
         "github-repositories",
@@ -909,6 +916,13 @@ function App({ initialConfig, flags, root, initialAppearance }) {
         : null,
     [config?.origin, user?.id, root],
   );
+  const recent = useMemo(
+    () =>
+      config && user
+        ? new RecentStore({ origin: config.origin, userId: user.id, root })
+        : null,
+    [config?.origin, user?.id, root],
+  );
   const api = useMemo(
     () => (config ? client(config.origin, config.token) : null),
     [config?.origin, config?.token],
@@ -940,6 +954,10 @@ function App({ initialConfig, flags, root, initialAppearance }) {
   const key = JSON.stringify(route),
     current = data?.key === key ? data : null;
   const selected = current?.items?.[index];
+  useEffect(() => {
+    if (recent && current?.post?.id)
+      recent.record(current.post.id).catch(() => {});
+  }, [recent, current?.post?.id]);
   const reviewing =
     !!current?.post?.code &&
     (route.view === "feedback" ||
@@ -1500,7 +1518,7 @@ function App({ initialConfig, flags, root, initialAppearance }) {
     if (phase !== "ready" || !api || form || route.view === "help") return;
     let active = true;
     const controller = new AbortController(),
-      cached = cache.current.get(key);
+      cached = route.view === "work" ? null : cache.current.get(key);
     setData(cached ? { ...cached, key } : null);
     setLoading(!cached);
     if (cached && restoreSelection.current?.key === key) {
@@ -1529,7 +1547,19 @@ function App({ initialConfig, flags, root, initialAppearance }) {
             subtitle:
               "Private to this account and project · Enter restore · D delete",
           }))
-        : loadPage(api, route, controller.signal)
+        : route.view === "work"
+          ? loadWork(api, route.tab || "attention", route.page || 1, {
+              drafts,
+              recent,
+              signal: controller.signal,
+            }).then((d) => ({
+              ...d,
+              title: "My work",
+              subtitle:
+                d.warnings?.join(" · ") ||
+                "Next steps · Enter acts · I Inbox · D local drafts · X actions",
+            }))
+          : loadPage(api, route, controller.signal)
       )
         .then((result) => {
           if (!active) return;
@@ -2453,6 +2483,16 @@ function App({ initialConfig, flags, root, initialAppearance }) {
     });
   }
   async function openSelected() {
+    if (route.view === "work" && selected?.type) {
+      if (selected.type === "draft") {
+        try {
+          await restoreDraft(await drafts.read(selected.draft_id));
+        } catch (e) {
+          fail(e);
+        }
+      } else navigate(workItemRoute(selected));
+      return;
+    }
     if (route.view === "github-app") {
       if (selected)
         navigate({
@@ -3223,6 +3263,28 @@ function App({ initialConfig, flags, root, initialAppearance }) {
   }
   function runAction(id) {
     setActionIndex(null);
+    if (id === "work-open") {
+      openSelected();
+      return;
+    }
+    if (id === "work-room" && selected?.project_id) {
+      navigate({ view: "room", id: selected.project_id, page: 1 });
+      return;
+    }
+    if (id === "work-github" && selected?.project_id) {
+      task(async () => {
+        const d = await api(
+          githubTaskRoot(selected.project_id, selected.post_id),
+        );
+        readItem({
+          id: selected.post_id,
+          title: "Task · GitHub context",
+          created: new Date().toISOString(),
+          body: githubTaskLines(d).join("\n"),
+        });
+      });
+      return;
+    }
     if (id === "github-connect") {
       openBrowser(config.origin + "/app#github");
       setNotice("Connect GitHub App in the browser, then refresh this view.");
@@ -3560,8 +3622,8 @@ function App({ initialConfig, flags, root, initialAppearance }) {
         return;
       }
       if (parsed.command === "work") {
-        workQuery(parsed.arg || "mine");
-        navigate({ view: "work", tab: parsed.arg || "mine", page: 1 });
+        workQuery(parsed.arg || "attention");
+        navigate({ view: "work", tab: parsed.arg || "attention", page: 1 });
         return;
       }
       if (parsed.command === "doctor") {
@@ -4480,7 +4542,7 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       }
       if (keyEvent.leftArrow || keyEvent.rightArrow) {
         const index = workTabs.findIndex(
-          ([id]) => id === (route.tab || "mine"),
+          ([id]) => id === (route.tab || "attention"),
         );
         navigate(
           {
@@ -5315,7 +5377,7 @@ function App({ initialConfig, flags, root, initialAppearance }) {
                       ? route.state || "all"
                       : route.tab) ||
                       (route.view === "work"
-                        ? "mine"
+                        ? "attention"
                         : route.view === "reviews"
                           ? "open"
                           : "overview")) === id
@@ -5326,7 +5388,7 @@ function App({ initialConfig, flags, root, initialAppearance }) {
                       ? route.state || "all"
                       : route.tab) ||
                       (route.view === "work"
-                        ? "mine"
+                        ? "attention"
                         : route.view === "reviews"
                           ? "open"
                           : "overview")) === id,
@@ -5335,7 +5397,7 @@ function App({ initialConfig, flags, root, initialAppearance }) {
                       ? route.state || "all"
                       : route.tab) ||
                       (route.view === "work"
-                        ? "mine"
+                        ? "attention"
                         : route.view === "reviews"
                           ? "open"
                           : "overview")) === id

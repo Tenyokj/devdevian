@@ -1,3 +1,5 @@
+import { MyWork } from "./my-work";
+import { rememberConversation } from "./work-memory";
 import { GitHubHub } from "./github-app";
 import { ReviewFlowQueue } from "./review-flow";
 import { Workspace } from "./workspaces";
@@ -114,6 +116,7 @@ import "./refresh.css";
 import "./app-life.css";
 const navigation = [
   ["feed", "Public feed", Compass],
+  ["work", "My work", CheckCircle2],
   ["following", "Following", Bell],
   ["review-flow", "Waiting for me", CheckCircle2],
   ["communities", "Communities", Users],
@@ -200,6 +203,10 @@ export function App() {
     const destination = takeConversationReturn();
     if (destination) location.replace(destination);
   }, [user?.id, user?.username_locked]);
+  useEffect(() => {
+    if (user && page === "post" && detail?.id === Number(id))
+      rememberConversation(localStorage, user.id, detail.id);
+  }, [user?.id, page, id, detail?.id]);
   const go = (path) => {
     location.hash = path;
   };
@@ -814,6 +821,31 @@ export function App() {
                   requireUser={authorized}
                   onRefresh={refresh}
                   go={go}
+                />
+              )}
+              {page === "work" && (
+                <MyWork
+                  key={user?.id || "guest"}
+                  user={user}
+                  section={id || "attention"}
+                  requireUser={authorized}
+                  go={go}
+                  onDraft={(d) =>
+                    authorized(() =>
+                      setComposer({
+                        kind: [
+                          "question",
+                          "discussion",
+                          "review",
+                          "showcase",
+                        ].includes(d.kind)
+                          ? d.kind
+                          : "discussion",
+                        topic: d.topic || "web",
+                        community_id: d.community_id || null,
+                      }),
+                    )
+                  }
                 />
               )}
               {page === "review-flow" && (
@@ -1543,6 +1575,7 @@ export function App() {
                 "workspace",
                 "room",
                 "review-flow",
+                "work",
                 "github",
                 "events",
                 "post",

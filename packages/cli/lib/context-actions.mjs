@@ -4,6 +4,15 @@ export function contextActions({ route, data, selected, user, live }) {
   const actions = catalogActions(route, data, user),
     post = data?.post;
   const add = (id, label) => actions.push({ id, label });
+  if (route.view === "work" && selected?.type) {
+    add("work-open", selected.action || "Open item");
+    if (selected.project_id) {
+      add("work-room", "Open project room");
+      add("work-github", "PR status and checks");
+    }
+    add("sync", "Refresh this section");
+    return actions;
+  }
   if (
     [
       "github-app",

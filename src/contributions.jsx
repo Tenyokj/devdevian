@@ -185,7 +185,7 @@ function Submit({ project, user, task, previous, close, done }) {
     </Modal>
   );
 }
-export function Contributions({ project, user, onChange }) {
+export function Contributions({ project, user, onChange, targetPost = null }) {
   const [data, setData] = useState(null),
     [githubTask, setGitHubTask] = useState(null),
     [tasks, setTasks] = useState(null),
@@ -208,7 +208,9 @@ export function Contributions({ project, user, onChange }) {
     const c = new AbortController();
     setError("");
     setData(null);
-    api(`${root}?page=${page}`, { signal: c.signal })
+    api(`${root}?page=${page}${targetPost ? "&post=" + targetPost : ""}`, {
+      signal: c.signal,
+    })
       .then(setData)
       .catch((e) => {
         if (!c.signal.aborted) setError(e.message);
@@ -223,7 +225,7 @@ export function Contributions({ project, user, onChange }) {
         .then(setTasks)
         .catch(() => {});
     return () => c.abort();
-  }, [root, page, taskPage, epoch, user?.id]);
+  }, [root, page, taskPage, epoch, user?.id, targetPost]);
   useEffect(() => {
     if (!history) return;
     const c = new AbortController();

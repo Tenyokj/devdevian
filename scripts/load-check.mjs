@@ -155,6 +155,10 @@ try {
   }
   assert.match(logs, /Devdevian is ready/);
   const endpoints = [
+    "/my-work?section=attention&page=4",
+    "/my-work?section=tasks&page=4",
+    "/my-work?section=results&page=4",
+    "/my-work/recent?ids=1,250,499",
     "/projects/1/room",
     "/projects/1/room/tasks?state=open&page=10",
     "/projects/1/room/tasks?mine=1&page=4",

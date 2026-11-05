@@ -62,7 +62,13 @@ For **review revise**, the explicit manifest is an ordered JSON array such as `[
 
 See the [Workspaces contract and migration plan](../../docs/workspaces-0.2.md). Project decisions and a dedicated activity/seen feed remain future work.
 
-## My work and Halloween
+## My work
+
+`/work` opens **Next up**: invitations to review, requested changes, feedback to answer and task results needing attention. Use left/right for **Tasks**, **Results**, **Continue**, or the existing Mine/Reviews/Saved/Following sections. Enter opens the selected workflow; **X** offers project room and on-demand PR/checks. Continue combines local drafts with recently opened conversations whose permissions are checked again by the server. It keeps only IDs/times for recent history, scoped to account, server and canonical working directory.
+
+`devdevian work --section tasks --json` reads one bounded page; `--section continue --project PATH` selects local drafts/history for that directory. [Full workflow and data boundaries](../../docs/my-work.md).
+
+## Halloween appearance
 
 Open **My work** in navigation or type `/work`. **← / →** switches Mine, Reviews, Saved and Following; **[ / ]** pages results. Enter opens a conversation and Esc returns to its selected page. Reviews contains your own review requests. Following contains posts from your topic/conversation subscriptions, not every conversation you have replied to. Private posts stay subject to the same membership rules as the browser. **I** opens Inbox; **D** opens account/project-scoped local drafts.
 

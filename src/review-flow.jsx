@@ -357,14 +357,20 @@ function RequestCard({ row, user, open, view, postOwner }) {
     </article>
   );
 }
-export function ReviewFlowPanel({ post, user, refreshToken = 0, onAvailable }) {
+export function ReviewFlowPanel({
+  post,
+  user,
+  refreshToken = 0,
+  onAvailable,
+  targetRequest = null,
+}) {
   const [page, setPage] = useState(1),
     [reload, setReload] = useState(0),
     [dialog, setDialog] = useState(null),
     [view, setView] = useState(null),
     [linksPage, setLinksPage] = useState(1);
   const { data, error } = usePage(
-    `/posts/${post.id}/review-flow?page=${page}`,
+    `/posts/${post.id}/review-flow?page=${page}${targetRequest && page === 1 ? "&target_id=" + targetRequest : ""}`,
     reload + (post.revision || 0) + refreshToken,
   );
   const links = usePage(

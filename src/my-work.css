@@ -1,0 +1,236 @@
+.my-work {
+  --work-focus: #79c2ef;
+  --work-progress: #e7b976;
+  --work-done: #77d4ad;
+  min-width: 0;
+}
+.work-hero {
+  display: flex;
+  align-items: flex-start;
+  gap: 22px;
+  padding: 30px;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background:
+    radial-gradient(ellipse at top left, #5aade91a, transparent 65%),
+    var(--surface);
+  margin-bottom: 24px;
+}
+.work-hero h1 {
+  font-size: clamp(27px, 3vw, 42px);
+  letter-spacing: -1px;
+  margin: 10px 0;
+}
+.work-hero p {
+  color: var(--text-secondary);
+  line-height: 1.8;
+  font-size: 14px;
+}
+.work-hero .eyebrow {
+  color: var(--work-focus);
+}
+.work-mark {
+  display: grid;
+  place-items: center;
+  padding: 15px;
+  color: var(--work-focus);
+  border: 1px solid #79c2ef44;
+  background: #79c2ef0b;
+  border-radius: 18px;
+}
+.work-hero > .icon-button {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.work-tabs {
+  display: flex;
+  gap: 9px;
+  flex-wrap: wrap;
+  margin: 18px 0;
+}
+.work-tabs button {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px 18px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+.work-tabs [aria-current="page"] {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: var(--accent-line);
+}
+.work-summary {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.75;
+  margin: 24px 0;
+}
+.work-summary > svg {
+  color: var(--work-done);
+}
+.work-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+.work-card {
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-top: 2px solid #79c2ef88;
+  border-radius: 18px;
+  background:
+    radial-gradient(ellipse at top right, #69bdf30a, transparent 70%),
+    var(--surface);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.work-result {
+  border-top-color: var(--work-progress);
+}
+.work-task {
+  border-top-color: var(--work-done);
+}
+.work-card-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.work-card small,
+.work-card-footer > span {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.work-card-meta > span {
+  color: var(--work-focus);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+.work-card h3 {
+  font-size: 18px;
+  line-height: 1.55;
+  margin: 8px 0 22px;
+  letter-spacing: -0.3px;
+}
+.work-card-footer {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+}
+.work-card-footer > span {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.work-card button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--accent);
+  padding: 8px 0;
+}
+.work-primary-action {
+  font-weight: 700;
+}
+.work-card-extra {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+  margin-top: 14px;
+}
+.work-card-extra button {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+.work-empty {
+  display: grid;
+  justify-items: center;
+  gap: 16px;
+  padding: 60px 24px;
+  text-align: center;
+}
+.work-empty > svg {
+  color: var(--work-done, var(--accent));
+}
+.work-empty h2 {
+  font-size: 23px;
+}
+.work-empty p {
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+.work-empty button {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  color: var(--accent);
+}
+.work-resume {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+.work-resume h2 {
+  font-size: 19px;
+  margin-bottom: 18px;
+}
+.work-resume .work-card {
+  margin-bottom: 16px;
+}
+.work-quiet,
+.work-notice {
+  padding: 18px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.8;
+}
+:root[data-theme="light"] .my-work {
+  --work-focus: #23649c;
+  --work-progress: #8b5f17;
+  --work-done: #237350;
+}
+@media (max-width: 760px) {
+  .work-grid,
+  .work-resume {
+    grid-template-columns: 1fr;
+  }
+  .work-hero {
+    padding: 22px 18px;
+    gap: 12px;
+  }
+  .work-mark {
+    display: none;
+  }
+  .work-hero h1 {
+    font-size: 29px;
+  }
+  .work-card {
+    padding: 20px;
+  }
+  .work-tabs button {
+    flex: 1;
+    white-space: nowrap;
+  }
+}
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .work-card {
+    transition:
+      transform 0.18s,
+      border-color 0.18s;
+  }
+  .work-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent-line);
+  }
+}

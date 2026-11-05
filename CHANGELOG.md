@@ -1,5 +1,12 @@
 # Changelog
 
+## Browser & API 0.8.0 / CLI 0.21.0-alpha.1 — My work
+
+- Bring named review invitations, current-revision requested changes, replies awaiting an answer and submitted task results into Next up. Keep assigned tasks and result history in separate bounded sections.
+- Open the exact review request or task result, preserving the existing preview, confirmation and version checks. Project room and GitHub checks remain explicit actions.
+- Continue local drafts and recently opened conversations; history stores only IDs/times, and the server rechecks access before returning titles. Browser history is account/device scoped; terminal history also follows the selected project directory.
+- Keep GitHub reads outside the primary list, refresh terminal work on entry and retain local drafts when the recent-items API is unavailable. No new schema, dependencies or GitHub permissions.
+
 ## Browser & API 0.4.0 / CLI 0.17.0-alpha.1 — Rooms
 
 - Add shared project task boards, claim/release/assignment and state changes with captured versions and existing private permissions.

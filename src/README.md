@@ -50,3 +50,5 @@ Workspaces 0.2 branch: `workspaces.jsx` owns the real project navigation and req
 Review Flow: `review-flow.jsx` owns named requests, personal queues, outcome forms, revision links and project activity. `code-review.jsx` mounts its panel and contextual link action; `workspaces.jsx` exposes activity. Every write captures versions before a separate preview/confirmation; account keys and abortable reads prevent stale cross-account results. See [the contract](../docs/review-flow.md).
 
 Rooms: `rooms.jsx` renders independent paginated board columns, decision/history dialogs and activity; `rooms.css` scopes semantic project/status accents. `code-tokens.mjs` produces inert line-preserving syntax tokens, consumed by current and retained review renderers. `data.js` bounds transient GET recovery by deadline, abort and mutation/account generation; writes are never replayed. [Rooms contract](../docs/rooms.md).
+
+`my-work.jsx` composes the personal Next up/Tasks/Results/Continue screen. `work-memory.js` keeps bounded local recent IDs and draft discovery separate from server reads; `my-work.css` handles responsive semantic accents.
