@@ -329,16 +329,26 @@ export default function DocsPage({ slug = "home" }) {
     return () => window.removeEventListener("keydown", key);
   }, []);
   useEffect(() => {
-    const headings = [...document.querySelectorAll(".docs-article h2")];
     const update = () => {
+      // Markdown may replace heading nodes after hydration/theme changes.
+      // Read the current nodes instead of retaining detached elements.
+      const headings = [...document.querySelectorAll(".docs-article h2")];
       const visible = headings.filter(
-        (h) => h.getBoundingClientRect().top < 200,
+        (h) => h.getBoundingClientRect().top <= 202,
       );
       setActiveHeading((visible.at(-1) || headings[0])?.id || "");
     };
     update();
     window.addEventListener("scroll", update, { passive: true });
-    return () => window.removeEventListener("scroll", update);
+    window.addEventListener("resize", update);
+    const layout = new ResizeObserver(update);
+    const article = document.querySelector(".docs-article");
+    if (article) layout.observe(article);
+    return () => {
+      window.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+      layout.disconnect();
+    };
   }, [slug]);
   const toggleTheme = () => {
     const next = theme === "dark" ? "light" : "dark";

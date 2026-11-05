@@ -157,8 +157,15 @@ try {
   ).toBeVisible();
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto(f.base + "/docs/overview");
+  await page.evaluate(() => document.fonts.ready);
   const links = page.locator(".docs-toc nav a");
   await links.nth(2).click();
+  await expect.poll(() => page.locator("#understand-the-vocabulary").evaluate(
+    (heading) => Math.round(heading.getBoundingClientRect().top),
+  )).toBeLessThanOrEqual(202);
+  await expect.poll(() => page.locator("#understand-the-vocabulary").evaluate(
+    (heading) => Math.round(heading.getBoundingClientRect().top),
+  )).toBeGreaterThan(150);
   await expect(links.nth(2)).toHaveAttribute("aria-current", "location");
   await expect
     .poll(() =>

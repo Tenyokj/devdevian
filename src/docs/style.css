@@ -387,7 +387,7 @@ html[data-docs-theme="light"] .docs-site {
 .docs-article h1,
 .docs-article h2,
 .docs-article h3 {
-  scroll-margin-top: 185px;
+  scroll-margin-top: 24px;
 }
 .docs-article p {
   margin: 18px 0;
@@ -1306,7 +1306,7 @@ html[data-docs-sidebar="collapsed"] .docs-article {
   .docs-article h1,
   .docs-article h2,
   .docs-article h3 {
-    scroll-margin-top: 160px;
+    scroll-margin-top: 24px;
   }
   .docs-toc {
     display: none;
