@@ -253,3 +253,249 @@
     padding: 12px;
   }
 }
+
+/* Account identity, repository selection and pagination form separate surfaces. */
+.gh-connected-account {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 24px 0;
+  padding: 18px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+.gh-account-profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  color: var(--text);
+}
+.gh-account-avatar {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  border-radius: 14px;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.gh-account-profile > span:not(.gh-account-avatar) {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+.gh-account-profile small {
+  font-size: 9px;
+  letter-spacing: 1.3px;
+  color: var(--text-muted);
+}
+.gh-account-profile strong {
+  font-size: 17px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.gh-account-profile > svg {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+.gh-connection-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 11px;
+  border-radius: 20px;
+  color: #72d8b5;
+  background: #72d8b514;
+  font-size: 11px;
+}
+.gh-connection-state.needs-attention {
+  color: #eab36c;
+  background: #eab36c14;
+}
+:root[data-theme="light"] .gh-connection-state {
+  color: #147357;
+}
+:root[data-theme="light"] .gh-connection-state.needs-attention {
+  color: #95580b;
+}
+.gh-connection-actions {
+  gap: 12px;
+}
+.gh-connection-actions .button,
+.gh-connection-actions .gh-disconnect {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 44px;
+  padding: 12px 17px;
+  font-size: 12px;
+  border-radius: 12px;
+}
+.gh-connection-actions .gh-disconnect {
+  color: var(--text-secondary);
+  margin-left: auto;
+  border: 1px solid transparent;
+}
+.gh-connection-actions .gh-disconnect:hover {
+  color: #dc7f86;
+  border-color: #dc7f8644;
+  background: #dc7f860a;
+}
+.gh-repo-picker {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--surface-soft);
+  min-width: 0;
+}
+.gh-repo-picker > summary {
+  padding: 20px 22px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+}
+.gh-picker-content {
+  padding: 4px 22px 22px;
+}
+.gh-picker-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 14px 0 18px;
+}
+.gh-picker-step > span {
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--accent-line);
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-radius: 9px;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  font-size: 10px;
+  font-family: monospace;
+}
+.gh-picker-step h3 {
+  font-size: 14px;
+  margin: 0 0 7px;
+}
+.gh-picker-step p,
+.gh-picker-hint {
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+}
+.gh-installations {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.gh-installations button {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  background: var(--surface);
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+.gh-installations button[aria-pressed="true"] {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+.gh-installations svg {
+  flex-shrink: 0;
+}
+.gh-picker-repositories {
+  border-top: 1px solid var(--line);
+  margin-top: 22px;
+  padding-top: 12px;
+}
+.gh-installed-files button {
+  justify-content: flex-start;
+  align-items: center;
+  background: var(--surface);
+}
+.gh-installed-files button > span {
+  flex: 1;
+  min-width: 0;
+}
+.gh-installed-files button > svg {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+.gh-visibility {
+  padding: 5px 9px;
+  border-radius: 8px;
+  background: var(--accent-soft);
+  font-size: 10px;
+}
+.gh-pager {
+  justify-content: flex-end;
+  gap: 12px;
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+  margin: 18px 0 0;
+}
+.gh-pager button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 11px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--surface);
+}
+.gh-pager button:disabled {
+  opacity: 0.45;
+}
+.gh-pager span {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+@media (max-width: 700px) {
+  .gh-connection-actions {
+    align-items: stretch;
+  }
+  .gh-connection-actions .button {
+    flex: 1 1 180px;
+  }
+  .gh-connection-actions .gh-disconnect {
+    margin-left: 0;
+    width: 100%;
+  }
+  .gh-repo-picker > summary {
+    padding: 18px 16px;
+    line-height: 1.6;
+  }
+  .gh-picker-content {
+    padding: 0 16px 16px;
+  }
+  .gh-installations button {
+    max-width: 100%;
+  }
+  .gh-installed-files button {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .gh-installed-files button > span {
+    flex-basis: 60%;
+  }
+  .gh-pager {
+    justify-content: center;
+  }
+}

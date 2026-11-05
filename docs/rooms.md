@@ -69,3 +69,7 @@ Preparation is repeatable, preserves the global marker/data and refuses a future
 Encrypted recovery includes assignments, decisions, history and immutable guards. The browser/script CLI/real PTY suites use disposable fictional accounts; production smoke reads existing public records without adding demo content. Local load checks are not a guarantee of hosted free-tier capacity.
 
 See [tests](../tests/README.md), [Review Flow](review-flow.md), [Workspaces](workspaces-0.2.md), [reliability and recovery](reliability.md).
+
+## Project visibility and participation
+
+Current Rooms use the project and task visibility rules. Any signed-in reader can claim an unassigned active task. Only its current assignee can submit a contribution; the project owner reviews the result. A private community project restricts readers to community members, but any such member can claim a free readable task. The project Team list is presentation/credits, not an allowlist. There is currently no separate “publicly visible, approved contributors only” project mode.

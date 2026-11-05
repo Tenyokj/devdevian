@@ -1,5 +1,11 @@
 # Changelog
 
+## Browser & API 0.8.1 — GitHub workspace layout
+
+- Separate connected-account identity, connection actions and account/repository selection into clear responsive surfaces.
+- Hide pagination for a single page and label account/repository page controls separately. Clear old repositories on account switches and preserve the selected account on repeated clicks.
+- Project participation permissions and CLI version remain unchanged.
+
 ## Browser & API 0.8.0 / CLI 0.21.0-alpha.1 — My work
 
 - Bring named review invitations, current-revision requested changes, replies awaiting an answer and submitted task results into Next up. Keep assigned tasks and result history in separate bounded sections.

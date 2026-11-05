@@ -5,6 +5,12 @@ import {
   GitBranch,
   ShieldCheck,
   RefreshCw,
+  ArrowUpRight,
+  ChevronLeft,
+  ChevronRight,
+  Building2,
+  FolderGit2,
+  Unplug,
 } from "lucide-react";
 import { api, dateStamp } from "./data";
 import { MD, ErrorMessage } from "./ui";
@@ -13,17 +19,20 @@ import { githubRepository } from "../packages/cli/lib/github-context.mjs";
 import "./github-app.css";
 import { GitHubWorkDialog } from "./github-work";
 const query = (path) => "/github/read?" + new URLSearchParams({ path });
-function Pager({ page, hasNext, onPage }) {
+function Pager({ page, hasNext, onPage, label = "Results" }) {
+  if (page <= 1 && !hasNext) return null;
   return (
-    <div className="gh-pager">
+    <nav className="gh-pager" aria-label={label + " pages"}>
       <button disabled={page <= 1} onClick={() => onPage(page - 1)}>
-        Previous page
+        <ChevronLeft size={15} /> Previous
       </button>
-      <span>Page {page}</span>
+      <span>
+        {label} · Page {page}
+      </span>
       <button disabled={!hasNext} onClick={() => onPage(page + 1)}>
-        Next page
+        Next <ChevronRight size={15} />
       </button>
-    </div>
+    </nav>
   );
 }
 export function GitHubConnection() {
@@ -83,27 +92,56 @@ export function GitHubConnection() {
       )}
       {status?.connected ? (
         <>
-          <p>
-            <ShieldCheck size={16} /> Connected as{" "}
-            <strong>@{status.login}</strong>
-            {status.reconnect ? " · Reauthorization needed" : ""}
-          </p>
-          <div className="gh-actions">
-            <button disabled={busy || !config?.configured} onClick={connect}>
-              Reauthorize
-            </button>
+          <div className="gh-connected-account">
+            <a
+              className="gh-account-profile"
+              href={"https://github.com/" + encodeURIComponent(status.login)}
+              target="_blank"
+              rel="noreferrer"
+            >
+              <span className="gh-account-avatar" aria-hidden="true">
+                <Github size={24} />
+              </span>
+              <span>
+                <small>CONNECTED ACCOUNT</small>
+                <strong>@{status.login}</strong>
+              </span>
+              <ArrowUpRight size={16} />
+            </a>
+            <span
+              className={
+                "gh-connection-state" +
+                (status.reconnect ? " needs-attention" : "")
+              }
+            >
+              <ShieldCheck size={15} />
+              {status.reconnect ? "Reauthorization needed" : "Connected"}
+            </span>
+          </div>
+          <div className="gh-actions gh-connection-actions">
             {config?.app_url && (
               <a
-                className="button secondary"
+                className="button primary"
                 href={config.app_url + "/installations/new"}
                 target="_blank"
                 rel="noreferrer"
               >
-                Choose repositories ↗
+                Choose repositories <ArrowUpRight size={16} />
               </a>
             )}
-            <button onClick={() => setConfirm(true)} disabled={busy}>
-              Disconnect from Devdevian
+            <button
+              className="button secondary"
+              disabled={busy || !config?.configured}
+              onClick={connect}
+            >
+              <RefreshCw size={15} /> Reauthorize
+            </button>
+            <button
+              className="gh-disconnect"
+              onClick={() => setConfirm(true)}
+              disabled={busy}
+            >
+              <Unplug size={15} /> Disconnect from Devdevian
             </button>
           </div>
           {confirm && (
@@ -485,6 +523,7 @@ export function GitHubHub({ user, requireUser, project = null, onReview }) {
   useEffect(() => {
     if (!installation) return;
     const c = new AbortController();
+    setRepos(null);
     api(`/github/installations/${installation}/repositories?page=${repoPage}`, {
       signal: c.signal,
     })
@@ -634,43 +673,117 @@ export function GitHubHub({ user, requireUser, project = null, onReview }) {
             <button className="button primary">Open repository</button>
           </form>
           {installations && (
-            <details>
+            <details className="gh-repo-picker">
               <summary>Choose from installed repositories</summary>
-              <div className="gh-actions">
-                {installations.items.map((i) => (
-                  <button
-                    key={i.id}
-                    onClick={() => {
-                      setInstallation(i.id);
-                      setRepoPage(1);
-                    }}
-                  >
-                    {i.account}
-                    {i.suspended ? " · Suspended" : ""}
-                  </button>
-                ))}
-              </div>
-              <Pager
-                page={instPage}
-                hasNext={installations.has_next}
-                onPage={setInstPage}
-              />
-              {repos && (
-                <>
-                  <div className="gh-files">
-                    {repos.items.map((r) => (
-                      <button key={r.id} onClick={() => choose(r.repository)}>
-                        {r.name} · {r.private ? "Private" : "Public"}
-                      </button>
-                    ))}
+              <div className="gh-picker-content">
+                <div className="gh-picker-step">
+                  <span>01</span>
+                  <div>
+                    <h3>Choose an account</h3>
+                    <p>
+                      Select your personal account or an organization where the
+                      app is installed.
+                    </p>
                   </div>
-                  <Pager
-                    page={repoPage}
-                    hasNext={repos.has_next}
-                    onPage={setRepoPage}
-                  />
-                </>
-              )}
+                </div>
+                <div
+                  className="gh-installations"
+                  aria-label="Installed accounts"
+                >
+                  {installations.items.map((i) => (
+                    <button
+                      key={i.id}
+                      aria-pressed={installation === i.id}
+                      disabled={i.suspended}
+                      onClick={() => {
+                        if (installation === i.id) return;
+                        setInstallation(i.id);
+                        setRepos(null);
+                        setRepoPage(1);
+                        setError("");
+                      }}
+                    >
+                      <Building2 size={18} />
+                      <span>{i.account}</span>
+                      {i.suspended && <small>Suspended</small>}
+                    </button>
+                  ))}
+                </div>
+                {!installations.items.length && (
+                  <p className="gh-picker-hint">
+                    No installations found. Choose repositories above to install
+                    the app.
+                  </p>
+                )}
+                <Pager
+                  label="Accounts"
+                  page={instPage}
+                  hasNext={installations.has_next}
+                  onPage={(n) => {
+                    setInstPage(n);
+                    setInstallation(null);
+                    setRepos(null);
+                  }}
+                />
+                {installation && (
+                  <section
+                    className="gh-picker-repositories"
+                    aria-label="Installed repositories"
+                  >
+                    <div className="gh-picker-step">
+                      <span>02</span>
+                      <div>
+                        <h3>Choose a repository</h3>
+                        <p>
+                          Only repositories available to your connected GitHub
+                          account appear here.
+                        </p>
+                      </div>
+                    </div>
+                    {!repos && (
+                      <p role="status" className="gh-picker-hint">
+                        Loading repositories…
+                      </p>
+                    )}
+                    {repos && (
+                      <>
+                        <div className="gh-files gh-installed-files">
+                          {repos.items.map((r) => (
+                            <button
+                              key={r.id}
+                              onClick={() => choose(r.repository)}
+                            >
+                              <FolderGit2 size={19} />
+                              <span>{r.name}</span>
+                              <small
+                                className={
+                                  "gh-visibility" +
+                                  (r.private ? " private" : "")
+                                }
+                              >
+                                {r.private ? "Private" : "Public"}
+                              </small>
+                              <ArrowUpRight size={16} />
+                            </button>
+                          ))}
+                        </div>
+                        {!repos.items.length && (
+                          <p className="gh-picker-hint">
+                            No repositories available for this account. Check
+                            the app’s repository selection on GitHub.
+                          </p>
+                        )}
+                        <Pager
+                          label="Repositories"
+                          page={repoPage}
+                          hasNext={repos.has_next}
+                          onPage={setRepoPage}
+                        />
+                      </>
+                    )}
+                  </section>
+                )}
+              </div>
             </details>
           )}
           {repo && (

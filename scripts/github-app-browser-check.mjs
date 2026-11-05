@@ -149,11 +149,68 @@ try {
     }
     await route.continue();
   });
+  await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto(f.base + "/app#github");
-  await expect(page.getByText("A little off the beaten path.", { exact: true })).toHaveCount(0);
+  await expect(
+    page.getByText("A little off the beaten path.", { exact: true }),
+  ).toHaveCount(0);
   await expect(
     page.getByRole("heading", { name: "Your repository. A shared next step." }),
   ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "@fixture_owner" }),
+  ).toHaveAttribute("href", "https://github.com/fixture_owner");
+  await page
+    .getByText("Choose from installed repositories", { exact: true })
+    .click();
+  await page.getByRole("button", { name: "fixture", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "fixture/orbit Private" }),
+  ).toBeVisible();
+  await expect(page.locator(".gh-pager")).toHaveCount(0);
+  await page.getByRole("button", { name: "fixture", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "fixture/orbit Private" }),
+  ).toBeVisible();
+  mkdirSync(".test-data/github-app-browser", { recursive: true });
+  for (const theme of ["dark", "light"]) {
+    await page.evaluate(
+      (t) => (document.documentElement.dataset.theme = t),
+      theme,
+    );
+    for (const width of [1440, 768, 390, 320]) {
+      await page.setViewportSize({ width, height: 1000 });
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= innerWidth + 1,
+        ),
+      ).toBeTruthy();
+      const boxes = await page
+        .locator(".gh-connection-actions > *")
+        .evaluateAll((nodes) =>
+          nodes.map((n) => {
+            const r = n.getBoundingClientRect();
+            return { x: r.x, y: r.y, right: r.right, bottom: r.bottom };
+          }),
+        );
+      for (let i = 0; i < boxes.length; i++)
+        for (let j = i + 1; j < boxes.length; j++) {
+          const a = boxes[i],
+            b = boxes[j];
+          expect(
+            a.right <= b.x ||
+              b.right <= a.x ||
+              a.bottom <= b.y ||
+              b.bottom <= a.y,
+          ).toBeTruthy();
+        }
+      await page.screenshot({
+        path: `.test-data/github-app-browser/connection-${theme}-${width}.png`,
+        fullPage: true,
+      });
+    }
+  }
+  await page.setViewportSize({ width: 1440, height: 1100 });
   await page
     .getByRole("textbox", { name: "GitHub repository URL" })
     .fill(repository);
