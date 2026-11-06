@@ -26,7 +26,7 @@
     "preview:workspaces:app": "npm run build && node scripts/workspace-demo.mjs"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.1152.0",
+    "@aws-sdk/client-s3": "^3.1161.0",
     "express": "^5.1.0",
     "highlight.js": "^11.11.1",
     "libsql": "^0.5.29",
