@@ -294,9 +294,11 @@ try {
     }),
   );
   // Centre the live section deterministically instead of racing a smooth scroll.
-  await page.locator(".landing-activity").evaluate((section) =>
-    section.scrollIntoView({ block: "center", behavior: "instant" }),
-  );
+  await page
+    .locator(".landing-activity")
+    .evaluate((section) =>
+      section.scrollIntoView({ block: "center", behavior: "instant" }),
+    );
   await expect(
     page.getByRole("status", { name: "12 public conversations", exact: true }),
   ).toBeVisible();
@@ -366,9 +368,14 @@ try {
   expect(
     await page
       .locator(".stack-ribbon")
-      .evaluate((e) =>
-        e.previousElementSibling.classList.contains("landing-workspace-showcase") &&
-        e.previousElementSibling.previousElementSibling.classList.contains("landing-projects"),
+      .evaluate(
+        (e) =>
+          e.previousElementSibling.classList.contains(
+            "landing-workspace-showcase",
+          ) &&
+          e.previousElementSibling.previousElementSibling.classList.contains(
+            "landing-projects",
+          ),
       ),
   ).toBeTruthy();
   await page.locator(".stack-window").hover();
@@ -463,9 +470,11 @@ try {
   ]) {
     await page.setViewportSize({ width, height });
     // Centre the live section deterministically instead of racing a smooth scroll.
-    await page.locator(".landing-activity").evaluate((section) =>
-      section.scrollIntoView({ block: "center", behavior: "instant" }),
-    );
+    await page
+      .locator(".landing-activity")
+      .evaluate((section) =>
+        section.scrollIntoView({ block: "center", behavior: "instant" }),
+      );
     await page.evaluate(() => document.fonts.ready);
     await page.locator(".landing-activity").screenshot({
       path: artifacts + "/activity-" + name + ".png",
@@ -683,7 +692,14 @@ try {
   expect(
     await page
       .getByRole("dialog", { name: "Your notifications" })
-      .evaluate((e) => e.parentElement.parentElement === document.body),
+      .evaluate((e) => {
+        const layer = e.closest(".devext-modal-layer");
+        return (
+          layer?.parentElement === document.body &&
+          !layer.closest(".app") &&
+          !!e.closest(".devext-popup-surface")
+        );
+      }),
   ).toBeTruthy();
   await shot("notifications-fixed");
   await close();
