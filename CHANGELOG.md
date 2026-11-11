@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.0 — From conversation to contribution
+
+- Bring the browser/API milestones 0.2–0.10.1 together in the first V1 release: Workspaces, snapshot-based Review Flow, Rooms, Contributions, GitHub App workspace, My Work, project participation controls and searchable documentation.
+- Feature the new launch film across the landing, public pages and documentation; refresh README version badges and release navigation.
+- Browser/API is now 1.0.0. The terminal package remains separately versioned at 0.22.0-alpha.1; no npm publication, new permissions or database migrations in this release.
+- Existing accounts, projects, conversations and data remain in place. The project stays in active development.
+
 ## Browser & API 0.10.1 — Documentation reading experience
 
 - Rebuild documentation with plum/violet and pink accents, larger Inter typography, light/dark themes saved independently from the app, and a full-width layout with collapsible navigation.

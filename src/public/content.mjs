@@ -4,6 +4,19 @@ export const launchFilm = "https://www.youtube.com/watch?v=qjFs2yy5uz0";
 export const repository = "https://github.com/Tenyokj/devdevian";
 export const updates = [
   {
+    id: "devdevian-1-0",
+    channel: "Browser",
+    version: "1.0.0",
+    title: "From conversation to contribution.",
+    summary: "Devdevian V1 brings the forum, shared project work and GitHub context together in your browser and terminal.",
+    points: [
+      "Rooms, snapshot-based reviews, Contributions and My Work keep the next step beside the discussion.",
+      "Choose project participation independently of visibility, and explore the dedicated documentation. CLI remains a separately versioned alpha.",
+    ],
+    link: launchFilm,
+    label: "Watch the V1 film",
+  },
+  {
     id: "documentation-0-10",
     channel: "Browser",
     version: "0.10.0",
