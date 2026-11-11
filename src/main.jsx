@@ -1,3 +1,4 @@
+import { Extensions, useExtensionTheme } from "./extensions";
 import { ProjectContributors } from "./project-contributors";
 import { ProjectParticipation } from "./project-access";
 import { MyWork } from "./my-work";
@@ -125,6 +126,7 @@ const navigation = [
   ["projects", "Projects", FolderGit2],
   ["github", "GitHub workspace", Github],
   ["events", "Events", CalendarDays],
+  ["extensions", "Extensions", Sparkles],
 ];
 function useRoute() {
   const [route, set] = useState(location.hash.slice(1) || "feed");
@@ -187,6 +189,7 @@ export function App() {
     [myEvents, setMyEvents] = useState([]),
     [loading, setLoading] = useState(true),
     [loadError, setLoadError] = useState("");
+  const activeExtension = useExtensionTheme(user, theme);
   const [auth, setAuth] = useState(null),
     [composer, setComposer] = useState(null),
     [projectForm, setProjectForm] = useState(false),
@@ -750,15 +753,36 @@ export function App() {
             )}
             <button
               className="theme-toggle icon-button"
-              onClick={() =>
-                setTheme((current) => (current === "dark" ? "light" : "dark"))
-              }
+              onClick={async () => {
+                if (activeExtension) {
+                  try {
+                    await api("/extensions/active", {
+                      method: "PUT",
+                      body: { release: null },
+                    });
+                    window.dispatchEvent(new Event("devdevian-extensions"));
+                  } catch (e) {
+                    setToast(e.message);
+                  }
+                } else
+                  setTheme((current) =>
+                    current === "dark" ? "light" : "dark",
+                  );
+              }}
               aria-label={
-                theme === "dark"
-                  ? "Switch to light theme"
-                  : "Switch to dark theme"
+                activeExtension
+                  ? "Restore default appearance"
+                  : theme === "dark"
+                    ? "Switch to light theme"
+                    : "Switch to dark theme"
               }
-              title={theme === "dark" ? "Light theme" : "Dark theme"}
+              title={
+                activeExtension
+                  ? "Restore default appearance"
+                  : theme === "dark"
+                    ? "Light theme"
+                    : "Dark theme"
+              }
               aria-pressed={theme === "dark"}
             >
               {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
@@ -852,6 +876,13 @@ export function App() {
               )}
               {page === "review-flow" && (
                 <ReviewFlowQueue
+                  key={user?.id || "guest"}
+                  user={user}
+                  requireUser={authorized}
+                />
+              )}
+              {page === "extensions" && (
+                <Extensions
                   key={user?.id || "guest"}
                   user={user}
                   requireUser={authorized}
@@ -1591,6 +1622,7 @@ export function App() {
                 "review-flow",
                 "work",
                 "github",
+                "extensions",
                 "events",
                 "post",
                 "profile",

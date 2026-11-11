@@ -37,6 +37,7 @@ jobs:
       - run: node scripts/my-work-browser-check.mjs
       - run: node scripts/participation-browser-check.mjs
       - run: node scripts/docs-browser-check.mjs
+      - run: node scripts/extensions-browser-check.mjs
       - uses: actions/upload-artifact@v7
         if: failure()
         with:
@@ -54,4 +55,5 @@ jobs:
             .test-data/my-work-browser/
             .test-data/participation-browser/
             .test-data/docs-browser/
+            .test-data/extensions-browser/
           retention-days: 7

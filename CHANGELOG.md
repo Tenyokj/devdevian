@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.0 — Extensions: your space, your colors
+
+- Add a browser theme library with four bundled palettes, community search/filtering, live previews, an authoring form and JSON import/export.
+- Store installed exact versions and active appearance per account; reset on account changes, leave CLI/docs/landing independent and retain an explicit default fallback.
+- Validate allowlisted JSON tokens, contrast and bounded publication/install quotas. No JavaScript, arbitrary CSS or external resources execute from a theme.
+- Publish immutable versions without automatic upgrades or inherited review badges. Dedicated configured reviewers can approve/revoke/withdraw; authors can withdraw their own versions, with retained review history.
+- Add additive, backup-first table preparation, encrypted restore coverage, browser/API isolation checks and a complete theme authoring guide. Global schema stays 7; CLI stays 0.22.0-alpha.1.
+
 ## 1.0.0 — From conversation to contribution
 
 - Bring the browser/API milestones 0.2–0.10.1 together in the first V1 release: Workspaces, snapshot-based Review Flow, Rooms, Contributions, GitHub App workspace, My Work, project participation controls and searchable documentation.

@@ -14,6 +14,7 @@ export const docGroups = [
       ["first-session", "Your first session", "docs/site/first-session.md"],
       ["forum", "Using the forum", "docs/user-guide.md"],
       ["my-work", "My work", "docs/my-work.md"],
+      ["extensions", "Extensions & theme authoring", "docs/extensions.md"],
       ["search", "Search & discovery", "docs/search.md"],
     ],
   ],

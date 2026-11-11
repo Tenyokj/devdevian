@@ -1,3 +1,4 @@
+import { registerExtensions } from "./extensions.mjs";
 import {
   participationReady,
   prepareParticipation,
@@ -538,6 +539,7 @@ export async function createApp({ migrationOnly = false } = {}) {
     if (!db.schemaCurrent || migrationOnly) prepareParticipation(db);
     db.participationReady = participationReady(db);
     registerMyWork(app, db, required);
+    registerExtensions(app, db, required, { migrate: migrationOnly });
     if (!db.schemaCurrent)
       db.exec(`
   CREATE INDEX IF NOT EXISTS memberships_item ON memberships(kind,item,user_id);

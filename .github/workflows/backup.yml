@@ -19,6 +19,7 @@ on:
           - github-app
           - github-work
           - participation
+          - extensions
 permissions:
   contents: read
 concurrency:
@@ -117,3 +118,10 @@ jobs:
           TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
           TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
         run: node scripts/migrate.mjs --prepare-participation
+
+      - name: Prepare additive Extensions tables
+        if: github.event_name == 'workflow_dispatch' && inputs.workspace_action == 'extensions'
+        env:
+          TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
+          TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
+        run: node scripts/migrate.mjs --prepare-extensions

@@ -263,7 +263,7 @@ try {
   ).toBe("rgb(16, 10, 24)");
   expect(errors).toEqual([]);
   console.log(
-    "Docs redesign: home, 26 routes, modal keyboard/section search + page highlights, code/Markdown copy, theme isolation + persistence, sidebar/toc, different diagrams, new images/gallery, 5 widths × 2 themes and no-JS reading passed.",
+    "Docs redesign: home, 27 routes, modal keyboard/section search + page highlights, code/Markdown copy, theme isolation + persistence, sidebar/toc, different diagrams, new images/gallery, 5 widths × 2 themes and no-JS reading passed.",
   );
 } finally {
   await browser?.close();

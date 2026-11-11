@@ -35,6 +35,11 @@ export function Settings({
       <p className="modal-description">
         Your identity, privacy and connected accounts.
       </p>
+      <div className="settings-section">
+        <h3><Globe size={16} /> Appearance & extensions</h3>
+        <p>Preview themes, install a look for your account, or publish your own palette.</p>
+        <a className="text-button" href="#extensions" onClick={close}>Open Extensions ↗</a>
+      </div>
       <ErrorMessage error={error} />
       <form
         onSubmit={async (e) => {

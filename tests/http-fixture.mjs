@@ -3,7 +3,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createServer } from "node:net";
-export async function startTestServer({ databasePath, serverEntry = "server.mjs" } = {}) {
+export async function startTestServer({ databasePath, serverEntry = "server.mjs", extensionReviewer = "" } = {}) {
   const directory = await mkdtemp(join(tmpdir(), "devdevian-http-"));
   const probe = createServer();
   await new Promise((r) => probe.listen(0, "127.0.0.1", r));
@@ -25,6 +25,7 @@ export async function startTestServer({ databasePath, serverEntry = "server.mjs"
       VERCEL: "",
       PORT: String(port),
       MODERATOR_EMAILS: "moderator@fixture.test",
+      EXTENSION_REVIEWER_EMAILS: extensionReviewer,
     },
     stdio: ["ignore", "pipe", "pipe"],
   });

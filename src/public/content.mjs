@@ -4,6 +4,19 @@ export const launchFilm = "https://www.youtube.com/watch?v=qjFs2yy5uz0";
 export const repository = "https://github.com/Tenyokj/devdevian";
 export const updates = [
   {
+    id: "extensions-1-1",
+    channel: "Browser",
+    version: "1.1.0",
+    title: "Your space. Your colors.",
+    summary: "Discover browser themes, preview your workspace and publish a palette of your own.",
+    points: [
+      "Installed exact versions follow your account; other users, CLI, docs and the landing keep their own appearance.",
+      "Themes are validated color/font/corner data, with version-specific review labels and explicit installation. No scripts or arbitrary CSS.",
+    ],
+    link: "/app#extensions",
+    label: "Explore Extensions",
+  },
+  {
     id: "devdevian-1-0",
     channel: "Browser",
     version: "1.0.0",

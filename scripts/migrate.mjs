@@ -4,6 +4,7 @@ process.env.VERCEL = "1";
 process.env.DEVDEVIAN_EXPLICIT_ENV = "1";
 try {
   const actions = new Set([
+    "--prepare-extensions",
     "--prepare-github-app",
     "--prepare-participation",
     "--prepare-github-work",
@@ -21,7 +22,22 @@ try {
     throw Error(
       "Use no argument to finalize, or one supported --prepare-* action. No migration was run.",
     );
-  if (process.argv.includes("--prepare-participation")) {
+  if (process.argv.includes("--prepare-extensions")) {
+    const { openDatabase } = await import("../database.mjs");
+    const { prepareExtensions } = await import("../extensions.mjs");
+    const db = await openDatabase();
+    try {
+      if (
+        db.prepare("SELECT version FROM app_schema WHERE id=1").get()
+          ?.version !== 7
+      )
+        throw Error("Extensions require schema v7.");
+      prepareExtensions(db);
+    } finally {
+      db.close();
+    }
+    console.log("Extensions prepared; global schema preserved.");
+  } else if (process.argv.includes("--prepare-participation")) {
     const { openDatabase } = await import("../database.mjs");
     const { prepareParticipation } = await import(
       "../project-participation-schema.mjs"
