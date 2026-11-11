@@ -97,6 +97,11 @@ test("extensions isolate installs, pin immutable versions, require explicit trus
     acknowledge_unreviewed: true,
   });
   assert.equal(installed.data.active.id, first.data.id);
+  assert.equal(
+    (await reader("/extensions/me?active_only=1")).data.active.id,
+    first.data.id,
+  );
+  assert.equal((await other("/extensions/me?active_only=1")).data.active, null);
   assert.equal((await other("/extensions/me")).data.active, null);
   assert.deepEqual((await other("/extensions/me")).data.installed, []);
   assert.equal(

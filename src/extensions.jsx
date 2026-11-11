@@ -42,7 +42,7 @@ export function useExtensionTheme(user, baseTheme) {
     const load = () => {
       controller?.abort();
       controller = new AbortController();
-      api("/extensions/me", { signal: controller.signal })
+      api("/extensions/me?active_only=1", { signal: controller.signal })
         .then((s) => {
           if (alive) setSelection(s.active || null);
         })

@@ -7,15 +7,12 @@ export function prepareExtensions(db) {
   );
 }
 export function extensionsReady(db) {
-  return [
-    "extension_releases",
-    "extension_installs",
-    "extension_active",
-    "extension_reviews",
-  ].every((name) =>
+  return (
     db
-      .prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?")
-      .get(name),
+      .prepare(
+        "SELECT COUNT(*) n FROM sqlite_master WHERE type='table' AND name IN('extension_releases','extension_installs','extension_active','extension_reviews')",
+      )
+      .get().n === 4
   );
 }
 const reviewer = (user) =>
@@ -80,21 +77,39 @@ export function registerExtensions(
     const r = release(id);
     return r && r.review !== "withdrawn" ? r : null;
   };
-  const state = (user) => {
+  const stored = (row) =>
+    row &&
+    (builtinThemes.find((x) => x.id === row.release_key) ||
+      (row.id && row.author_name !== null ? output(row) : null));
+  const joined =
+    " LEFT JOIN extension_releases e ON s.release_key='theme-'||e.id LEFT JOIN users u ON u.id=e.user_id AND u.deleted_at IS NULL ";
+  // One joined read, rather than a remote round trip for every installed theme.
+  const state = (user, minimal = false) => {
     if (!user) return { installed: [], active: null, can_review: false };
+    const selected = stored(
+      db
+        .prepare(
+          "SELECT s.release_key,e.*,u.name author_name,u.username author_username FROM extension_active s" +
+            joined +
+            " WHERE s.user_id=?",
+        )
+        .get(user.id),
+    );
+    const active =
+      selected && selected.review !== "withdrawn" ? selected : null;
+    if (minimal) return { active, can_review: reviewer(user) };
     const installed = db
       .prepare(
-        "SELECT release_key FROM extension_installs WHERE user_id=? ORDER BY created DESC,release_key LIMIT 100",
+        "SELECT s.release_key,e.*,u.name author_name,u.username author_username FROM extension_installs s" +
+          joined +
+          " WHERE s.user_id=? ORDER BY s.created DESC,s.release_key LIMIT 100",
       )
       .all(user.id)
-      .map((x) => release(x.release_key))
+      .map(stored)
       .filter(Boolean);
-    const key = db
-      .prepare("SELECT release_key FROM extension_active WHERE user_id=?")
-      .get(user.id)?.release_key;
     return {
       installed,
-      active: key ? available(key) : null,
+      active,
       can_review: reviewer(user),
       published: db
         .prepare(select + " AND e.user_id=? ORDER BY e.id DESC LIMIT 100")
@@ -151,7 +166,9 @@ export function registerExtensions(
     });
   });
   app.get("/api/extensions/me", gate, (req, res) =>
-    res.set("Cache-Control", "no-store").json(state(req.user)),
+    res
+      .set("Cache-Control", "no-store")
+      .json(state(req.user, req.query.active_only === "1")),
   );
   app.get("/api/extensions/releases/:id", gate, (req, res) => {
     const r = release(req.params.id);
