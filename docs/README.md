@@ -4,7 +4,7 @@ Read the searchable [Devdevian documentation website](https://devdevian.vercel.a
 
 Devdevian is an open-source developer forum. The hosted early release is at [devdevian.vercel.app](https://devdevian.vercel.app/), with the forum at [/app](https://devdevian.vercel.app/app).
 
-[Source map](source-map.md) · [What’s new](https://devdevian.vercel.app/updates) · [Searchable FAQ](https://devdevian.vercel.app/faq) · [Launch film](https://www.youtube.com/watch?v=ssUCB1Jpf-Q)
+[Source map](source-map.md) · [What’s new](https://devdevian.vercel.app/updates) · [Searchable FAQ](https://devdevian.vercel.app/faq) · [Launch film](https://www.youtube.com/watch?v=qjFs2yy5uz0)
 
 ## Release notes
 

@@ -678,7 +678,7 @@ export default function DocsPage({ slug = "home" }) {
               npm package
               <ArrowUpRight size={13} />
             </a>
-            <a href="https://www.youtube.com/watch?v=ssUCB1Jpf-Q">
+            <a href="https://www.youtube.com/watch?v=qjFs2yy5uz0">
               <FileText size={16} />
               Watch the demo
               <ArrowUpRight size={13} />
@@ -881,7 +881,7 @@ export default function DocsPage({ slug = "home" }) {
         </div>
         <div>
           <h2>Resources</h2>
-          <a href="https://www.youtube.com/watch?v=ssUCB1Jpf-Q">
+          <a href="https://www.youtube.com/watch?v=qjFs2yy5uz0">
             Watch the demo
             <ArrowUpRight size={13} />
           </a>

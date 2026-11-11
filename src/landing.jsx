@@ -1,4 +1,5 @@
 import FAQItem from "./public/accordion";
+import { launchFilm } from "./public/content.mjs";
 import { CLISection, CLIReview, PublicActivity } from "./landing-cli";
 import WorkspaceShowcase from "./landing-workspaces";
 import StackRibbon from "./stack";
@@ -328,6 +329,9 @@ export default function Landing() {
               <div>
                 <a className="landing-button" href="/app">
                   Explore the forum <ArrowUpRight size={18} />
+                </a>
+                <a className="landing-text-link launch-film-link" href={launchFilm}>
+                  Watch the new film · 2 min <ArrowUpRight size={17} />
                 </a>
                 <span className="development-note">
                   <CircleDot size={13} /> In active development · Fully open

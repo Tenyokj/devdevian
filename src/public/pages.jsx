@@ -10,11 +10,11 @@ import {
   Sparkles,
 } from "lucide-react";
 import FAQItem from "./accordion";
-import { categories, questions, repository, updates } from "./content.mjs";
+import { categories, questions, repository, updates, launchFilm } from "./content.mjs";
 import "../landing.css";
 import "./pages.css";
 
-export const launchFilm = "https://www.youtube.com/watch?v=ssUCB1Jpf-Q";
+export { launchFilm } from "./content.mjs";
 
 function UpdateHistory() {
   const [channel, setChannel] = useState("All");

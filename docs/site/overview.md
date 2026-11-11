@@ -50,5 +50,5 @@ These guides describe implemented behavior. Future features belong in planning d
 - [Open the forum](https://devdevian.vercel.app/app)
 - [Source repository](https://github.com/Tenyokj/devdevian)
 - [What’s new](https://devdevian.vercel.app/updates)
-- [Watch the launch film](https://www.youtube.com/watch?v=ssUCB1Jpf-Q)
+- [Watch the launch film](https://www.youtube.com/watch?v=qjFs2yy5uz0)
 - [Report a bug](https://github.com/Tenyokj/devdevian/issues/new/choose)
