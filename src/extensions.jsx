@@ -618,7 +618,7 @@ export function Extensions({ user, requireUser }) {
             <Search size={17} />
             <input
               aria-label="Search extensions"
-              placeholder="Find your next palette…"
+              placeholder="Find extensions, tools and themes…"
               value={query}
               maxLength={80}
               onChange={(e) => {
@@ -659,14 +659,14 @@ export function Extensions({ user, requireUser }) {
             {tab === "installed"
               ? "Make this space yours."
               : tab === "published"
-                ? "Your first palette starts here."
+                ? "Your first extension starts here."
                 : "No extensions found."}
           </h2>
           <p>
             {tab === "installed"
               ? "Open Discover, preview an extension and install it for your account."
               : tab === "published"
-                ? "Start with a built-in palette or import your own JSON manifest."
+                ? "Build a package locally, inspect its sources and upload your .devext.json."
                 : "Try another name or show all extensions."}
           </p>
         </div>
@@ -690,11 +690,12 @@ export function Extensions({ user, requireUser }) {
       <aside className="extension-trust">
         <ShieldCheck size={23} />
         <div>
-          <strong>Appearance, with clear boundaries.</strong>
+          <strong>Your code, with explicit capabilities.</strong>
           <p>
-            Themes use color and layout tokens. No scripts, arbitrary CSS or
-            external requests. “Reviewed” applies to this exact version; it is
-            not a security guarantee. Community packages are clearly labeled.
+            Code runs in an isolated sandbox. Shell changes, data reads and
+            network access require declared capabilities. “Reviewed” applies to
+            this exact version; inspect its sources and permissions before
+            installing.
           </p>
         </div>
       </aside>

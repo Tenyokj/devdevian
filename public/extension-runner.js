@@ -1,6 +1,10 @@
 // Executed only inside the opaque-origin, script-only sandbox document.
 (() => {
   let connected = false;
+  // A cached iframe may load before React attaches its message listener.
+  const announce = () => parent.postMessage({ type: "devdevian:ready" }, "*");
+  const hello = setInterval(announce, 500);
+  const deadline = setTimeout(() => clearInterval(hello), 30000);
   addEventListener("message", (event) => {
     if (
       connected ||
@@ -10,6 +14,8 @@
     )
       return;
     connected = true;
+    clearInterval(hello);
+    clearTimeout(deadline);
     const port = event.ports[0],
       pending = new Map(),
       listeners = new Set();
