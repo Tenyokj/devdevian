@@ -1,3 +1,4 @@
+import { PublishExtension } from "./extension-publish";
 import { validatePackage } from "../extension-package.mjs";
 import React, { useState, useEffect, useLayoutEffect } from "react";
 import {
@@ -18,7 +19,7 @@ const api = (path, options = {}) =>
     ...options,
     headers: { ...options.headers, "X-Devdevian-Extensions": "2" },
   });
-import { Modal, Field, ErrorMessage } from "./ui";
+import { Modal, Field, ErrorMessage, MD as Markdown } from "./ui";
 import {
   themeTokens,
   validateManifest,
@@ -177,12 +178,29 @@ function ThemeCard({ item, onOpen, active }) {
     return (
       <button className="extension-card" onClick={() => onOpen(item)}>
         <div className="extension-package-art">
-          <Package size={45} />
-          <code>JavaScript + CSS</code>
+          {item.listing?.screenshots?.[0] ? (
+            <img
+              src={"/api/uploads/" + item.listing.screenshots[0]}
+              alt={item.name + " preview"}
+              loading="lazy"
+            />
+          ) : (
+            <>
+              <Package size={45} />
+              <code>JavaScript + CSS</code>
+            </>
+          )}
         </div>
         <div className="extension-card-body">
           <h3>{item.name}</h3>
           <p>{item.description}</p>
+          {item.listing?.tags?.length > 0 && (
+            <div className="extension-tags">
+              {item.listing.tags.map((tag) => (
+                <span key={tag}>#{tag}</span>
+              ))}
+            </div>
+          )}
           <div className="extension-card-meta">
             <span>By @{item.author.username || item.author.name}</span>
             <span className={"extension-badge " + item.review}>
@@ -274,166 +292,7 @@ function PermissionList({ manifest }) {
     </div>
   );
 }
-function PublishTheme({ close, onPublished }) {
-  const [pkg, setPkg] = useState(null),
-    [error, setError] = useState(""),
-    [busy, setBusy] = useState(false),
-    [consent, setConsent] = useState(false),
-    [live, setLive] = useState(false);
-  const accept = (value) => {
-    validatePackage(value.manifest);
-    if (
-      typeof value.name !== "string" ||
-      typeof value.slug !== "string" ||
-      typeof value.version !== "string" ||
-      typeof value.description !== "string"
-    )
-      throw Error(
-        "Package needs name, slug, version and description metadata.",
-      );
-    setPkg(value);
-    setConsent(false);
-    setError("");
-  };
-  const local = async () => {
-    try {
-      const build = await api("/extensions/development");
-      accept(build);
-      return build;
-    } catch (e) {
-      setError(e.message);
-      return null;
-    }
-  };
 
-  return (
-    <Modal
-      title="Load an extension package"
-      onClose={() => {
-        setLive(false);
-        close();
-      }}
-      wide
-    >
-      <p className="modal-description">
-        Develop JavaScript and CSS in your editor. Build a .devext.json package,
-        inspect its sources and capabilities here, then preview or publish it.
-      </p>
-      <ErrorMessage error={error} />
-      <label className="extension-package-drop">
-        Choose .devext.json
-        <input
-          aria-label="Extension package file"
-          type="file"
-          accept=".json,application/json"
-          onChange={async (e) => {
-            try {
-              const file = e.target.files?.[0];
-              if (!file) return;
-              if (file.size > 210000)
-                throw Error("Package file exceeds the upload limit.");
-              accept(JSON.parse(await file.text()));
-            } catch (e) {
-              setError(e.message);
-            }
-          }}
-        />
-      </label>
-      <a href="/docs/extensions" target="_blank" rel="noreferrer">
-        SDK, local development and package format ↗
-      </a>
-      {["localhost", "127.0.0.1"].includes(location.hostname) && (
-        <div className="extension-editor">
-          <strong>Local development server</strong>
-          <p>
-            Start with npm run extension:dev -- path/to/extension. Load the
-            local build, grant its capabilities, then enable live preview.
-          </p>
-          <button className="text-button" onClick={local}>
-            Load local build
-          </button>
-          {pkg && (
-            <label>
-              <input
-                type="checkbox"
-                checked={live}
-                disabled={!consent}
-                onChange={(e) => setLive(e.target.checked)}
-              />{" "}
-              Live preview (local server only)
-            </label>
-          )}
-        </div>
-      )}
-      {pkg && (
-        <>
-          <h2>
-            {pkg.name} <small>v{pkg.version}</small>
-          </h2>
-          <p>{pkg.description}</p>
-          <PermissionList manifest={pkg.manifest} />
-          <details className="extension-editor">
-            <summary>
-              Inspect packaged source files (
-              {Object.keys(pkg.manifest.files).length})
-            </summary>
-            {Object.entries(pkg.manifest.files).map(([path, source]) => (
-              <details key={path}>
-                <summary>{path}</summary>
-                <pre>{source}</pre>
-              </details>
-            ))}
-          </details>
-          <label className="extension-ack">
-            <input
-              type="checkbox"
-              checked={consent}
-              onChange={(e) => setConsent(e.target.checked)}
-            />
-            I trust this code and allow its declared capabilities for a local
-            preview. This does not grant other extensions access.
-          </label>
-          <div className="extension-actions">
-            <button
-              className="secondary-button"
-              disabled={!consent}
-              onClick={() => {
-                window.dispatchEvent(
-                  new window.CustomEvent("devdevian-extension-preview", {
-                    detail: { ...pkg, live },
-                  }),
-                );
-                close();
-              }}
-            >
-              Preview in my app
-            </button>
-            <button
-              className="primary-button"
-              disabled={busy}
-              onClick={async () => {
-                setBusy(true);
-                try {
-                  const result = await api("/extensions/publish", {
-                    method: "POST",
-                    body: pkg,
-                  });
-                  onPublished(result);
-                } catch (e) {
-                  setError(e.message);
-                } finally {
-                  setBusy(false);
-                }
-              }}
-            >
-              {busy ? "Publishing…" : "Publish immutable package"}
-            </button>
-          </div>
-        </>
-      )}
-    </Modal>
-  );
-}
 export function Extensions({ user, requireUser }) {
   const [library, setLibrary] = useState(null),
     [mine, setMine] = useState({ installed: [], published: [], active: null }),
@@ -559,36 +418,39 @@ export function Extensions({ user, requireUser }) {
             </a>
           </div>
         </div>
-        <div className="extension-hero-art" aria-hidden="true">
-          {builtinThemes.map((x) => (
-            <span
-              key={x.id}
-              style={{
-                "--swatch": x.manifest.palette.accent,
-                "--paper": x.manifest.palette.canvas,
-              }}
-            >
-              <Palette size={34} />
-              <b>{x.name}</b>
-            </span>
-          ))}
+        <div
+          className="extension-hero-art extension-workbench"
+          aria-hidden="true"
+        >
+          <div>
+            <Package size={30} />
+            <strong>Build your own Devdevian.</strong>
+          </div>
+          <pre>
+            <span>await</span> devdevian.layout.apply(...);{"\n"}
+            <span>await</span> devdevian.panel.configure(...);{"\n"}
+            <span>await</span> devdevian.views.open("projects");
+          </pre>
+          <p>Layouts · Panels · Themes · Integrations</p>
         </div>
       </header>
       <div className="extension-account-bar">
         <span>
           <Palette size={18} />
-          {mine.active
-            ? `Active: ${mine.active.name} · v${mine.active.version}`
-            : "Using the default appearance"}
+          {mine.enabled?.length
+            ? `${mine.enabled.length} code extensions enabled`
+            : mine.active
+              ? `Active: ${mine.active.name} · v${mine.active.version}`
+              : "Using the default appearance"}
         </span>
         <button
           className="text-button"
-          disabled={!user || busy || !mine.active}
+          disabled={!user || busy || (!mine.active && !mine.enabled?.length)}
           onClick={() =>
             mutate(
-              "/extensions/active",
-              "PUT",
-              { release: null },
+              "/extensions/disable-all",
+              "POST",
+              {},
               "Default appearance restored.",
             )
           }
@@ -597,7 +459,7 @@ export function Extensions({ user, requireUser }) {
         </button>
       </div>
       <div className="extension-toolbar">
-        <div role="tablist" aria-label="Theme library">
+        <div role="tablist" aria-label="Extension library">
           {[
             ["discover", "Discover"],
             ["installed", "Installed"],
@@ -724,6 +586,46 @@ export function Extensions({ user, requireUser }) {
             </span>
           </div>
           <p className="modal-description">{selected.description}</p>
+          {selected.listing && (
+            <section className="extension-listing-detail">
+              <div className="extension-tags">
+                {selected.listing.tags?.map((tag) => (
+                  <span key={tag}>#{tag}</span>
+                ))}
+              </div>
+              <div className="extension-screenshots">
+                {selected.listing.screenshots?.map((id, i) => (
+                  <a
+                    href={"/api/uploads/" + id}
+                    target="_blank"
+                    rel="noreferrer"
+                    key={id}
+                  >
+                    <img
+                      src={"/api/uploads/" + id}
+                      alt={selected.name + " screenshot " + (i + 1)}
+                      loading="lazy"
+                    />
+                  </a>
+                ))}
+              </div>
+              {selected.listing.full_description && (
+                <Markdown>{selected.listing.full_description}</Markdown>
+              )}
+              <div className="extension-resource-links">
+                {selected.listing.links?.map((link, i) => (
+                  <a
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    key={i}
+                  >
+                    {link.label} ↗
+                  </a>
+                ))}
+              </div>
+            </section>
+          )}
           {selected.manifest.kind === "theme" ? (
             <ThemePreview manifest={selected.manifest} name={selected.name} />
           ) : (
@@ -773,6 +675,7 @@ export function Extensions({ user, requireUser }) {
                           slug: selected.slug,
                           version: selected.version,
                           description: selected.description,
+                          listing: selected.listing,
                           manifest: selected.manifest,
                         }
                       : selected.manifest,
@@ -918,7 +821,7 @@ export function Extensions({ user, requireUser }) {
         </Modal>
       )}
       {publish && (
-        <PublishTheme
+        <PublishExtension
           close={() => setPublish(false)}
           onPublished={(item) => {
             setPublish(false);

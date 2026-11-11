@@ -1,3 +1,4 @@
+import { validateListing } from "./extension-listing.mjs";
 import { validatePackage } from "./extension-package.mjs";
 import { builtinThemes, validateManifest } from "./extension-manifest.mjs";
 import { transaction } from "./activity.mjs";
@@ -66,7 +67,7 @@ export function registerExtensions(
       : res
           .status(503)
           .json({ error: "Extensions are awaiting server preparation." });
-  const select = `SELECT e.*,u.name author_name,u.username author_username FROM extension_releases e JOIN users u ON u.id=e.user_id WHERE u.deleted_at IS NULL`;
+  const select = `SELECT e.*,d.data listing_json,u.name author_name,u.username author_username FROM extension_releases e JOIN users u ON u.id=e.user_id LEFT JOIN entity_details d ON d.kind='extension' AND d.entity_id=CAST(e.id AS TEXT) WHERE u.deleted_at IS NULL`;
   const output = (r) =>
     r && {
       id: "theme-" + r.id,
@@ -74,6 +75,7 @@ export function registerExtensions(
       name: r.name,
       version: r.version,
       description: r.description,
+      listing: JSON.parse(r.listing_json || "{}"),
       manifest: JSON.parse(r.manifest),
       review: r.review,
       review_note: r.review_note,
@@ -99,14 +101,14 @@ export function registerExtensions(
     (builtinThemes.find((x) => x.id === row.release_key) ||
       (row.id && row.author_name !== null ? output(row) : null));
   const joined =
-    " LEFT JOIN extension_releases e ON s.release_key='theme-'||e.id LEFT JOIN users u ON u.id=e.user_id AND u.deleted_at IS NULL ";
+    " LEFT JOIN extension_releases e ON s.release_key='theme-'||e.id LEFT JOIN entity_details d ON d.kind='extension' AND d.entity_id=CAST(e.id AS TEXT) LEFT JOIN users u ON u.id=e.user_id AND u.deleted_at IS NULL ";
   // One joined read, rather than a remote round trip for every installed theme.
   const state = (user, minimal = false, code = false) => {
     if (!user) return { installed: [], active: null, can_review: false };
     const selected = stored(
       db
         .prepare(
-          "SELECT s.release_key,e.*,u.name author_name,u.username author_username FROM extension_active s" +
+          "SELECT s.release_key,e.*,d.data listing_json,u.name author_name,u.username author_username FROM extension_active s" +
             joined +
             " WHERE s.user_id=?",
         )
@@ -117,7 +119,7 @@ export function registerExtensions(
     const enabled = code
       ? db
           .prepare(
-            "SELECT s.release_key,s.grants install_grants,e.*,u.name author_name,u.username author_username FROM extension_installs s" +
+            "SELECT s.release_key,s.grants install_grants,e.*,d.data listing_json,u.name author_name,u.username author_username FROM extension_installs s" +
               joined +
               " WHERE s.user_id=? AND s.enabled=1 ORDER BY s.created,s.release_key LIMIT 8",
           )
@@ -135,7 +137,7 @@ export function registerExtensions(
     if (minimal) return { active, enabled, can_review: reviewer(user) };
     const installed = db
       .prepare(
-        "SELECT s.release_key,s.enabled install_enabled,s.grants install_grants,e.*,u.name author_name,u.username author_username FROM extension_installs s" +
+        "SELECT s.release_key,s.enabled install_enabled,s.grants install_grants,e.*,d.data listing_json,u.name author_name,u.username author_username FROM extension_installs s" +
           joined +
           " WHERE s.user_id=? ORDER BY s.created DESC,s.release_key LIMIT 100",
       )
@@ -182,12 +184,13 @@ export function registerExtensions(
     const page = Math.max(1, Math.min(1000, Number(req.query.page) || 1)),
       q = String(req.query.q || "")
         .trim()
+        .replace(/^#/, "")
         .slice(0, 80),
       filter = req.query.filter;
     if (!Number.isInteger(page))
       return res.status(400).json({ error: "Invalid page." });
     const where =
-      " AND e.review<>'withdrawn' AND e.id=(SELECT MAX(x.id) FROM extension_releases x WHERE x.slug=e.slug) AND (instr(lower(e.name),lower(?))>0 OR instr(lower(e.description),lower(?))>0)" +
+      " AND e.review<>'withdrawn' AND e.id=(SELECT MAX(x.id) FROM extension_releases x WHERE x.slug=e.slug) AND (instr(lower(e.name),lower(?))>0 OR instr(lower(e.description),lower(?))>0 OR EXISTS(SELECT 1 FROM entity_details t,json_each(json_extract(t.data,'$.tags')) tag WHERE t.kind='extension' AND t.entity_id=CAST(e.id AS TEXT) AND instr(lower(tag.value),lower(?))>0))" +
       (filter === "reviewed" ? " AND e.review='reviewed'" : "") +
       (format2(req) ? "" : " AND json_extract(e.manifest,'$.kind')='theme'");
     const total = db
@@ -195,10 +198,10 @@ export function registerExtensions(
         "SELECT COUNT(*) total FROM extension_releases e JOIN users u ON u.id=e.user_id WHERE u.deleted_at IS NULL" +
           where,
       )
-      .get(q, q).total;
+      .get(q, q, q).total;
     const items = db
       .prepare(select + where + " ORDER BY e.id DESC LIMIT 12 OFFSET ?")
-      .all(q, q, (page - 1) * 12)
+      .all(q, q, q, (page - 1) * 12)
       .map(output);
     res.set("Cache-Control", "no-store").json({
       builtins:
@@ -238,8 +241,21 @@ export function registerExtensions(
         error:
           "Use a name, description, lowercase slug and a version such as 1.0.0.",
       });
-    let manifest;
+    let manifest, listing;
     try {
+      listing = validateListing(b.listing);
+      for (const id of listing.screenshots) {
+        if (
+          !db
+            .prepare(
+              "SELECT 1 FROM uploads WHERE id=? AND user_id=? AND post_id IS NULL AND mime IN('image/png','image/jpeg','image/webp','image/gif')",
+            )
+            .get(id, req.user.id)
+        )
+          throw Error(
+            "Screenshots must be your own uploaded images, separate from conversation attachments.",
+          );
+      }
       manifest =
         b.manifest?.kind === "extension"
           ? validatePackage(b.manifest)
@@ -280,6 +296,9 @@ export function registerExtensions(
           b.description.trim(),
           JSON.stringify(manifest),
         );
+      db.prepare(
+        "INSERT INTO entity_details(kind,entity_id,data) VALUES('extension',?,?)",
+      ).run(String(r.lastInsertRowid), JSON.stringify(listing));
       return { id: "theme-" + r.lastInsertRowid };
     });
     return result.error

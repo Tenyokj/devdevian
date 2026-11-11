@@ -59,18 +59,96 @@ try {
   await page
     .getByRole("button", { name: "Upload extension", exact: true })
     .waitFor();
+  assert.equal(
+    await page.locator(".devext-recovery").count(),
+    0,
+    "No recovery button should cover the logo when no extension is running",
+  );
   const pkg = await buildExtension("examples/extensions/studio-shell");
   await page
     .getByRole("button", { name: "Upload extension", exact: true })
     .click();
+  await page.getByLabel("Extension name", { exact: true }).waitFor();
+  await page
+    .getByRole("button", { name: "Load Studio Shell example", exact: true })
+    .click();
+  await page.waitForFunction(
+    () =>
+      document.querySelector('[aria-label="Extension name"]').value ===
+      "Studio Shell",
+  );
+  await mkdir(".test-data/extensions-browser", { recursive: true });
+  await page.screenshot({
+    path: ".test-data/extensions-browser/publish-listing.png",
+    fullPage: true,
+  });
+
+  await page.getByLabel("Extension package file").setInputFiles({
+    name: "RectangleConfig.json",
+    mimeType: "application/json",
+    buffer: Buffer.from('{"random":true}'),
+  });
+  await page
+    .getByText("This is not a Devdevian extension package.", { exact: false })
+    .waitFor();
+  assert.equal(
+    await page
+      .getByRole("button", { name: "Publish immutable package" })
+      .isDisabled(),
+    true,
+  );
   await page.getByLabel("Extension package file").setInputFiles({
     name: "studio-shell.devext.json",
     mimeType: "application/json",
     buffer: Buffer.from(JSON.stringify(pkg)),
   });
+  await page
+    .getByLabel("Full description", { exact: true })
+    .fill("## A complete extension\n\nSetup instructions and useful details.");
+  await page.getByLabel("Extension tags").fill("theme, productivity");
+  await page.getByRole("button", { name: "+ Add link", exact: true }).click();
+  const linkCount = await page.getByLabel(/Link \d+ label/).count();
+  await page.getByLabel(`Link ${linkCount} label`).fill("Support");
+  await page
+    .getByLabel(`Link ${linkCount} URL`)
+    .fill("https://github.com/Tenyokj/devdevian/issues");
+  await page
+    .getByLabel("Extension screenshots")
+    .setInputFiles("public/devdevian-logo.png");
+  await page
+    .getByRole("button", { name: "Remove screenshot 1", exact: true })
+    .waitFor();
+  const src = await page
+    .getByAltText("Screenshot 1", { exact: true })
+    .getAttribute("src");
+  const guest = await browser.newContext();
+  assert.equal(
+    (await guest.request.get(f.base + src)).status(),
+    404,
+    "Unpublished screenshot stays private",
+  );
   await page.getByRole("button", { name: "Publish immutable package" }).click();
+  assert.equal(
+    (await guest.request.get(f.base + src)).status(),
+    200,
+    "Published screenshot is visible to library visitors",
+  );
+  await guest.close();
+
   await page
     .getByRole("heading", { name: "Studio Shell", exact: true })
+    .waitFor();
+  await page
+    .getByRole("heading", { name: "A complete extension", exact: true })
+    .waitFor();
+  assert.equal(
+    await page
+      .getByRole("link", { name: "Support", exact: false })
+      .getAttribute("href"),
+    "https://github.com/Tenyokj/devdevian/issues",
+  );
+  await page
+    .getByAltText("Studio Shell screenshot 1", { exact: true })
     .waitFor();
   // Install only after reviewing code capabilities. Also prove the server rejects missing grants.
   const result = await page.evaluate(async () => {

@@ -42,6 +42,7 @@ export function attachFiles(db, postId, user, ids = [], replyId = null) {
 export function registerUploads(app, db, required) {
   initializeLimits(db);
   const storage = objectStorage();
+  let extensionTableAvailable;
   if (!db.schemaCurrent) {
     db.exec(
       "CREATE TABLE IF NOT EXISTS uploads(id TEXT PRIMARY KEY,user_id INTEGER NOT NULL,post_id INTEGER,reply_id INTEGER,name TEXT NOT NULL,mime TEXT NOT NULL,size INTEGER NOT NULL,created TEXT DEFAULT CURRENT_TIMESTAMP); CREATE INDEX IF NOT EXISTS uploads_post ON uploads(post_id,reply_id);",
@@ -216,13 +217,30 @@ export function registerUploads(app, db, required) {
         );
       return ["user", "community", "event"].includes(ref.kind);
     });
+    // Only an author may publish their own unattached screenshot. A private
+    // conversation attachment never becomes public through a listing reference.
+    const extensionVisible =
+      !imageVisible &&
+      req.user?.id !== f.user_id &&
+      (extensionTableAvailable ??= !!db
+        .prepare(
+          "SELECT 1 FROM sqlite_master WHERE type='table' AND name='extension_releases'",
+        )
+        .get()) &&
+      !f.post_id &&
+      f.mime.startsWith("image/") &&
+      !!db
+        .prepare(
+          "SELECT 1 FROM entity_details d JOIN extension_releases e ON d.kind='extension' AND d.entity_id=CAST(e.id AS TEXT) JOIN users u ON u.id=e.user_id WHERE u.deleted_at IS NULL AND e.review<>'withdrawn' AND EXISTS(SELECT 1 FROM json_each(json_extract(d.data,'$.screenshots')) WHERE value=?) LIMIT 1",
+        )
+        .get(f.id);
     const permitted = f.post_id
       ? canRead(
           db,
           req.user,
           db.prepare("SELECT * FROM posts WHERE id=?").get(f.post_id),
         )
-      : req.user?.id === f.user_id || imageVisible;
+      : req.user?.id === f.user_id || imageVisible || extensionVisible;
     if (!permitted) return res.status(404).json({ error: "File not found." });
     let bytes;
     try {

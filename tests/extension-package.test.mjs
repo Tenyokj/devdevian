@@ -173,3 +173,91 @@ test("code extension grants, account isolation, withdrawal and legacy client com
     404,
   );
 });
+
+test("listing metadata validates links and upload ownership; only published screenshots become public", async (t) => {
+  const { validateListing } = await import("../extension-listing.mjs");
+  assert.throws(() =>
+    validateListing({ links: [{ label: "Bad", url: "javascript:alert(1)" }] }),
+  );
+  assert.throws(() =>
+    validateListing({ screenshots: ["https://example.com/image.png"] }),
+  );
+  assert.throws(() => validateListing({ tags: Array(9).fill("tag") }));
+  assert.deepEqual(validateListing({ tags: ["#Theme", "theme"] }).tags, [
+    "theme",
+  ]);
+  const f = await startTestServer();
+  t.after(() => f.close());
+  const a = f.client(),
+    b = f.client();
+  for (const [api, name] of [
+    [a, "publisher"],
+    [b, "other"],
+  ])
+    await api("/register", {
+      name,
+      email: name + "@extensions.test",
+      password: "Fixture-password123",
+    });
+  const { DatabaseSync } = await import("node:sqlite");
+  const db = new DatabaseSync(f.path);
+  t.after(() => db.close());
+  const uid = db
+    .prepare("SELECT id FROM users WHERE email=?")
+    .get("publisher@extensions.test").id;
+  // A real byte upload is exercised in the browser suite. This fixture gives
+  // access-policy checks a separate owned file for listing metadata.
+  const id = "listing-owned-image-00000001";
+  db.prepare(
+    "INSERT INTO uploads(id,user_id,name,mime,size) VALUES(?,?,?,?,?)",
+  ).run(id, uid, "preview.png", "image/png", 8);
+  const pkg = {
+    name: "Listing fixture",
+    slug: "listing-fixture",
+    version: "1.0.0",
+    description: "A descriptive library card for listing tests.",
+    manifest: manifest(),
+    listing: {
+      full_description: "## Setup\n\nInstall this package.",
+      tags: ["theme"],
+      links: [{ label: "Docs", url: "https://example.com/docs" }],
+      screenshots: [id],
+    },
+  };
+  assert.equal((await b("/extensions/publish", pkg)).status, 400);
+  const created = await a("/extensions/publish", pkg);
+  assert.equal(created.status, 201, JSON.stringify(created.data));
+  assert.equal(
+    created.data.listing.full_description,
+    pkg.listing.full_description,
+  );
+  assert.deepEqual(created.data.listing.screenshots, [id]);
+  assert.equal(
+    (
+      await a(
+        "/details/extension/" + created.data.id.slice(6),
+        { screenshots: [] },
+        "PUT",
+      )
+    ).status,
+    404,
+    "Generic details endpoint must not mutate an immutable release listing",
+  );
+  const read = await b("/extensions/releases/" + created.data.id);
+  assert.deepEqual(read.data.listing.tags, ["theme"]);
+  assert.equal(
+    (
+      await b("/extensions/library?q=%23theme", undefined, "GET", {
+        "X-Devdevian-Extensions": "2",
+      })
+    ).data.items.length,
+    1,
+  );
+
+  const tampered = {
+    ...pkg,
+    version: "1.0.1",
+    listing: { links: [{ label: "Unsafe", url: "data:text/html,unsafe" }] },
+  };
+  assert.equal((await a("/extensions/publish", tampered)).status, 400);
+});

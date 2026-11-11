@@ -134,3 +134,26 @@ https://devdevian.vercel.app/app?extensions-safe=1#extensions
 Safe mode is local to that page load; **Disable all extensions** saves the disabled state to your account. **Stop preview** removes only the temporary developer package. The library also supports disabling or removing individual installs.
 
 Isolation limits data access; it is not a resource quota for arbitrary JavaScript. An extension can still be misleading, use CPU excessively or render inaccessible controls inside its own interface. Browser process scheduling differs, so an infinite loop can make a tab unresponsive; close it and reopen in safe mode. This SDK does not promise unrestricted mutation of application internals, server-side plugins, payments or extension rewards. Request additional SDK capabilities through a [GitHub issue](https://github.com/Tenyokj/devdevian/issues) with a concrete use case.
+
+## Create a complete library listing
+
+**Upload extension** opens a publication form immediately: name, unique slug, version, short description, full Markdown description, tags, resource links and screenshots. Loading a package prefills these fields; you can edit the listing before publishing without changing its code. Explain setup, shortcuts, capabilities and any external services so installers know what they are choosing.
+
+For a first test, choose **Load Studio Shell example** in that form. This fetches a real, already built package; it does not execute it. Inspect its capabilities, approve preview and choose **Preview in my app**. You can also [download Studio Shell](https://devdevian.vercel.app/extension-examples/studio-shell.devext.json) or [Devi Companion](https://devdevian.vercel.app/extension-examples/devi-companion.devext.json). A random JSON configuration, screenshot, ZIP or loose source file is not a code package, even if renamed `.devext.json`.
+
+The optional `listing` object in the package envelope or local `devdevian.extension.json` supports:
+
+```json
+{
+  "listing": {
+    "full_description": "## Features\n\nSetup and usage instructions.",
+    "tags": ["productivity", "layout"],
+    "links": [{ "label": "Source code", "url": "https://github.com/you/extension" }],
+    "screenshots": []
+  }
+}
+```
+
+Full descriptions allow 20,000 characters. Add at most eight tags (2–30 letters/digits/dots/underscores/hyphens), five labeled HTTPS links and six PNG/JPEG/WebP/GIF screenshots, each at most 4 MB. Tags can be searched with or without `#`. Upload screenshots through the publication form: the saved listing references upload IDs, not inline base64 or arbitrary external image URLs. Only your own unattached image uploads can be published. Until publication they remain private to you; publishing makes those images visible to library visitors. Images attached to a private conversation cannot be reused through this flow. Withdrawing the version removes the extension listing's public access to its images; other valid public uses of the same image remain independent.
+
+Listing metadata is saved with the immutable release. Update it by publishing a newer version rather than changing an already reviewed page. Included source files are also public. Recovery controls appear at the bottom of the screen only while an extension/preview is running or safe mode is active; the ordinary sidebar contains the normal Extensions navigation.

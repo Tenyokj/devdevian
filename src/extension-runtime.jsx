@@ -401,44 +401,49 @@ export function ExtensionRuntime({ user }) {
     disabled || safe ? [] : [...enabled, ...(preview ? [preview] : [])];
   return (
     <>
-      <div className="devext-recovery" aria-label="Extension recovery controls">
-        <a href="/app#extensions">Extensions</a>
-        {(enabled.length > 0 || preview) && (
-          <>
-            <span>
-              {preview ? "Developer preview" : `${enabled.length} enabled`}
-            </span>
-            <button onClick={stop}>Disable all extensions</button>
-          </>
-        )}
-        {safe && (
-          <>
-            <span>Safe mode</span>
+      {!disabled && (active.length > 0 || safe) && (
+        <div
+          className="devext-recovery"
+          aria-label="Extension recovery controls"
+        >
+          <a href="/app#extensions">Extensions</a>
+          {(enabled.length > 0 || preview) && (
+            <>
+              <span>
+                {preview ? "Developer preview" : `${enabled.length} enabled`}
+              </span>
+              <button onClick={stop}>Disable all extensions</button>
+            </>
+          )}
+          {safe && (
+            <>
+              <span>Safe mode</span>
+              <button
+                onClick={() => {
+                  setSafe(false);
+                  history.replaceState(
+                    null,
+                    "",
+                    location.pathname + location.hash,
+                  );
+                }}
+              >
+                Leave safe mode
+              </button>
+            </>
+          )}
+          {preview && (
             <button
               onClick={() => {
-                setSafe(false);
-                history.replaceState(
-                  null,
-                  "",
-                  location.pathname + location.hash,
-                );
+                setPreview(null);
+                setViews([]);
               }}
             >
-              Leave safe mode
+              Stop preview
             </button>
-          </>
-        )}
-        {preview && (
-          <button
-            onClick={() => {
-              setPreview(null);
-              setViews([]);
-            }}
-          >
-            Stop preview
-          </button>
-        )}
-      </div>
+          )}
+        </div>
+      )}
       {Object.keys(errors).length > 0 && (
         <div className="devext-errors" role="status">
           {Object.entries(errors).map(([id, message]) => (

@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.1 — Extension publishing that explains itself
+
+- Visible publication fields for name, version, short/Markdown descriptions, tags, resource links and uploaded screenshots. Immutable listing metadata follows its exact package version.
+- Working downloadable examples and one-click example loading; clear rejection of unrelated JSON/source files.
+- Screenshot ownership and access checks preserve private/unpublished uploads; public listing images stop being public when their version is withdrawn.
+- Recovery controls only appear for active extensions or safe mode and stay away from the logo.
+- Code-focused library introduction and screenshot previews replace the palette-centric presentation.
+
 ## 1.2.0 — Code extensions
 
 - Local JavaScript/TypeScript development, live preview and `.devext.json` packaging replace the in-app palette builder.

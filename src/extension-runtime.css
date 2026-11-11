@@ -238,3 +238,16 @@ html[data-extension-pane] main {
     width: auto;
   }
 }
+
+/* Recovery is separate from custom CSS, but never occupies the logo/header. */
+.devext-recovery {
+  top: auto !important;
+  bottom: 16px !important;
+  left: auto !important;
+  right: 16px !important;
+  border-radius: 12px !important;
+  max-width: calc(100vw - 32px) !important;
+}
+.devext-recovery:has(> a:only-child):not(:hover) {
+  transform: none;
+}

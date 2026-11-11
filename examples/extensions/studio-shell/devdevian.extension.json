@@ -1,1 +1,34 @@
-{"name":"Studio Shell","slug":"studio-shell","version":"1.0.0","description":"A code extension that moves navigation below the workspace and styles the entire app shell.","entry":"main.js","permissions":["ui.style","ui.layout","ui.panel"],"styles":{"light":"light.css","dark":"dark.css"}}
+{
+  "name": "Studio Shell",
+  "slug": "studio-shell",
+  "version": "1.0.0",
+  "description": "A code extension that moves navigation below the workspace and styles the entire app shell.",
+  "entry": "main.js",
+  "permissions": [
+    "ui.style",
+    "ui.layout",
+    "ui.panel"
+  ],
+  "styles": {
+    "light": "light.css",
+    "dark": "dark.css"
+  },
+  "listing": {
+    "full_description": "## Your entire workspace, rearranged\n\nStudio Shell moves the sidebar below the content and styles navigation, cards and footer in both light and dark modes.\n\n### Try it\n\n1. Preview this package.\n2. Scroll down to find the relocated sidebar.\n3. Switch day/night; the extension stays enabled.\n4. Use **Stop preview** to restore the original layout.\n\nNo data access or network requests are needed.",
+    "tags": [
+      "theme",
+      "layout",
+      "productivity"
+    ],
+    "links": [
+      {
+        "label": "Source code",
+        "url": "https://github.com/Tenyokj/devdevian/tree/main/examples/extensions/studio-shell"
+      },
+      {
+        "label": "SDK documentation",
+        "url": "https://devdevian.vercel.app/docs/extensions"
+      }
+    ]
+  }
+}

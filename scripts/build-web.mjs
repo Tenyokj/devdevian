@@ -23,3 +23,14 @@ await writeFile(
 );
 // The render template is a function artifact, never a publicly indexed shell.
 await rm("dist/conversation.html");
+
+// Downloadable working examples make the upload flow testable without a toolchain.
+const { buildExtension } = await import("./extension-build.mjs");
+await mkdir("dist/extension-examples", { recursive: true });
+for (const slug of ["studio-shell", "devi-companion"]) {
+  const { build, ...pkg } = await buildExtension("examples/extensions/" + slug);
+  await writeFile(
+    "dist/extension-examples/" + slug + ".devext.json",
+    JSON.stringify(pkg, null, 2),
+  );
+}

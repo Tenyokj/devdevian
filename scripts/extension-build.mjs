@@ -1,3 +1,4 @@
+import { validateListing } from "../extension-listing.mjs";
 import { readFile, realpath } from "node:fs/promises";
 import { resolve, relative, isAbsolute } from "node:path";
 import { createHash } from "node:crypto";
@@ -83,7 +84,14 @@ export async function buildExtension(directory) {
     files,
     styles: css,
   });
-  const pkg = { name, slug, version, description, manifest };
+  const pkg = {
+    name,
+    slug,
+    version,
+    description,
+    manifest,
+    listing: validateListing(config.listing),
+  };
   return {
     ...pkg,
     build: createHash("sha256").update(JSON.stringify(pkg)).digest("hex"),

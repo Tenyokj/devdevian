@@ -4,6 +4,20 @@ export const launchFilm = "https://www.youtube.com/watch?v=qjFs2yy5uz0";
 export const repository = "https://github.com/Tenyokj/devdevian";
 export const updates = [
   {
+    id: "extension-listings-1-2-1",
+    channel: "Browser",
+    version: "1.2.1",
+    title: "Show what your extension can do.",
+    summary:
+      "A complete publishing form, working example packages and a clearer code-extension library.",
+    points: [
+      "Add a full Markdown description, tags, useful links and screenshots to each immutable version.",
+      "Load a working example in one click. Recovery controls appear only when needed and never cover the logo.",
+    ],
+    link: "/app#extensions",
+    label: "Explore extensions",
+  },
+  {
     id: "code-extensions-1-2",
     channel: "Browser",
     version: "1.2.0",

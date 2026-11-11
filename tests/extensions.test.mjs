@@ -217,6 +217,12 @@ test("theme publications and account installs survive encrypted restore without 
   await a("/extensions/publish", publication());
   const code = await a("/extensions/publish", {
     name: "Restore code package",
+    listing: {
+      full_description: "## Restored listing",
+      tags: ["recovery"],
+      links: [],
+      screenshots: [],
+    },
     slug: "restore-code",
     version: "1.0.0",
     description: "A package whose grants and enabled state survive recovery.",
@@ -287,6 +293,21 @@ test("theme publications and account installs survive encrypted restore without 
     );
   } finally {
     restored.close();
+  }
+  const listingCheck = new DatabaseSync(join(target, "database.sqlite"));
+  try {
+    assert.equal(
+      JSON.parse(
+        listingCheck
+          .prepare(
+            "SELECT data FROM entity_details WHERE kind='extension' AND entity_id=?",
+          )
+          .get(String(code.data.id.slice(6))).data,
+      ).full_description,
+      "## Restored listing",
+    );
+  } finally {
+    listingCheck.close();
   }
   const running = await startTestServer({
     databasePath: join(target, "database.sqlite"),
