@@ -1,0 +1,14 @@
+{
+  "name": "Popup Focus",
+  "slug": "popup-focus",
+  "version": "1.0.0",
+  "description": "Restyles forum dialogs, notification items and search results in both appearance modes.",
+  "entry": "main.js",
+  "permissions": ["ui.style", "ui.panel"],
+  "styles": { "light": "light.css", "dark": "dark.css" },
+  "listing": {
+    "full_description": "## Try it\n\nPreview this package, then open **Search** or **Notifications**. Dialog colors, corners and result highlights change without replacing their behavior. **Stop preview** returns you to your saved publication form.",
+    "tags": ["theme", "search", "notifications"],
+    "links": [{ "label": "Source code", "url": "https://github.com/Tenyokj/devdevian/tree/main/examples/extensions/popup-focus" }]
+  }
+}

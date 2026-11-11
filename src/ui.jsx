@@ -158,32 +158,46 @@ export function Modal({
   }, [dismissible]);
   return createPortal(
     <div
-      className="modal-overlay"
-      data-modal-overlay
-      onClick={dismissible ? onClose : undefined}
+      className="devext-modal-layer"
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 2000,
+        isolation: "isolate",
+        pointerEvents: "none",
+      }}
     >
-      <section
-        ref={ref}
-        role="dialog"
-        aria-modal="true"
-        aria-label={title}
-        className={"modal " + (wide ? "wide " : "") + className}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="modal-heading">
-          <span className="eyebrow">DEVDEVIAN / {title}</span>
-          {dismissible && (
-            <button
-              className="icon-button"
-              onClick={onClose}
-              aria-label="Close dialog"
-            >
-              <X size={20} />
-            </button>
-          )}
+      <div className="devext-surface devext-popup-surface">
+        <div
+          className="modal-overlay"
+          style={{ pointerEvents: "auto" }}
+          data-modal-overlay
+          onClick={dismissible ? onClose : undefined}
+        >
+          <section
+            ref={ref}
+            role="dialog"
+            aria-modal="true"
+            aria-label={title}
+            className={"modal " + (wide ? "wide " : "") + className}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-heading">
+              <span className="eyebrow">DEVDEVIAN / {title}</span>
+              {dismissible && (
+                <button
+                  className="icon-button"
+                  onClick={onClose}
+                  aria-label="Close dialog"
+                >
+                  <X size={20} />
+                </button>
+              )}
+            </div>
+            {children}
+          </section>
         </div>
-        {children}
-      </section>
+      </div>
     </div>,
     document.body,
   );

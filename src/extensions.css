@@ -918,3 +918,4 @@
     padding: 20px;
   }
 }
+.extension-draft-status{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:10px 0 18px;font-size:12px;color:var(--text-secondary)}.extension-draft-status>span{max-width:480px}

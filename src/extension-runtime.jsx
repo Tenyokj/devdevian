@@ -1,3 +1,9 @@
+import {
+  requestExtensionResume,
+  readExtensionDraft,
+  saveExtensionDraft,
+  extensionDraftStorage,
+} from "./extension-drafts";
 import React, { useEffect, useState, useRef } from "react";
 import { api as requestApi } from "./data";
 import {
@@ -296,6 +302,12 @@ export function ExtensionRuntime({ user }) {
         validatePackage(e.detail.manifest);
         setPreview({
           ...e.detail,
+          build:
+            e.detail.live &&
+            ["localhost", "127.0.0.1"].includes(location.hostname) &&
+            e.detail.build
+              ? e.detail.build
+              : window.crypto.randomUUID(),
           id: "local-preview",
           slug: "local-preview",
           grants: e.detail.manifest.permissions,
@@ -340,7 +352,7 @@ export function ExtensionRuntime({ user }) {
           JSON.stringify([...next.manifest.permissions].sort()) !==
           JSON.stringify([...preview.grants].sort())
         ) {
-          setPreview(null);
+          stopPreview();
           setErrors((x) => ({
             ...x,
             preview:
@@ -348,14 +360,33 @@ export function ExtensionRuntime({ user }) {
           }));
           return;
         }
-        if (next.build !== preview.build)
+        if (next.build !== preview.build) {
+          if (preview.returnToPublisher) {
+            const saved = readExtensionDraft(extensionDraftStorage(), user.id);
+            if (
+              saved &&
+              !saveExtensionDraft(
+                extensionDraftStorage(),
+                user.id,
+                saved.draft,
+                next,
+              )
+            ) {
+              setErrors((x) => ({
+                ...x,
+                preview: "Updated source could not be saved to the draft.",
+              }));
+            }
+          }
           setPreview({
             ...next,
             live: true,
+            returnToPublisher: preview.returnToPublisher,
             id: "local-preview",
             slug: "local-preview",
             grants: preview.grants,
           });
+        }
       } catch (e) {
         if (alive) setErrors((x) => ({ ...x, preview: e.message }));
       } finally {
@@ -382,9 +413,19 @@ export function ExtensionRuntime({ user }) {
       setViews([]);
     }
   }, [enabled.length, preview]);
+  const stopPreview = () => {
+    const resume = preview?.returnToPublisher;
+    setPreview(null);
+    setViews([]);
+    if (resume && user) {
+      requestExtensionResume(user.id);
+      location.hash = "extensions";
+      window.dispatchEvent(new window.Event("devdevian-extension-resume"));
+    }
+  };
   const stop = async () => {
     setSafe(true);
-    setPreview(null);
+    stopPreview();
     setViews([]);
     layouts.current.clear();
     applyLayouts();
@@ -432,16 +473,7 @@ export function ExtensionRuntime({ user }) {
               </button>
             </>
           )}
-          {preview && (
-            <button
-              onClick={() => {
-                setPreview(null);
-                setViews([]);
-              }}
-            >
-              Stop preview
-            </button>
-          )}
+          {preview && <button onClick={stopPreview}>Stop preview</button>}
         </div>
       )}
       {Object.keys(errors).length > 0 && (

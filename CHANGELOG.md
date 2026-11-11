@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.2 — Keep your extension work
+
+- Account-specific local drafts retain publication fields, package source and screenshot references across closing, preview and reload. Stop preview returns to the saved publisher, including after navigation.
+- Saved packages never execute or restore consent automatically; successful publication and Discard draft clear the draft. Storage failures are surfaced before leaving preview setup.
+- Shared forum popups (including Search and Notifications) accept scoped extension styling inside a protected modal layer; recovery controls remain separate.
+- Added the four-file Popup Focus example and a beginner source/configuration/package walkthrough.
+- Replacing a manual preview restarts its code even when packages reuse version or build identifiers.
+
 ## 1.2.1 — Extension publishing that explains itself
 
 - Visible publication fields for name, version, short/Markdown descriptions, tags, resource links and uploaded screenshots. Immutable listing metadata follows its exact package version.

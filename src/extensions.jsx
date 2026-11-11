@@ -1,3 +1,4 @@
+import { consumeExtensionResume } from "./extension-drafts";
 import { PublishExtension } from "./extension-publish";
 import { validatePackage } from "../extension-package.mjs";
 import React, { useState, useEffect, useLayoutEffect } from "react";
@@ -307,6 +308,19 @@ export function Extensions({ user, requireUser }) {
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [notice, setNotice] = useState("");
+  useEffect(() => {
+    if (!user) return;
+    const resume = () => {
+      if (consumeExtensionResume(user.id)) {
+        setSelected(null);
+        setPublish(true);
+      }
+    };
+    resume();
+    window.addEventListener("devdevian-extension-resume", resume);
+    return () =>
+      window.removeEventListener("devdevian-extension-resume", resume);
+  }, [user?.id]);
   const loadMine = () => api("/extensions/me").then(setMine);
   useEffect(() => {
     const c = new AbortController();
@@ -820,8 +834,10 @@ export function Extensions({ user, requireUser }) {
             )}
         </Modal>
       )}
-      {publish && (
+      {publish && user && (
         <PublishExtension
+          key={user.id}
+          userId={user.id}
           close={() => setPublish(false)}
           onPublished={(item) => {
             setPublish(false);

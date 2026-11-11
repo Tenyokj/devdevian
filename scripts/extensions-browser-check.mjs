@@ -118,6 +118,97 @@ try {
   await page
     .getByRole("button", { name: "Remove screenshot 1", exact: true })
     .waitFor();
+  let devBuild = structuredClone(pkg);
+  await page.route("**/api/extensions/development", (route) =>
+    route.fulfill({ json: devBuild }),
+  );
+  // Preview must round-trip the entire publication draft, even from another route.
+  await page.getByLabel("I trust this code", { exact: false }).check();
+  await page.getByLabel("Live preview (local server only)").check();
+  await page
+    .getByRole("button", { name: "Preview in my app", exact: true })
+    .click();
+  await page.waitForFunction(
+    () =>
+      document.querySelector(".devext-surface")?.dataset.extensionLayout ===
+      "true",
+  );
+  devBuild = structuredClone(pkg);
+  devBuild.build = "updated-source";
+  devBuild.manifest.files["main.js"] +=
+    '\ndocument.body.dataset.updatedDraft="yes";';
+  let updated = false;
+  for (let attempt = 0; attempt < 30; attempt++) {
+    await page.waitForTimeout(250);
+    const frame = page
+      .frames()
+      .find((f) => f.url().includes("/api/extensions/runner?"));
+    if (
+      frame &&
+      (await frame
+        .evaluate(() => document.body.dataset.updatedDraft === "yes")
+        .catch(() => false))
+    ) {
+      updated = true;
+      break;
+    }
+  }
+  assert.ok(updated, "Live code should update before returning to the draft");
+  await page.evaluate(() => {
+    location.hash = "feed";
+  });
+  await page.getByRole("button", { name: "Stop preview", exact: true }).click();
+  await page
+    .getByRole("dialog", { name: "Publish an extension", exact: true })
+    .waitFor();
+  assert.equal(
+    await page.getByLabel("Full description", { exact: true }).inputValue(),
+    "## A complete extension\n\nSetup instructions and useful details.",
+  );
+  assert.equal(
+    await page.getByLabel("Extension tags").inputValue(),
+    "theme, productivity",
+  );
+  assert.equal(
+    await page.getByLabel("I trust this code", { exact: false }).isChecked(),
+    false,
+    "Restored code needs renewed preview consent",
+  );
+  assert.equal(
+    await page
+      .getByRole("button", { name: "Remove screenshot 1", exact: true })
+      .count(),
+    1,
+  );
+  await page.getByRole("button", { name: "Close dialog", exact: true }).click();
+  await page.reload();
+  assert.equal(
+    await page.locator(".devext-panel").count(),
+    0,
+    "Draft reload must not execute saved code",
+  );
+  await page
+    .getByRole("button", { name: "Upload extension", exact: true })
+    .click();
+  assert.equal(
+    await page.getByLabel("Extension name", { exact: true }).inputValue(),
+    "Studio Shell",
+  );
+  assert.equal(
+    await page.getByLabel("Extension tags").inputValue(),
+    "theme, productivity",
+  );
+  assert.equal(
+    await page.evaluate(() =>
+      JSON.parse(
+        Object.entries(localStorage).find(([k]) =>
+          k.startsWith("devdevian-extension-draft:"),
+        )[1],
+      ).pkg.manifest.files["main.js"].includes("updatedDraft"),
+    ),
+    true,
+    "Restored draft keeps the updated live source",
+  );
   const src = await page
     .getByAltText("Screenshot 1", { exact: true })
     .getAttribute("src");
@@ -150,6 +241,16 @@ try {
   await page
     .getByAltText("Studio Shell screenshot 1", { exact: true })
     .waitFor();
+  assert.equal(
+    await page.evaluate(
+      () =>
+        Object.keys(localStorage).filter((k) =>
+          k.startsWith("devdevian-extension-draft:"),
+        ).length,
+    ),
+    0,
+    "Published draft must be removed",
+  );
   // Install only after reviewing code capabilities. Also prove the server rejects missing grants.
   const result = await page.evaluate(async () => {
     const library = await (
@@ -272,6 +373,23 @@ try {
     ).enabled.length,
     1,
   );
+  await iframe.evaluate(async () => {
+    await devdevian.style.apply(
+      ".modal{background:rgb(12, 80, 65)!important}.notification-item{color:cyan!important}",
+    );
+  });
+  await page
+    .getByRole("button", { name: "Upload extension", exact: true })
+    .click();
+  assert.equal(
+    await page
+      .getByRole("dialog", { name: "Publish an extension", exact: true })
+      .evaluate((el) => getComputedStyle(el).backgroundColor),
+    "rgb(12, 80, 65)",
+    "Body portals must support extension styles",
+  );
+  assert.equal(await page.locator(".devext-recovery").isVisible(), true);
+  await page.getByRole("button", { name: "Close dialog", exact: true }).click();
   // Host styles cannot hide recovery; arbitrary panel code stays in the opaque document.
   await iframe.evaluate(async () => {
     await devdevian.style.apply(

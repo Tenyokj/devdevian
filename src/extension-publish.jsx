@@ -1,4 +1,9 @@
-import React, { useState } from "react";
+import {
+  readExtensionDraft,
+  saveExtensionDraft,
+  extensionDraftStorage,
+} from "./extension-drafts";
+import React, { useState, useEffect } from "react";
 import { Modal, Field, ErrorMessage } from "./ui";
 import { api, readAPIResponse } from "./data";
 import { validatePackage } from "../extension-package.mjs";
@@ -13,14 +18,45 @@ const blank = {
   links: [],
   screenshots: [],
 };
-export function PublishExtension({ close, onPublished }) {
-  const [pkg, setPkg] = useState(null),
-    [draft, setDraft] = useState(blank),
+export function PublishExtension({ close, onPublished, userId }) {
+  const [restored] = useState(() =>
+    readExtensionDraft(extensionDraftStorage(), userId),
+  );
+  const [pkg, setPkg] = useState(restored?.pkg || null),
+    [draft, setDraft] = useState(restored?.draft || blank),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
     [uploading, setUploading] = useState(false),
     [consent, setConsent] = useState(false),
     [live, setLive] = useState(false);
+  const [draftStatus, setDraftStatus] = useState(
+    restored
+      ? "Draft restored on this device. Review capabilities again before previewing."
+      : "Draft saves automatically on this device.",
+  );
+  const persist = () => {
+    const ok = saveExtensionDraft(extensionDraftStorage(), userId, draft, pkg);
+    setDraftStatus(
+      ok
+        ? "Draft saved on this device."
+        : "Draft could not be saved: browser storage is full or unavailable.",
+    );
+    return ok;
+  };
+  useEffect(() => {
+    persist();
+  }, [draft, pkg, userId]);
+  const saveAndClose = () => {
+    if (uploading || busy) {
+      setError("Wait for uploads or publication to finish before closing.");
+      return;
+    }
+    if (persist()) close();
+    else
+      setError(
+        "Your draft could not be saved. Keep this window open or free browser storage before closing.",
+      );
+  };
   const edit = (key, value) => setDraft((d) => ({ ...d, [key]: value }));
   const accept = (value) => {
     if (!value?.manifest || value.manifest.kind !== "extension")
@@ -66,7 +102,23 @@ export function PublishExtension({ close, onPublished }) {
     }
   };
   return (
-    <Modal title="Publish an extension" onClose={close} wide>
+    <Modal title="Publish an extension" onClose={saveAndClose} wide>
+      <div className="extension-draft-status">
+        <span role="status">{draftStatus}</span>
+        <button
+          type="button"
+          className="text-button"
+          onClick={() => {
+            saveExtensionDraft(extensionDraftStorage(), userId, blank, null);
+            setPkg(null);
+            setDraft(blank);
+            setConsent(false);
+            setError("");
+          }}
+        >
+          Discard draft
+        </button>
+      </div>
       <div className="extension-publish-steps">
         <span>01 · Code package</span>
         <span>02 · Listing & screenshots</span>
@@ -92,6 +144,13 @@ export function PublishExtension({ close, onPublished }) {
             onClick={() => load("/extension-examples/studio-shell.devext.json")}
           >
             Load Studio Shell example
+          </button>
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={() => load("/extension-examples/popup-focus.devext.json")}
+          >
+            Load popup styling example
           </button>
           <a href="/extension-examples/studio-shell.devext.json" download>
             Download example package ↗
@@ -405,9 +464,18 @@ export function PublishExtension({ close, onPublished }) {
           disabled={!pkg || !consent || uploading}
           onClick={() => {
             try {
+              if (!persist())
+                throw Error(
+                  "Your draft could not be saved. Free browser storage before starting preview.",
+                );
               window.dispatchEvent(
                 new window.CustomEvent("devdevian-extension-preview", {
-                  detail: { ...payload(), build: pkg.build, live },
+                  detail: {
+                    ...payload(),
+                    build: pkg.build,
+                    live,
+                    returnToPublisher: true,
+                  },
                 }),
               );
               close();
@@ -440,6 +508,7 @@ export function PublishExtension({ close, onPublished }) {
                 headers: { "X-Devdevian-Extensions": "2" },
                 body: value,
               });
+              saveExtensionDraft(extensionDraftStorage(), userId, blank, null);
               onPublished(result);
             } catch (e) {
               setError(e.message);

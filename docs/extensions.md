@@ -157,3 +157,42 @@ The optional `listing` object in the package envelope or local `devdevian.extens
 Full descriptions allow 20,000 characters. Add at most eight tags (2–30 letters/digits/dots/underscores/hyphens), five labeled HTTPS links and six PNG/JPEG/WebP/GIF screenshots, each at most 4 MB. Tags can be searched with or without `#`. Upload screenshots through the publication form: the saved listing references upload IDs, not inline base64 or arbitrary external image URLs. Only your own unattached image uploads can be published. Until publication they remain private to you; publishing makes those images visible to library visitors. Images attached to a private conversation cannot be reused through this flow. Withdrawing the version removes the extension listing's public access to its images; other valid public uses of the same image remain independent.
 
 Listing metadata is saved with the immutable release. Update it by publishing a newer version rather than changing an already reviewed page. Included source files are also public. Recovery controls appear at the bottom of the screen only while an extension/preview is running or safe mode is active; the ordinary sidebar contains the normal Extensions navigation.
+
+## Beginner walkthrough: style search and notifications
+
+Work in a clone of the repository with Node.js 24+ and dependencies installed using `npm ci`. The smallest useful starting point is [Popup Focus](https://github.com/Tenyokj/devdevian/tree/main/examples/extensions/popup-focus):
+
+```sh
+cp -R examples/extensions/popup-focus my-extension
+npm run extension:dev -- my-extension
+```
+
+The local server prints an address and a disposable development login. Open Extensions → Upload extension → Load local build, review capabilities, enable preview and open Search or Notifications. Editing local sources with Live preview enabled updates the preview. Your four source files are:
+
+```text
+my-extension/
+  devdevian.extension.json
+  main.js
+  light.css
+  dark.css
+```
+
+`devdevian.extension.json` describes your **source project**: `name`, unique `slug`, `version`, `description`, entry file, capabilities and CSS file paths. `listing` optionally supplies descriptions/tags/links. `main.js` runs browser code in the isolated panel. A style-only extension can hide that panel using `devdevian.panel.configure({placement: 'hidden', title: 'My theme'})`, which needs `ui.panel`. Host styles require `ui.style`.
+
+For example, `.modal { border-radius: 24px; }` changes shared forum dialogs, `.notification-item` styles notification entries, and `.search-result:hover` styles search hover states. These work in the app's protected popup layer as well as the ordinary app surface. Provide matching light/dark styles. Recovery controls remain outside this styling scope.
+
+When ready:
+
+```sh
+npm run extension:pack -- my-extension
+```
+
+Upload the generated `my-extension/dist/YOUR-SLUG-YOUR-VERSION.devext.json`. This is the **distribution package**, not the source configuration: the compiler embeds bundled JavaScript under `manifest.files["main.js"]`, includes inspectable local sources and embeds CSS text in `manifest.styles.light/dark`. The envelope carries publication metadata and optional `listing`. Installers do not need your local files or original directory paths. Do not handwrite a large JSON file containing escaped JavaScript; edit source files and let the packer generate it.
+
+Appearance customization does not replace the built-in React logic or bypass SDK capabilities. Use isolated panels for your own interactive tools and explicit APIs for app operations. Server plugins, arbitrary session access and generic API writes are not supported.
+
+## Publication drafts and returning from preview
+
+The publisher automatically saves its fields, package source and screenshot references to this browser, separately for each account. Closing the form or reloading the page keeps the draft for up to 30 days. Reopening Upload extension restores it. **Stop preview** returns to Extensions and reopens that draft, even after navigating to another section during preview. **Discard draft** clears it, and successful publication clears it automatically.
+
+Restoring a draft does not run code, restore capability consent or resume a live development watcher. Review and approve preview again. Device-local drafts are not synced across browsers. If browser storage is full/unavailable, the form reports the failure and refuses to close/start preview through its buttons so you can preserve your work. File-picker controls may look empty after restoration, but **Package ready** and the source inspector show the retained code package.

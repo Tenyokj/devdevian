@@ -4,6 +4,20 @@ export const launchFilm = "https://www.youtube.com/watch?v=qjFs2yy5uz0";
 export const repository = "https://github.com/Tenyokj/devdevian";
 export const updates = [
   {
+    id: "extension-drafts-1-2-2",
+    channel: "Browser",
+    version: "1.2.2",
+    title: "Preview freely. Keep your work.",
+    summary:
+      "Extension publication drafts survive preview, navigation and reload.",
+    points: [
+      "Stop preview returns to your saved form; code and consent never resume automatically.",
+      "Style shared search/notification popups and learn from the four-file Popup Focus example.",
+    ],
+    link: "/docs/extensions",
+    label: "Extension developer guide",
+  },
+  {
     id: "extension-listings-1-2-1",
     channel: "Browser",
     version: "1.2.1",
