@@ -1,3 +1,4 @@
+import { ExtensionRuntime } from "./extension-runtime";
 import { Extensions, useExtensionTheme } from "./extensions";
 import { ProjectContributors } from "./project-contributors";
 import { ProjectParticipation } from "./project-access";
@@ -138,6 +139,8 @@ function useRoute() {
   return route;
 }
 export function App() {
+  if (location.pathname === "/workspace-pane")
+    document.documentElement.dataset.extensionPane = "true";
   const [eventTopic, setEventTopic] = useState(""),
     [eventDate, setEventDate] = useState(""),
     [eventOrder, setEventOrder] = useState("soonest");
@@ -189,7 +192,7 @@ export function App() {
     [myEvents, setMyEvents] = useState([]),
     [loading, setLoading] = useState(true),
     [loadError, setLoadError] = useState("");
-  const activeExtension = useExtensionTheme(user, theme);
+  const activeExtension = useExtensionTheme(user, theme, setTheme);
   const [auth, setAuth] = useState(null),
     [composer, setComposer] = useState(null),
     [projectForm, setProjectForm] = useState(false),
@@ -544,443 +547,284 @@ export function App() {
                   ? "Your profile"
                   : navigation.find((n) => n[0] === page)?.[1] || "Saved posts";
   return (
-    <div
-      className={
-        "app " +
-        (collapsed ? "sidebar-collapsed " : "") +
-        (user?.preferences?.compact_feed ? "feed-compact" : "")
-      }
-    >
-      {settingsOpen && user && (
-        <Settings
-          onManageSubscriptions={() => {
-            setSettingsOpen(false);
-            go("subscriptions");
-          }}
-          user={user}
-          close={() => setSettingsOpen(false)}
-          refresh={refresh}
-          onSwitch={() => setAuth("login")}
-        />
-      )}
-      {searchOpen && (
-        <GlobalSearch
-          close={() => setSearchOpen(false)}
-          topics={topics}
-          onNavigate={go}
-        />
-      )}
-      <aside className={"sidebar " + (mobile ? "is-open" : "")}>
-        <Brand />
-        <button
-          className="sidebar-collapse icon-button"
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          onClick={() =>
-            setCollapsed((v) => {
-              window.localStorage?.setItem(
-                "devdevian-sidebar",
-                v ? "expanded" : "collapsed",
-              );
-              return !v;
-            })
-          }
-        >
-          <Menu size={17} />
-        </button>
-        <div className="workspace-status">
-          <span className="status-dot" />
-          THE DEVELOPER COMMONS<span className="beta-badge">BETA</span>
-        </div>
-        <nav aria-label="Main navigation">
-          {navigation.map(([key, label, Icon]) => (
-            <a
-              key={key}
-              href={"#" + key}
-              className={
-                "nav-item " +
-                (page === key ||
-                (key === "projects" && page === "workspace") ||
-                (key === "following" && page === "subscriptions") ||
-                (key === "communities" && page === "community")
-                  ? "active"
-                  : "")
-              }
-            >
-              <Icon size={19} />
-              <span>{label}</span>
-              {page === key && <span className="nav-active-mark" />}
-            </a>
-          ))}
-          <div className="nav-rule" />
-          <a
-            href="#saved"
-            className={"nav-item " + (page === "saved" ? "active" : "")}
-          >
-            <Bookmark size={19} />
-            <span>Saved for later</span>
-            {user && (
-              <span className="nav-number">
-                {user.memberships.filter((m) => m.kind === "post").length}
-              </span>
-            )}
-          </a>
-          <a
-            href="#profile"
-            className={"nav-item " + (page === "profile" ? "active" : "")}
-          >
-            <Code2 size={19} />
-            <span>Your corner</span>
-          </a>
-          {user?.platform_role === "moderator" && (
-            <a
-              href="#moderation/public"
-              className={
-                "nav-item " +
-                (page === "moderation" && id === "public" ? "active" : "")
-              }
-            >
-              <Flag size={19} />
-              <span>Platform moderation</span>
-            </a>
-          )}
-          {!!user?.managed_communities?.length && (
-            <a
-              href="#moderation/communities"
-              className={
-                "nav-item " +
-                (page === "moderation" && id !== "public" ? "active" : "")
-              }
-            >
-              <Flag size={19} />
-              <span>Community moderation</span>
-            </a>
-          )}
-        </nav>
-        <div className="sidebar-section-heading">
-          YOUR COMMUNITIES
+    <>
+      <ExtensionRuntime key={user?.id || "guest"} user={user} />
+      <div
+        className={
+          "app devext-surface " +
+          (collapsed ? "sidebar-collapsed " : "") +
+          (user?.preferences?.compact_feed ? "feed-compact" : "")
+        }
+      >
+        {settingsOpen && user && (
+          <Settings
+            onManageSubscriptions={() => {
+              setSettingsOpen(false);
+              go("subscriptions");
+            }}
+            user={user}
+            close={() => setSettingsOpen(false)}
+            refresh={refresh}
+            onSwitch={() => setAuth("login")}
+          />
+        )}
+        {searchOpen && (
+          <GlobalSearch
+            close={() => setSearchOpen(false)}
+            topics={topics}
+            onNavigate={go}
+          />
+        )}
+        <aside className={"sidebar " + (mobile ? "is-open" : "")}>
+          <Brand />
           <button
-            onClick={() => go("communities")}
-            aria-label="Find communities"
+            className="sidebar-collapse icon-button"
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            onClick={() =>
+              setCollapsed((v) => {
+                window.localStorage?.setItem(
+                  "devdevian-sidebar",
+                  v ? "expanded" : "collapsed",
+                );
+                return !v;
+              })
+            }
           >
-            <Plus size={14} />
+            <Menu size={17} />
           </button>
-        </div>
-        <div className="sidebar-communities">
-          {joinedCommunities.filter((c) => c.is_member).length ? (
-            joinedCommunities
-              .filter((c) => c.is_member)
-              .map((c) => (
-                <a key={c.id} href={"#community/" + c.id}>
-                  {c.logo ? (
-                    <img
-                      className="sidebar-community-logo"
-                      src={"/api/uploads/" + c.logo}
-                      alt=""
-                    />
-                  ) : (
-                    <span className={"community-dot " + c.color} />
-                  )}
-                  {c.name}
-                </a>
-              ))
-          ) : (
-            <p>
-              A good conversation starts
-              <br />
-              with finding your people.
-              <button onClick={() => go("communities")}>
-                Explore communities
-                <ArrowRight size={13} />
+          <div className="workspace-status">
+            <span className="status-dot" />
+            THE DEVELOPER COMMONS<span className="beta-badge">BETA</span>
+          </div>
+          <nav aria-label="Main navigation">
+            {navigation.map(([key, label, Icon]) => (
+              <a
+                key={key}
+                href={"#" + key}
+                className={
+                  "nav-item " +
+                  (page === key ||
+                  (key === "projects" && page === "workspace") ||
+                  (key === "following" && page === "subscriptions") ||
+                  (key === "communities" && page === "community")
+                    ? "active"
+                    : "")
+                }
+              >
+                <Icon size={19} />
+                <span>{label}</span>
+                {page === key && <span className="nav-active-mark" />}
+              </a>
+            ))}
+            <div className="nav-rule" />
+            <a
+              href="#saved"
+              className={"nav-item " + (page === "saved" ? "active" : "")}
+            >
+              <Bookmark size={19} />
+              <span>Saved for later</span>
+              {user && (
+                <span className="nav-number">
+                  {user.memberships.filter((m) => m.kind === "post").length}
+                </span>
+              )}
+            </a>
+            <a
+              href="#profile"
+              className={"nav-item " + (page === "profile" ? "active" : "")}
+            >
+              <Code2 size={19} />
+              <span>Your corner</span>
+            </a>
+            {user?.platform_role === "moderator" && (
+              <a
+                href="#moderation/public"
+                className={
+                  "nav-item " +
+                  (page === "moderation" && id === "public" ? "active" : "")
+                }
+              >
+                <Flag size={19} />
+                <span>Platform moderation</span>
+              </a>
+            )}
+            {!!user?.managed_communities?.length && (
+              <a
+                href="#moderation/communities"
+                className={
+                  "nav-item " +
+                  (page === "moderation" && id !== "public" ? "active" : "")
+                }
+              >
+                <Flag size={19} />
+                <span>Community moderation</span>
+              </a>
+            )}
+          </nav>
+          <div className="sidebar-section-heading">
+            YOUR COMMUNITIES
+            <button
+              onClick={() => go("communities")}
+              aria-label="Find communities"
+            >
+              <Plus size={14} />
+            </button>
+          </div>
+          <div className="sidebar-communities">
+            {joinedCommunities.filter((c) => c.is_member).length ? (
+              joinedCommunities
+                .filter((c) => c.is_member)
+                .map((c) => (
+                  <a key={c.id} href={"#community/" + c.id}>
+                    {c.logo ? (
+                      <img
+                        className="sidebar-community-logo"
+                        src={"/api/uploads/" + c.logo}
+                        alt=""
+                      />
+                    ) : (
+                      <span className={"community-dot " + c.color} />
+                    )}
+                    {c.name}
+                  </a>
+                ))
+            ) : (
+              <p>
+                A good conversation starts
+                <br />
+                with finding your people.
+                <button onClick={() => go("communities")}>
+                  Explore communities
+                  <ArrowRight size={13} />
+                </button>
+              </p>
+            )}
+          </div>
+          <div className="sidebar-bottom">
+            <div className="sidebar-card">
+              <Lightbulb size={19} />
+              <h3>Something on your mind?</h3>
+              <p>
+                Someone here might have
+                <br />
+                just the perspective you need.
+              </p>
+              <button onClick={() => create("question")}>
+                Ask a question
+                <ArrowUpRight size={15} />
               </button>
-            </p>
-          )}
-        </div>
-        <div className="sidebar-bottom">
-          <div className="sidebar-card">
-            <Lightbulb size={19} />
-            <h3>Something on your mind?</h3>
-            <p>
-              Someone here might have
-              <br />
-              just the perspective you need.
-            </p>
-            <button onClick={() => create("question")}>
-              Ask a question
-              <ArrowUpRight size={15} />
-            </button>
-          </div>
-          <button
-            className="account-button"
-            onClick={() => (user ? go("profile") : setAuth("login"))}
-          >
-            <Avatar name={user?.name || "New builder"} image={user?.avatar} />
-            <span>
-              {user?.name || "Your place is here"}
-              <small>{user?.role || "Join the community"}</small>
-            </span>
-            <ChevronDown size={14} />
-          </button>
-        </div>
-      </aside>
-      {mobile && (
-        <div className="sidebar-scrim" onClick={() => setMobile(false)} />
-      )}
-      <div className="main-shell">
-        <header className="topbar">
-          <div className="topbar-location">
+            </div>
             <button
-              className="icon-button mobile-menu"
-              onClick={() => setMobile(!mobile)}
-              aria-label="Toggle navigation"
+              className="account-button"
+              onClick={() => (user ? go("profile") : setAuth("login"))}
             >
-              <Menu size={21} />
+              <Avatar name={user?.name || "New builder"} image={user?.avatar} />
+              <span>
+                {user?.name || "Your place is here"}
+                <small>{user?.role || "Join the community"}</small>
+              </span>
+              <ChevronDown size={14} />
             </button>
-            <span className="header-note">
-              <span className="status-dot" /> A space for curious minds
-            </span>
           </div>
-          <div className="topbar-right">
-            {user && (
-              <NotificationCenter
-                key={user.id}
-                user={user}
-                onNavigate={(path) => {
-                  if (path === route)
-                    reloadPost().catch((e) => setToast(e.message));
-                  else go(path);
-                }}
-              />
-            )}
-            <button
-              className="theme-toggle icon-button"
-              onClick={async () => {
-                if (activeExtension) {
-                  try {
-                    await api("/extensions/active", {
-                      method: "PUT",
-                      body: { release: null },
-                    });
-                    window.dispatchEvent(new Event("devdevian-extensions"));
-                  } catch (e) {
-                    setToast(e.message);
-                  }
-                } else
-                  setTheme((current) =>
-                    current === "dark" ? "light" : "dark",
-                  );
-              }}
-              aria-label={
-                activeExtension
-                  ? "Restore default appearance"
-                  : theme === "dark"
+        </aside>
+        {mobile && (
+          <div className="sidebar-scrim" onClick={() => setMobile(false)} />
+        )}
+        <div className="main-shell">
+          <header className="topbar">
+            <div className="topbar-location">
+              <button
+                className="icon-button mobile-menu"
+                onClick={() => setMobile(!mobile)}
+                aria-label="Toggle navigation"
+              >
+                <Menu size={21} />
+              </button>
+              <span className="header-note">
+                <span className="status-dot" /> A space for curious minds
+              </span>
+            </div>
+            <div className="topbar-right">
+              {user && (
+                <NotificationCenter
+                  key={user.id}
+                  user={user}
+                  onNavigate={(path) => {
+                    if (path === route)
+                      reloadPost().catch((e) => setToast(e.message));
+                    else go(path);
+                  }}
+                />
+              )}
+              <button
+                className="theme-toggle icon-button"
+                onClick={() =>
+                  setTheme((current) => (current === "dark" ? "light" : "dark"))
+                }
+                aria-label={
+                  theme === "dark"
                     ? "Switch to light theme"
                     : "Switch to dark theme"
-              }
-              title={
-                activeExtension
-                  ? "Restore default appearance"
-                  : theme === "dark"
-                    ? "Light theme"
-                    : "Dark theme"
-              }
-              aria-pressed={theme === "dark"}
-            >
-              {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
-            </button>
-            <button
-              className="global-search"
-              onClick={() => setSearchOpen(true)}
-            >
-              <Search size={17} />
-              <span>Find your next idea…</span>
-              <kbd>⌘ K</kbd>
-            </button>
-            {user && (
-              <button
-                className="icon-button"
-                aria-label="Open settings"
-                title="Settings"
-                onClick={() => setSettingsOpen(true)}
+                }
+                title={theme === "dark" ? "Light theme" : "Dark theme"}
+                aria-pressed={theme === "dark"}
               >
-                <SlidersHorizontal size={17} />
+                {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
               </button>
-            )}
-            {user ? (
-              <Avatar
-                name={user.name}
-                image={user.avatar}
-                onClick={() => go("profile")}
-              />
-            ) : (
               <button
-                className="signin-button"
-                onClick={() => setAuth("login")}
+                className="global-search"
+                onClick={() => setSearchOpen(true)}
               >
-                Sign in
-                <ArrowUpRight size={14} />
+                <Search size={17} />
+                <span>Find your next idea…</span>
+                <kbd>⌘ K</kbd>
               </button>
-            )}
-          </div>
-        </header>
-        <main key={route}>
-          {loadError ? (
-            <div className="load-error">
-              <span>{loadError}</span>
-              <button onClick={() => refresh().catch(() => {})}>
-                Try again
-                <RefreshCw size={14} />
-              </button>
+              {user && (
+                <button
+                  className="icon-button"
+                  aria-label="Open settings"
+                  title="Settings"
+                  onClick={() => setSettingsOpen(true)}
+                >
+                  <SlidersHorizontal size={17} />
+                </button>
+              )}
+              {user ? (
+                <Avatar
+                  name={user.name}
+                  image={user.avatar}
+                  onClick={() => go("profile")}
+                />
+              ) : (
+                <button
+                  className="signin-button"
+                  onClick={() => setAuth("login")}
+                >
+                  Sign in
+                  <ArrowUpRight size={14} />
+                </button>
+              )}
             </div>
-          ) : null}
-          {loading ? (
-            <div className="loading-state">
-              <span className="spinner" />
-              Getting the house ready…
-            </div>
-          ) : (
-            <>
-              {page === "community" && !community?.is_member && (
-                <CommunityHeader
-                  community={community}
-                  onCreate={() => create()}
-                  user={user}
-                  requireUser={authorized}
-                  onRefresh={refresh}
-                  go={go}
-                />
-              )}
-              {page === "work" && (
-                <MyWork
-                  key={user?.id || "guest"}
-                  user={user}
-                  section={id || "attention"}
-                  requireUser={authorized}
-                  go={go}
-                  onDraft={(d) =>
-                    authorized(() =>
-                      setComposer({
-                        kind: [
-                          "question",
-                          "discussion",
-                          "review",
-                          "showcase",
-                        ].includes(d.kind)
-                          ? d.kind
-                          : "discussion",
-                        topic: d.topic || "web",
-                        community_id: d.community_id || null,
-                      }),
-                    )
-                  }
-                />
-              )}
-              {page === "review-flow" && (
-                <ReviewFlowQueue
-                  key={user?.id || "guest"}
-                  user={user}
-                  requireUser={authorized}
-                />
-              )}
-              {page === "extensions" && (
-                <Extensions
-                  key={user?.id || "guest"}
-                  user={user}
-                  requireUser={authorized}
-                />
-              )}
-              {page === "github" && (
-                <GitHubHub
-                  key={user?.id || "guest"}
-                  user={user}
-                  requireUser={authorized}
-                  onReview={shareGitHubReview}
-                />
-              )}
-              {page === "workspace" && (
-                <Workspace
-                  key={`${user?.id || "guest"}:${id}`}
-                  id={id}
-                  route={rawPage === "room" ? `workspace/${id}/room` : route}
-                  onGitHubReview={shareGitHubReview}
-                  user={user}
-                  requireUser={authorized}
-                  go={go}
-                  communities={joinedCommunities}
-                />
-              )}
-              {isFeed && (
+          </header>
+          <main key={route}>
+            <div className="devext-content">
+              {loadError ? (
+                <div className="load-error">
+                  <span>{loadError}</span>
+                  <button onClick={() => refresh().catch(() => {})}>
+                    Try again
+                    <RefreshCw size={14} />
+                  </button>
+                </div>
+              ) : null}
+              {loading ? (
+                <div className="loading-state">
+                  <span className="spinner" />
+                  Getting the house ready…
+                </div>
+              ) : (
                 <>
-                  {page === "feed" || page === "tag" ? (
-                    <section className="feed-intro">
-                      <div>
-                        <span className="eyebrow">
-                          <span className="tiny-dot" />
-                          PUBLIC FEED · OPEN CONVERSATIONS
-                        </span>
-                        <h1>
-                          A little curiosity.
-                          <br />A lot of possibility
-                          <span className="accent-text">.</span>
-                        </h1>
-                        <p>
-                          A place to ask, share, build, and figure things out
-                          together.
-                        </p>
-                        <div className="intro-actions">
-                          <button
-                            className="button primary"
-                            onClick={() => create()}
-                          >
-                            <Plus size={16} />
-                            Start a conversation
-                          </button>
-                          <button
-                            className="text-button"
-                            onClick={() => go("communities")}
-                          >
-                            Find your people
-                            <ArrowUpRight size={15} />
-                          </button>
-                        </div>
-                      </div>
-                      <div className="intro-illustration" aria-hidden="true">
-                        <span className="illustration-code">
-                          {"{"}
-                          <span>you</span>
-                          {"}"}
-                        </span>
-                        <span className="illustration-star">✳</span>
-                        <div className="illustration-note">
-                          <span className="status-dot" />a work in good company.
-                        </div>
-                        <div className="illustration-orbit" />
-                      </div>
-                    </section>
-                  ) : page === "following" ? (
-                    <>
-                      <PageTitle
-                        eyebrow="KEEP THE CONVERSATION GOING"
-                        title="The things you follow."
-                        description="Public topics and conversations you follow, with your existing community access."
-                      />
-                      <div className="following-actions">
-                        <button
-                          className="button secondary"
-                          onClick={() => go("subscriptions")}
-                        >
-                          Manage subscriptions <Bell size={15} />
-                        </button>
-                        {!user && (
-                          <button
-                            className="button primary"
-                            onClick={() => authorized(() => {})}
-                          >
-                            Sign in to see Following
-                          </button>
-                        )}
-                      </div>
-                    </>
-                  ) : page === "community" ? (
+                  {page === "community" && !community?.is_member && (
                     <CommunityHeader
                       community={community}
                       onCreate={() => create()}
@@ -989,442 +833,636 @@ export function App() {
                       onRefresh={refresh}
                       go={go}
                     />
-                  ) : (
-                    <PageTitle
-                      eyebrow="GOOD THINGS ARE WORTH KEEPING"
-                      title="A little inspiration, saved."
-                      description="Your reading list, second looks, and conversations to come back to."
+                  )}
+                  {page === "work" && (
+                    <MyWork
+                      key={user?.id || "guest"}
+                      user={user}
+                      section={id || "attention"}
+                      requireUser={authorized}
+                      go={go}
+                      onDraft={(d) =>
+                        authorized(() =>
+                          setComposer({
+                            kind: [
+                              "question",
+                              "discussion",
+                              "review",
+                              "showcase",
+                            ].includes(d.kind)
+                              ? d.kind
+                              : "discussion",
+                            topic: d.topic || "web",
+                            community_id: d.community_id || null,
+                          }),
+                        )
+                      }
                     />
                   )}
-                  {page === "tag" && (
-                    <div className="topic-follow-bar">
-                      <span>
-                        Follow this topic to hear about new public
-                        conversations.
-                      </span>
-                      <FollowButton
-                        key={id + ":" + user?.id}
-                        kind="topic"
-                        item={id}
-                        user={user}
-                        requireUser={authorized}
-                        toast={setToast}
-                      />
-                    </div>
+                  {page === "review-flow" && (
+                    <ReviewFlowQueue
+                      key={user?.id || "guest"}
+                      user={user}
+                      requireUser={authorized}
+                    />
                   )}
-                  <div className="content-layout">
-                    <section className="feed-column">
-                      <div className="feed-toolbar">
-                        <div className="feed-tabs">
-                          {[
-                            ["Recent", Clock],
-                            ["Active", Flame],
-                            ["Needs help", HelpCircle],
-                          ].map(([name, Icon]) => (
+                  {page === "extensions" && (
+                    <Extensions
+                      key={user?.id || "guest"}
+                      user={user}
+                      requireUser={authorized}
+                    />
+                  )}
+                  {page === "github" && (
+                    <GitHubHub
+                      key={user?.id || "guest"}
+                      user={user}
+                      requireUser={authorized}
+                      onReview={shareGitHubReview}
+                    />
+                  )}
+                  {page === "workspace" && (
+                    <Workspace
+                      key={`${user?.id || "guest"}:${id}`}
+                      id={id}
+                      route={
+                        rawPage === "room" ? `workspace/${id}/room` : route
+                      }
+                      onGitHubReview={shareGitHubReview}
+                      user={user}
+                      requireUser={authorized}
+                      go={go}
+                      communities={joinedCommunities}
+                    />
+                  )}
+                  {isFeed && (
+                    <>
+                      {page === "feed" || page === "tag" ? (
+                        <section className="feed-intro">
+                          <div>
+                            <span className="eyebrow">
+                              <span className="tiny-dot" />
+                              PUBLIC FEED · OPEN CONVERSATIONS
+                            </span>
+                            <h1>
+                              A little curiosity.
+                              <br />A lot of possibility
+                              <span className="accent-text">.</span>
+                            </h1>
+                            <p>
+                              A place to ask, share, build, and figure things
+                              out together.
+                            </p>
+                            <div className="intro-actions">
+                              <button
+                                className="button primary"
+                                onClick={() => create()}
+                              >
+                                <Plus size={16} />
+                                Start a conversation
+                              </button>
+                              <button
+                                className="text-button"
+                                onClick={() => go("communities")}
+                              >
+                                Find your people
+                                <ArrowUpRight size={15} />
+                              </button>
+                            </div>
+                          </div>
+                          <div
+                            className="intro-illustration"
+                            aria-hidden="true"
+                          >
+                            <span className="illustration-code">
+                              {"{"}
+                              <span>you</span>
+                              {"}"}
+                            </span>
+                            <span className="illustration-star">✳</span>
+                            <div className="illustration-note">
+                              <span className="status-dot" />a work in good
+                              company.
+                            </div>
+                            <div className="illustration-orbit" />
+                          </div>
+                        </section>
+                      ) : page === "following" ? (
+                        <>
+                          <PageTitle
+                            eyebrow="KEEP THE CONVERSATION GOING"
+                            title="The things you follow."
+                            description="Public topics and conversations you follow, with your existing community access."
+                          />
+                          <div className="following-actions">
                             <button
-                              key={name}
-                              className={sort === name ? "selected" : ""}
-                              onClick={() => {
-                                setSort(name);
+                              className="button secondary"
+                              onClick={() => go("subscriptions")}
+                            >
+                              Manage subscriptions <Bell size={15} />
+                            </button>
+                            {!user && (
+                              <button
+                                className="button primary"
+                                onClick={() => authorized(() => {})}
+                              >
+                                Sign in to see Following
+                              </button>
+                            )}
+                          </div>
+                        </>
+                      ) : page === "community" ? (
+                        <CommunityHeader
+                          community={community}
+                          onCreate={() => create()}
+                          user={user}
+                          requireUser={authorized}
+                          onRefresh={refresh}
+                          go={go}
+                        />
+                      ) : (
+                        <PageTitle
+                          eyebrow="GOOD THINGS ARE WORTH KEEPING"
+                          title="A little inspiration, saved."
+                          description="Your reading list, second looks, and conversations to come back to."
+                        />
+                      )}
+                      {page === "tag" && (
+                        <div className="topic-follow-bar">
+                          <span>
+                            Follow this topic to hear about new public
+                            conversations.
+                          </span>
+                          <FollowButton
+                            key={id + ":" + user?.id}
+                            kind="topic"
+                            item={id}
+                            user={user}
+                            requireUser={authorized}
+                            toast={setToast}
+                          />
+                        </div>
+                      )}
+                      <div className="content-layout">
+                        <section className="feed-column">
+                          <div className="feed-toolbar">
+                            <div className="feed-tabs">
+                              {[
+                                ["Recent", Clock],
+                                ["Active", Flame],
+                                ["Needs help", HelpCircle],
+                              ].map(([name, Icon]) => (
+                                <button
+                                  key={name}
+                                  className={sort === name ? "selected" : ""}
+                                  onClick={() => {
+                                    setSort(name);
+                                    setListPage(1);
+                                  }}
+                                >
+                                  <Icon size={15} />
+                                  {name}
+                                </button>
+                              ))}
+                            </div>
+                            <input
+                              className="local-search"
+                              aria-label="Search conversations"
+                              placeholder="Search conversations…"
+                              value={query}
+                              onChange={(e) => {
+                                setQuery(e.target.value);
                                 setListPage(1);
                               }}
-                            >
-                              <Icon size={15} />
-                              {name}
-                            </button>
-                          ))}
-                        </div>
-                        <input
-                          className="local-search"
-                          aria-label="Search conversations"
-                          placeholder="Search conversations…"
-                          value={query}
-                          onChange={(e) => {
-                            setQuery(e.target.value);
-                            setListPage(1);
-                          }}
-                        />
-                        <label className="type-select">
-                          <Select
-                            aria-label="Filter by topic tag"
-                            value={
-                              page === "tag" || page === "following"
-                                ? id || ""
-                                : ""
-                            }
-                            onChange={(e) =>
-                              go(
-                                page === "following"
-                                  ? "following" +
-                                      (e.target.value
-                                        ? "/" + e.target.value
-                                        : "")
-                                  : e.target.value
-                                    ? "tag/" + e.target.value
-                                    : "feed",
-                              )
-                            }
-                          >
-                            <option value="">All topics</option>
-                            {topics.map((t) => (
-                              <option key={t.id} value={t.id}>
-                                {t.name}
-                              </option>
-                            ))}
-                          </Select>
-                        </label>
-                        <label className="type-select">
-                          <SlidersHorizontal size={14} />
-                          <Select
-                            aria-label="Filter by post type"
-                            value={typeFilter}
-                            onChange={(e) => {
-                              setTypeFilter(e.target.value);
-                              setListPage(1);
-                            }}
-                          >
-                            <option value="all">All types</option>
-                            {Object.entries(types).map(([key, t]) => (
-                              <option key={key} value={key}>
-                                {t.label}
-                              </option>
-                            ))}
-                          </Select>
-                        </label>
-                      </div>
-                      {sort === "Needs help" && (
-                        <p className="needs-help-note">
-                          Open questions and code reviews without an accepted
-                          solution — including those with replies.
-                        </p>
-                      )}
-                      {feed.length ? (
-                        <div className="post-list">
-                          {feed.map((p) => (
-                            <PostCard
-                              key={p.id}
-                              post={p}
-                              topicName={topicName(p.topic)}
-                              saved={has("post", p.id)}
-                              onVote={() => vote(p)}
-                              onSave={() => membership("post", p.id)}
-                              onOpen={() => go("post/" + p.id)}
-                              onMember={() => go("member/" + p.user_id)}
                             />
-                          ))}
+                            <label className="type-select">
+                              <Select
+                                aria-label="Filter by topic tag"
+                                value={
+                                  page === "tag" || page === "following"
+                                    ? id || ""
+                                    : ""
+                                }
+                                onChange={(e) =>
+                                  go(
+                                    page === "following"
+                                      ? "following" +
+                                          (e.target.value
+                                            ? "/" + e.target.value
+                                            : "")
+                                      : e.target.value
+                                        ? "tag/" + e.target.value
+                                        : "feed",
+                                  )
+                                }
+                              >
+                                <option value="">All topics</option>
+                                {topics.map((t) => (
+                                  <option key={t.id} value={t.id}>
+                                    {t.name}
+                                  </option>
+                                ))}
+                              </Select>
+                            </label>
+                            <label className="type-select">
+                              <SlidersHorizontal size={14} />
+                              <Select
+                                aria-label="Filter by post type"
+                                value={typeFilter}
+                                onChange={(e) => {
+                                  setTypeFilter(e.target.value);
+                                  setListPage(1);
+                                }}
+                              >
+                                <option value="all">All types</option>
+                                {Object.entries(types).map(([key, t]) => (
+                                  <option key={key} value={key}>
+                                    {t.label}
+                                  </option>
+                                ))}
+                              </Select>
+                            </label>
+                          </div>
+                          {sort === "Needs help" && (
+                            <p className="needs-help-note">
+                              Open questions and code reviews without an
+                              accepted solution — including those with replies.
+                            </p>
+                          )}
+                          {feed.length ? (
+                            <div className="post-list">
+                              {feed.map((p) => (
+                                <PostCard
+                                  key={p.id}
+                                  post={p}
+                                  topicName={topicName(p.topic)}
+                                  saved={has("post", p.id)}
+                                  onVote={() => vote(p)}
+                                  onSave={() => membership("post", p.id)}
+                                  onOpen={() => go("post/" + p.id)}
+                                  onMember={() => go("member/" + p.user_id)}
+                                />
+                              ))}
+                            </div>
+                          ) : (
+                            <Empty
+                              icon={MessagesSquare}
+                              title={
+                                query
+                                  ? "Nothing here matches that search."
+                                  : page === "saved"
+                                    ? "Your good-find collection starts here."
+                                    : page === "following"
+                                      ? "Your Following feed starts here."
+                                      : "A good place for the first word."
+                              }
+                              description={
+                                query
+                                  ? "Try another phrase or clear your filters."
+                                  : page === "saved"
+                                    ? "Bookmark a conversation to find it here later."
+                                    : page === "following"
+                                      ? "Follow topics or individual conversations to see their posts and latest replies here."
+                                      : "Ask a question, share an idea, or show what you’re working on."
+                              }
+                              action={
+                                query
+                                  ? "Clear search"
+                                  : page === "saved" || page === "following"
+                                    ? "Explore the feed"
+                                    : "Start a conversation"
+                              }
+                              onClick={() =>
+                                query
+                                  ? setQuery("")
+                                  : page === "saved" || page === "following"
+                                    ? go("feed")
+                                    : create()
+                              }
+                            />
+                          )}
+                          <Pagination
+                            meta={posts.pagination}
+                            label="conversations"
+                            onPage={setListPage}
+                          />
+                        </section>
+                        <RightRail
+                          topics={topics}
+                          communities={joinedCommunities}
+                          events={
+                            user?.preferences?.show_event_reminders === false
+                              ? []
+                              : myEvents
+                          }
+                          showReminders={
+                            user?.preferences?.show_event_reminders !== false
+                          }
+                          go={go}
+                          create={create}
+                        />
+                      </div>
+                    </>
+                  )}
+                  {page === "communities" && (
+                    <CommunityDirectory
+                      items={communities}
+                      query={query}
+                      onSearch={setQuery}
+                      go={go}
+                      onRefresh={refresh}
+                      onPage={setListPage}
+                      requireUser={authorized}
+                      user={user}
+                    />
+                  )}
+                  {page === "projects" && (
+                    <>
+                      <PageTitle
+                        eyebrow="SMALL EXPERIMENTS. BIG POSSIBILITIES."
+                        title="Built by someone like you."
+                        description="Discover work in progress. Give thoughtful feedback. Help an idea find its feet."
+                        action="Share your project"
+                        onClick={() => authorized(() => setProjectForm(true))}
+                      />
+                      <div className="projects-banner">
+                        <FolderGit2 size={29} />
+                        <div>
+                          <strong>
+                            Less “check out my product”. More “help me make it
+                            better”.
+                          </strong>
+                          <p>
+                            Every project starts with a specific question. A
+                            useful response can go a long way.
+                          </p>
                         </div>
-                      ) : (
+                        <ArrowUpRight size={22} />
+                      </div>
+                      <input
+                        className="directory-search"
+                        aria-label="Search projects"
+                        placeholder="Search projects…"
+                        value={query}
+                        onChange={(e) => setQuery(e.target.value)}
+                      />
+                      <div className="projects-grid">
+                        {projects
+                          .filter((p) =>
+                            (p.name + " " + p.description + " " + p.stack)
+                              .toLowerCase()
+                              .includes(query.toLowerCase()),
+                          )
+                          .map((p) => (
+                            <article className="project-card" key={p.id}>
+                              {p.community_id && (
+                                <span className="project-private-label">
+                                  Private community
+                                </span>
+                              )}
+                              <Carousel images={p.screenshots} />
+                              <div className="project-card-top">
+                                <span
+                                  className={
+                                    "project-monogram " +
+                                    (p.logo ? "has-logo" : "")
+                                  }
+                                >
+                                  {p.logo ? (
+                                    <img
+                                      src={"/api/uploads/" + p.logo}
+                                      alt={p.name + " logo"}
+                                    />
+                                  ) : (
+                                    p.name.slice(0, 2).toUpperCase()
+                                  )}
+                                </span>
+                                <span className="stage-badge">
+                                  <span className="tiny-dot" />
+                                  {p.stage}
+                                </span>
+                              </div>
+                              <small className="project-participation-label">
+                                {p.participation_mode === "approved"
+                                  ? "Approved contributors"
+                                  : "Open participation"}
+                              </small>
+                              <a href={"#post/" + p.post_id}>
+                                <h2>
+                                  {p.name}
+                                  <ArrowUpRight size={18} />
+                                </h2>
+                              </a>
+                              <p>{p.description}</p>
+                              <div className="stack-tags">
+                                {tags(p.stack).map((t) => (
+                                  <span key={t}>{t}</span>
+                                ))}
+                              </div>
+                              {!!p.team?.length && (
+                                <div className="project-team compact">
+                                  {p.team.map((m) => (
+                                    <button
+                                      key={m.user_id}
+                                      onClick={() => go("member/" + m.user_id)}
+                                    >
+                                      <Avatar
+                                        userId={m.user_id}
+                                        image={m.avatar}
+                                        name={m.name || "Builder"}
+                                        size="small"
+                                      />
+                                      <span>
+                                        {m.name}
+                                        <small>{m.role}</small>
+                                      </span>
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                              <div className="project-request">
+                                <span className="eyebrow">
+                                  LOOKING FOR A FRESH PERSPECTIVE
+                                </span>
+                                <p>{p.help}</p>
+                              </div>
+                              <div className="project-actions">
+                                <a
+                                  className="button secondary"
+                                  href={"#workspace/" + p.id}
+                                >
+                                  Open workspace <ArrowUpRight size={15} />
+                                </a>
+                                <a
+                                  className="text-button project-room-link"
+                                  href={"#room/" + p.id}
+                                >
+                                  Enter room <ArrowUpRight size={15} />
+                                </a>
+                              </div>
+                              <div className="project-footer">
+                                <button
+                                  onClick={() => go("member/" + p.user_id)}
+                                >
+                                  <Avatar
+                                    name={p.founder_name}
+                                    userId={p.user_id}
+                                    image={p.founder_avatar}
+                                    size="small"
+                                  />
+                                  {p.founder_name}
+                                </button>
+                                <a href={"#post/" + p.post_id}>
+                                  <MessageCircle size={14} />
+                                  {p.feedback_count} feedback
+                                </a>
+                              </div>
+                            </article>
+                          ))}
+                      </div>
+                      {!projects.filter((p) =>
+                        (p.name + " " + p.description + " " + p.stack)
+                          .toLowerCase()
+                          .includes(query.toLowerCase()),
+                      ).length && (
                         <Empty
-                          icon={MessagesSquare}
+                          icon={FolderGit2}
                           title={
                             query
-                              ? "Nothing here matches that search."
-                              : page === "saved"
-                                ? "Your good-find collection starts here."
-                                : page === "following"
-                                  ? "Your Following feed starts here."
-                                  : "A good place for the first word."
+                              ? "No projects match that search."
+                              : "Your side project deserves a second pair of eyes."
                           }
                           description={
                             query
-                              ? "Try another phrase or clear your filters."
-                              : page === "saved"
-                                ? "Bookmark a conversation to find it here later."
-                                : page === "following"
-                                  ? "Follow topics or individual conversations to see their posts and latest replies here."
-                                  : "Ask a question, share an idea, or show what you’re working on."
+                              ? "Try another project name or technology."
+                              : "Introduce your project and tell the community exactly what kind of feedback would help."
                           }
                           action={
-                            query
-                              ? "Clear search"
-                              : page === "saved" || page === "following"
-                                ? "Explore the feed"
-                                : "Start a conversation"
+                            query ? "Clear search" : "Share the first project"
                           }
                           onClick={() =>
                             query
                               ? setQuery("")
-                              : page === "saved" || page === "following"
-                                ? go("feed")
-                                : create()
+                              : authorized(() => setProjectForm(true))
                           }
                         />
                       )}
-                      <Pagination
-                        meta={posts.pagination}
-                        label="conversations"
-                        onPage={setListPage}
-                      />
-                    </section>
-                    <RightRail
-                      topics={topics}
-                      communities={joinedCommunities}
-                      events={
-                        user?.preferences?.show_event_reminders === false
-                          ? []
-                          : myEvents
-                      }
-                      showReminders={
-                        user?.preferences?.show_event_reminders !== false
-                      }
-                      go={go}
-                      create={create}
-                    />
-                  </div>
-                </>
-              )}
-              {page === "communities" && (
-                <CommunityDirectory
-                  items={communities}
-                  query={query}
-                  onSearch={setQuery}
-                  go={go}
-                  onRefresh={refresh}
-                  onPage={setListPage}
-                  requireUser={authorized}
-                  user={user}
-                />
-              )}
-              {page === "projects" && (
-                <>
-                  <PageTitle
-                    eyebrow="SMALL EXPERIMENTS. BIG POSSIBILITIES."
-                    title="Built by someone like you."
-                    description="Discover work in progress. Give thoughtful feedback. Help an idea find its feet."
-                    action="Share your project"
-                    onClick={() => authorized(() => setProjectForm(true))}
-                  />
-                  <div className="projects-banner">
-                    <FolderGit2 size={29} />
-                    <div>
-                      <strong>
-                        Less “check out my product”. More “help me make it
-                        better”.
-                      </strong>
-                      <p>
-                        Every project starts with a specific question. A useful
-                        response can go a long way.
-                      </p>
-                    </div>
-                    <ArrowUpRight size={22} />
-                  </div>
-                  <input
-                    className="directory-search"
-                    aria-label="Search projects"
-                    placeholder="Search projects…"
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                  />
-                  <div className="projects-grid">
-                    {projects
-                      .filter((p) =>
-                        (p.name + " " + p.description + " " + p.stack)
-                          .toLowerCase()
-                          .includes(query.toLowerCase()),
-                      )
-                      .map((p) => (
-                        <article className="project-card" key={p.id}>
-                          {p.community_id && (
-                            <span className="project-private-label">
-                              Private community
-                            </span>
-                          )}
-                          <Carousel images={p.screenshots} />
-                          <div className="project-card-top">
-                            <span
-                              className={
-                                "project-monogram " + (p.logo ? "has-logo" : "")
-                              }
-                            >
-                              {p.logo ? (
-                                <img
-                                  src={"/api/uploads/" + p.logo}
-                                  alt={p.name + " logo"}
-                                />
-                              ) : (
-                                p.name.slice(0, 2).toUpperCase()
-                              )}
-                            </span>
-                            <span className="stage-badge">
-                              <span className="tiny-dot" />
-                              {p.stage}
-                            </span>
-                          </div>
-                          <small className="project-participation-label">
-                            {p.participation_mode === "approved"
-                              ? "Approved contributors"
-                              : "Open participation"}
-                          </small>
-                          <a href={"#post/" + p.post_id}>
-                            <h2>
-                              {p.name}
-                              <ArrowUpRight size={18} />
-                            </h2>
-                          </a>
-                          <p>{p.description}</p>
-                          <div className="stack-tags">
-                            {tags(p.stack).map((t) => (
-                              <span key={t}>{t}</span>
-                            ))}
-                          </div>
-                          {!!p.team?.length && (
-                            <div className="project-team compact">
-                              {p.team.map((m) => (
-                                <button
-                                  key={m.user_id}
-                                  onClick={() => go("member/" + m.user_id)}
-                                >
-                                  <Avatar
-                                    userId={m.user_id}
-                                    image={m.avatar}
-                                    name={m.name || "Builder"}
-                                    size="small"
-                                  />
-                                  <span>
-                                    {m.name}
-                                    <small>{m.role}</small>
-                                  </span>
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                          <div className="project-request">
-                            <span className="eyebrow">
-                              LOOKING FOR A FRESH PERSPECTIVE
-                            </span>
-                            <p>{p.help}</p>
-                          </div>
-                          <div className="project-actions">
-                            <a
-                              className="button secondary"
-                              href={"#workspace/" + p.id}
-                            >
-                              Open workspace <ArrowUpRight size={15} />
-                            </a>
-                            <a
-                              className="text-button project-room-link"
-                              href={"#room/" + p.id}
-                            >
-                              Enter room <ArrowUpRight size={15} />
-                            </a>
-                          </div>
-                          <div className="project-footer">
-                            <button onClick={() => go("member/" + p.user_id)}>
-                              <Avatar
-                                name={p.founder_name}
-                                userId={p.user_id}
-                                image={p.founder_avatar}
-                                size="small"
-                              />
-                              {p.founder_name}
-                            </button>
-                            <a href={"#post/" + p.post_id}>
-                              <MessageCircle size={14} />
-                              {p.feedback_count} feedback
-                            </a>
-                          </div>
-                        </article>
-                      ))}
-                  </div>
-                  {!projects.filter((p) =>
-                    (p.name + " " + p.description + " " + p.stack)
-                      .toLowerCase()
-                      .includes(query.toLowerCase()),
-                  ).length && (
-                    <Empty
-                      icon={FolderGit2}
-                      title={
-                        query
-                          ? "No projects match that search."
-                          : "Your side project deserves a second pair of eyes."
-                      }
-                      description={
-                        query
-                          ? "Try another project name or technology."
-                          : "Introduce your project and tell the community exactly what kind of feedback would help."
-                      }
-                      action={
-                        query ? "Clear search" : "Share the first project"
-                      }
-                      onClick={() =>
-                        query
-                          ? setQuery("")
-                          : authorized(() => setProjectForm(true))
-                      }
+                    </>
+                  )}
+                  {page === "projects" && (
+                    <Pagination
+                      meta={projects.pagination}
+                      label="projects"
+                      onPage={setListPage}
                     />
                   )}
-                </>
-              )}
-              {page === "projects" && (
-                <Pagination
-                  meta={projects.pagination}
-                  label="projects"
-                  onPage={setListPage}
-                />
-              )}
-              {page === "events" && (
-                <>
-                  <PageTitle
-                    eyebrow="MAKE ROOM FOR A GOOD CONVERSATION"
-                    title="See you on the other side."
-                    description="Meetups, workshops, and the occasional “wait, how did you build that?”"
-                    action="Create an event"
-                    onClick={() => authorized(() => setEventForm(true))}
-                  />
-                  <div className="events-toolbar">
-                    <div className="feed-tabs">
-                      {["Recent", "Upcoming", "Past"].map((t) => (
-                        <button
-                          className={sort === t ? "selected" : ""}
-                          onClick={() => setSort(t)}
-                          key={t}
-                        >
-                          {t === "Recent" ? "All events" : t}
-                        </button>
-                      ))}
-                    </div>
-                    <span>
-                      <Globe size={14} />
-                      Times shown in {localZone}
-                    </span>
-                  </div>
-                  <div className="event-filters">
-                    <Select
-                      aria-label="Event topic"
-                      value={eventTopic}
-                      onChange={(e) => setEventTopic(e.target.value)}
-                      searchable
-                      options={[
-                        { value: "", label: "Every topic" },
-                        ...topics.map((t) => ({ value: t.id, label: t.name })),
-                      ]}
-                    />
-                    <Select
-                      aria-label="Sort events by date"
-                      value={eventOrder}
-                      onChange={(e) => setEventOrder(e.target.value)}
-                      options={[
-                        { value: "soonest", label: "Date · earliest first" },
-                        { value: "latest", label: "Date · latest first" },
-                      ]}
-                    />
-                    <input
-                      type="date"
-                      aria-label="Events on date"
-                      title={"Events starting on this date · " + localZone}
-                      value={eventDate}
-                      onChange={(e) => setEventDate(e.target.value)}
-                    />
-                    <input
-                      aria-label="Search events"
-                      placeholder="Search events…"
-                      value={query}
-                      onChange={(e) => setQuery(e.target.value)}
-                    />
-                  </div>
-                  <div className="events-grid">
-                    {events
-                      .filter(
+                  {page === "events" && (
+                    <>
+                      <PageTitle
+                        eyebrow="MAKE ROOM FOR A GOOD CONVERSATION"
+                        title="See you on the other side."
+                        description="Meetups, workshops, and the occasional “wait, how did you build that?”"
+                        action="Create an event"
+                        onClick={() => authorized(() => setEventForm(true))}
+                      />
+                      <div className="events-toolbar">
+                        <div className="feed-tabs">
+                          {["Recent", "Upcoming", "Past"].map((t) => (
+                            <button
+                              className={sort === t ? "selected" : ""}
+                              onClick={() => setSort(t)}
+                              key={t}
+                            >
+                              {t === "Recent" ? "All events" : t}
+                            </button>
+                          ))}
+                        </div>
+                        <span>
+                          <Globe size={14} />
+                          Times shown in {localZone}
+                        </span>
+                      </div>
+                      <div className="event-filters">
+                        <Select
+                          aria-label="Event topic"
+                          value={eventTopic}
+                          onChange={(e) => setEventTopic(e.target.value)}
+                          searchable
+                          options={[
+                            { value: "", label: "Every topic" },
+                            ...topics.map((t) => ({
+                              value: t.id,
+                              label: t.name,
+                            })),
+                          ]}
+                        />
+                        <Select
+                          aria-label="Sort events by date"
+                          value={eventOrder}
+                          onChange={(e) => setEventOrder(e.target.value)}
+                          options={[
+                            {
+                              value: "soonest",
+                              label: "Date · earliest first",
+                            },
+                            { value: "latest", label: "Date · latest first" },
+                          ]}
+                        />
+                        <input
+                          type="date"
+                          aria-label="Events on date"
+                          title={"Events starting on this date · " + localZone}
+                          value={eventDate}
+                          onChange={(e) => setEventDate(e.target.value)}
+                        />
+                        <input
+                          aria-label="Search events"
+                          placeholder="Search events…"
+                          value={query}
+                          onChange={(e) => setQuery(e.target.value)}
+                        />
+                      </div>
+                      <div className="events-grid">
+                        {events
+                          .filter(
+                            (e) =>
+                              (e.title + " " + e.description)
+                                .toLowerCase()
+                                .includes(query.toLowerCase()) &&
+                              (sort === "Upcoming"
+                                ? !e.cancelled_at &&
+                                  new Date(e.end_at) > new Date()
+                                : sort === "Past"
+                                  ? new Date(e.end_at) < new Date()
+                                  : true),
+                          )
+                          .map((e, index) => (
+                            <EventCard
+                              key={e.id}
+                              event={e}
+                              index={index}
+                              joined={has("event", e.id)}
+                              user={user}
+                              onJoin={() => membership("event", e.id)}
+                              onEdit={() => setEventForm(e)}
+                              onChange={async (action) => {
+                                await api(`/events/${e.id}/lifecycle`, {
+                                  method: "POST",
+                                  body: { action, revision: e.revision },
+                                });
+                                await refresh();
+                                setToast(
+                                  action === "cancel"
+                                    ? "Event cancelled. Attendees have been notified."
+                                    : "Event restored. Attendees have been notified.",
+                                );
+                              }}
+                              onMember={() => go("member/" + e.user_id)}
+                              topic={topicName(e.topic)}
+                            />
+                          ))}
+                      </div>
+                      {!events.filter(
                         (e) =>
                           (e.title + " " + e.description)
                             .toLowerCase()
@@ -1434,364 +1472,332 @@ export function App() {
                             : sort === "Past"
                               ? new Date(e.end_at) < new Date()
                               : true),
-                      )
-                      .map((e, index) => (
-                        <EventCard
-                          key={e.id}
-                          event={e}
-                          index={index}
-                          joined={has("event", e.id)}
-                          user={user}
-                          onJoin={() => membership("event", e.id)}
-                          onEdit={() => setEventForm(e)}
-                          onChange={async (action) => {
-                            await api(`/events/${e.id}/lifecycle`, {
-                              method: "POST",
-                              body: { action, revision: e.revision },
-                            });
-                            await refresh();
-                            setToast(
-                              action === "cancel"
-                                ? "Event cancelled. Attendees have been notified."
-                                : "Event restored. Attendees have been notified.",
-                            );
-                          }}
-                          onMember={() => go("member/" + e.user_id)}
-                          topic={topicName(e.topic)}
+                      ).length && (
+                        <Empty
+                          icon={CalendarDays}
+                          title={
+                            query
+                              ? "No events match that search."
+                              : "Something to look forward to starts with you."
+                          }
+                          description="Bring a few builders together for a conversation, a demo, or a live code review."
+                          action="Create an event"
+                          onClick={() => authorized(() => setEventForm(true))}
                         />
-                      ))}
-                  </div>
-                  {!events.filter(
-                    (e) =>
-                      (e.title + " " + e.description)
-                        .toLowerCase()
-                        .includes(query.toLowerCase()) &&
-                      (sort === "Upcoming"
-                        ? !e.cancelled_at && new Date(e.end_at) > new Date()
-                        : sort === "Past"
-                          ? new Date(e.end_at) < new Date()
-                          : true),
-                  ).length && (
-                    <Empty
-                      icon={CalendarDays}
-                      title={
-                        query
-                          ? "No events match that search."
-                          : "Something to look forward to starts with you."
+                      )}
+                    </>
+                  )}
+                  {page === "events" && (
+                    <Pagination
+                      meta={events.pagination}
+                      label="events"
+                      onPage={setListPage}
+                    />
+                  )}
+                  {page === "cli" && (
+                    <CliApproval
+                      key={route}
+                      user={user}
+                      requireUser={authorized}
+                      code={route.split("/")[2] || ""}
+                    />
+                  )}
+                  {page === "subscriptions" && (
+                    <>
+                      <PageTitle
+                        eyebrow="YOUR SIGNAL, YOUR CHOICE"
+                        title="Manage subscriptions."
+                        description="Topics and conversations you want to keep up with."
+                      />
+                      <button
+                        className="text-button"
+                        onClick={() => go("following")}
+                      >
+                        <ArrowLeft size={15} /> Back to Following
+                      </button>
+                      <SubscriptionManager
+                        key={user?.id || "guest"}
+                        user={user}
+                        go={go}
+                        requireUser={authorized}
+                      />
+                    </>
+                  )}
+                  {page === "post" &&
+                    (detailError ? (
+                      <Empty
+                        title="We couldn’t open this conversation."
+                        description={detailError}
+                        action="Back to the feed"
+                        onClick={() => go("feed")}
+                      />
+                    ) : detail ? (
+                      <PostDetail
+                        post={detail}
+                        user={user}
+                        topic={topicName(detail.topic)}
+                        saved={has("post", detail.id)}
+                        onVote={() => vote(detail)}
+                        onSave={() => membership("post", detail.id)}
+                        requireUser={authorized}
+                        refresh={reloadPost}
+                        toast={setToast}
+                        go={go}
+                      />
+                    ) : (
+                      <div className="loading-state">
+                        <span className="spinner" />
+                        Opening conversation…
+                      </div>
+                    ))}
+                  {(page === "profile" || page === "member") &&
+                    (page === "profile" && !user ? (
+                      <Empty
+                        icon={Code2}
+                        title="Your corner is waiting for you."
+                        description="A profile, your projects, the people you meet, and the conversations you’ll come back to."
+                        action="Join the community"
+                        onClick={() => setAuth("signup")}
+                      />
+                    ) : detailError ? (
+                      <Empty
+                        title="Member not found"
+                        description={detailError}
+                      />
+                    ) : page === "member" && !member ? (
+                      <div className="loading-state">
+                        <span className="spinner" />
+                        Opening developer profile…
+                      </div>
+                    ) : (
+                      <Profile
+                        person={page === "profile" ? user : member}
+                        own={page === "profile" || member?.id === user?.id}
+                        user={user}
+                        posts={page === "profile" ? posts : member.posts}
+                        allPosts={posts}
+                        onPage={setListPage}
+                        events={events}
+                        projects={projects}
+                        communities={communities}
+                        has={has}
+                        go={go}
+                        edit={() => setEditor(true)}
+                        logout={async () => {
+                          try {
+                            await api("/logout", { method: "POST" });
+                            clearAccountData();
+                            accountIdentity.current = null;
+                            setUser(null);
+                            await refresh();
+                            go("feed");
+                            setToast("You’re signed out. See you soon.");
+                          } catch (e) {
+                            setToast(e.message);
+                          }
+                        }}
+                      />
+                    ))}
+                  {page === "moderation" && (
+                    <Moderation
+                      key={id || "all"}
+                      user={user}
+                      go={go}
+                      scope={
+                        id === "public"
+                          ? "public"
+                          : id === "communities"
+                            ? "communities"
+                            : "all"
                       }
-                      description="Bring a few builders together for a conversation, a demo, or a live code review."
-                      action="Create an event"
-                      onClick={() => authorized(() => setEventForm(true))}
+                    />
+                  )}
+                  {![
+                    "moderation",
+                    "following",
+                    "subscriptions",
+                    "feed",
+                    "tag",
+                    "community",
+                    "communities",
+                    "projects",
+                    "workspace",
+                    "room",
+                    "review-flow",
+                    "work",
+                    "github",
+                    "extensions",
+                    "events",
+                    "post",
+                    "profile",
+                    "member",
+                    "saved",
+                  ].includes(page) && (
+                    <Empty
+                      title="A little off the beaten path."
+                      description="This page doesn’t exist. There’s plenty happening back in the feed."
+                      action="Back to the feed"
+                      onClick={() => go("feed")}
                     />
                   )}
                 </>
               )}
-              {page === "events" && (
-                <Pagination
-                  meta={events.pagination}
-                  label="events"
-                  onPage={setListPage}
-                />
-              )}
-              {page === "cli" && (
-                <CliApproval
-                  key={route}
-                  user={user}
-                  requireUser={authorized}
-                  code={route.split("/")[2] || ""}
-                />
-              )}
-              {page === "subscriptions" && (
-                <>
-                  <PageTitle
-                    eyebrow="YOUR SIGNAL, YOUR CHOICE"
-                    title="Manage subscriptions."
-                    description="Topics and conversations you want to keep up with."
-                  />
-                  <button
-                    className="text-button"
-                    onClick={() => go("following")}
-                  >
-                    <ArrowLeft size={15} /> Back to Following
-                  </button>
-                  <SubscriptionManager
-                    key={user?.id || "guest"}
-                    user={user}
-                    go={go}
-                    requireUser={authorized}
-                  />
-                </>
-              )}
-              {page === "post" &&
-                (detailError ? (
-                  <Empty
-                    title="We couldn’t open this conversation."
-                    description={detailError}
-                    action="Back to the feed"
-                    onClick={() => go("feed")}
-                  />
-                ) : detail ? (
-                  <PostDetail
-                    post={detail}
-                    user={user}
-                    topic={topicName(detail.topic)}
-                    saved={has("post", detail.id)}
-                    onVote={() => vote(detail)}
-                    onSave={() => membership("post", detail.id)}
-                    requireUser={authorized}
-                    refresh={reloadPost}
-                    toast={setToast}
-                    go={go}
-                  />
-                ) : (
-                  <div className="loading-state">
-                    <span className="spinner" />
-                    Opening conversation…
-                  </div>
-                ))}
-              {(page === "profile" || page === "member") &&
-                (page === "profile" && !user ? (
-                  <Empty
-                    icon={Code2}
-                    title="Your corner is waiting for you."
-                    description="A profile, your projects, the people you meet, and the conversations you’ll come back to."
-                    action="Join the community"
-                    onClick={() => setAuth("signup")}
-                  />
-                ) : detailError ? (
-                  <Empty title="Member not found" description={detailError} />
-                ) : page === "member" && !member ? (
-                  <div className="loading-state">
-                    <span className="spinner" />
-                    Opening developer profile…
-                  </div>
-                ) : (
-                  <Profile
-                    person={page === "profile" ? user : member}
-                    own={page === "profile" || member?.id === user?.id}
-                    user={user}
-                    posts={page === "profile" ? posts : member.posts}
-                    allPosts={posts}
-                    onPage={setListPage}
-                    events={events}
-                    projects={projects}
-                    communities={communities}
-                    has={has}
-                    go={go}
-                    edit={() => setEditor(true)}
-                    logout={async () => {
-                      try {
-                        await api("/logout", { method: "POST" });
-                        clearAccountData();
-                        accountIdentity.current = null;
-                        setUser(null);
-                        await refresh();
-                        go("feed");
-                        setToast("You’re signed out. See you soon.");
-                      } catch (e) {
-                        setToast(e.message);
-                      }
-                    }}
-                  />
-                ))}
-              {page === "moderation" && (
-                <Moderation
-                  key={id || "all"}
-                  user={user}
-                  go={go}
-                  scope={
-                    id === "public"
-                      ? "public"
-                      : id === "communities"
-                        ? "communities"
-                        : "all"
-                  }
-                />
-              )}
-              {![
-                "moderation",
-                "following",
-                "subscriptions",
-                "feed",
-                "tag",
-                "community",
-                "communities",
-                "projects",
-                "workspace",
-                "room",
-                "review-flow",
-                "work",
-                "github",
-                "extensions",
-                "events",
-                "post",
-                "profile",
-                "member",
-                "saved",
-              ].includes(page) && (
-                <Empty
-                  title="A little off the beaten path."
-                  description="This page doesn’t exist. There’s plenty happening back in the feed."
-                  action="Back to the feed"
-                  onClick={() => go("feed")}
-                />
-              )}
-            </>
-          )}
-          <footer className="app-footer">
-            <div className="app-footer-identity">
-              <img src="/devdevian-logo.png" alt="" />
-              <span>
-                <strong>devdevian.</strong>
-                <small>An open-source place to build together.</small>
-              </span>
-              <a
-                className="footer-version"
-                href="https://github.com/Tenyokj/devdevian/releases"
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={`Release v${appVersion}`}
-              >
-                v{appVersion}
-              </a>
             </div>
-            <nav className="app-footer-links" aria-label="Forum footer">
-              <a
-                href="https://github.com/Tenyokj/devdevian"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <Github size={14} /> GitHub
-              </a>
-              <a
-                href="https://github.com/Tenyokj/devdevian/issues/new/choose"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Report a bug <ArrowUpRight size={12} />
-              </a>
-              <a href="/updates">What’s new</a>
-              <a href="/docs">Documentation</a>
-              <a href="/faq">FAQ</a>
-              <a href="/privacy">Privacy &amp; Security</a>
-              <a href="/terms">Terms of Use</a>
-              <button
-                onClick={() =>
-                  window.scrollTo({
-                    top: 0,
-                    behavior:
-                      user?.preferences?.reduce_motion ||
-                      window.matchMedia?.("(prefers-reduced-motion: reduce)")
-                        .matches
-                        ? "auto"
-                        : "smooth",
-                  })
-                }
-                aria-label="Back to top"
-              >
-                <ArrowUp size={15} />
-              </button>
-            </nav>
-          </footer>
-        </main>
-      </div>
-      {toast && (
-        <div className="toast" role="status">
-          <CheckCircle2 size={17} />
-          <span>{toast}</span>
-          <button
-            aria-label="Dismiss notification"
-            onClick={() => setToast("")}
-          >
-            <X size={15} />
-          </button>
+            <footer className="app-footer">
+              <div className="app-footer-identity">
+                <img src="/devdevian-logo.png" alt="" />
+                <span>
+                  <strong>devdevian.</strong>
+                  <small>An open-source place to build together.</small>
+                </span>
+                <a
+                  className="footer-version"
+                  href="https://github.com/Tenyokj/devdevian/releases"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`Release v${appVersion}`}
+                >
+                  v{appVersion}
+                </a>
+              </div>
+              <nav className="app-footer-links" aria-label="Forum footer">
+                <a
+                  href="https://github.com/Tenyokj/devdevian"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Github size={14} /> GitHub
+                </a>
+                <a
+                  href="https://github.com/Tenyokj/devdevian/issues/new/choose"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Report a bug <ArrowUpRight size={12} />
+                </a>
+                <a href="/updates">What’s new</a>
+                <a href="/docs">Documentation</a>
+                <a href="/faq">FAQ</a>
+                <a href="/privacy">Privacy &amp; Security</a>
+                <a href="/terms">Terms of Use</a>
+                <button
+                  onClick={() =>
+                    window.scrollTo({
+                      top: 0,
+                      behavior:
+                        user?.preferences?.reduce_motion ||
+                        window.matchMedia?.("(prefers-reduced-motion: reduce)")
+                          .matches
+                          ? "auto"
+                          : "smooth",
+                    })
+                  }
+                  aria-label="Back to top"
+                >
+                  <ArrowUp size={15} />
+                </button>
+              </nav>
+            </footer>
+          </main>
         </div>
-      )}
-      {user?.username_locked === 0 && <ChooseUsername done={refresh} />}
-      {auth && (
-        <Auth
-          mode={auth}
-          setMode={setAuth}
-          close={closeAuth}
-          done={async (u) => {
-            ++requestVersion.current;
-            clearAccountData();
-            accountIdentity.current = u?.id ?? null;
-            setUser(u);
-            setAuth(null);
-            if (auth === "signup" && u.email_verified) setEditor(true);
-            await refresh();
-            setToast("Good to have you here, " + u.name.split(" ")[0] + ".");
-          }}
-        />
-      )}
-      {composer && (
-        <Composer
-          key={
-            String(user?.id) +
-            ":" +
-            (composer.community_id || "public") +
-            (composer.githubSelection
-              ? ":" +
-                composer.githubSelection.context.commit +
-                ":" +
-                composer.githubSelection.context.path
-              : "")
-          }
-          user={user}
-          communities={joinedCommunities}
-          topics={topics}
-          communityId={composer.community_id}
-          defaultKind={composer.kind}
-          defaultTopic={composer.topic}
-          githubSelection={composer.githubSelection}
-          close={closeComposer}
-          done={async (p) => {
-            setComposer(null);
-            await refresh();
-            go("post/" + p.id);
-            setToast("Your conversation is live.");
-          }}
-        />
-      )}
-      {projectForm && (
-        <ProjectForm
-          communities={topics}
-          joinedCommunities={joinedCommunities}
-          close={closeProject}
-          done={async (p) => {
-            setProjectForm(false);
-            await refresh();
-            go("post/" + p.post_id);
-            setToast("Your project has a home. Let the feedback begin.");
-          }}
-        />
-      )}
-      {eventForm && (
-        <EventForm
-          communities={topics}
-          event={eventForm === true ? undefined : eventForm}
-          close={closeEvent}
-          done={async () => {
-            setEventForm(false);
-            await refresh();
-            go("events");
-            setToast("Your event is ready. Invite your people.");
-          }}
-        />
-      )}
-      {editor && user && (
-        <ProfileEditor
-          user={user}
-          close={closeEditor}
-          done={(u) => {
-            setUser(u);
-            setEditor(false);
-            setToast("Your profile is up to date.");
-          }}
-        />
-      )}
-    </div>
+        {toast && (
+          <div className="toast" role="status">
+            <CheckCircle2 size={17} />
+            <span>{toast}</span>
+            <button
+              aria-label="Dismiss notification"
+              onClick={() => setToast("")}
+            >
+              <X size={15} />
+            </button>
+          </div>
+        )}
+        {user?.username_locked === 0 && <ChooseUsername done={refresh} />}
+        {auth && (
+          <Auth
+            mode={auth}
+            setMode={setAuth}
+            close={closeAuth}
+            done={async (u) => {
+              ++requestVersion.current;
+              clearAccountData();
+              accountIdentity.current = u?.id ?? null;
+              setUser(u);
+              setAuth(null);
+              if (auth === "signup" && u.email_verified) setEditor(true);
+              await refresh();
+              setToast("Good to have you here, " + u.name.split(" ")[0] + ".");
+            }}
+          />
+        )}
+        {composer && (
+          <Composer
+            key={
+              String(user?.id) +
+              ":" +
+              (composer.community_id || "public") +
+              (composer.githubSelection
+                ? ":" +
+                  composer.githubSelection.context.commit +
+                  ":" +
+                  composer.githubSelection.context.path
+                : "")
+            }
+            user={user}
+            communities={joinedCommunities}
+            topics={topics}
+            communityId={composer.community_id}
+            defaultKind={composer.kind}
+            defaultTopic={composer.topic}
+            githubSelection={composer.githubSelection}
+            close={closeComposer}
+            done={async (p) => {
+              setComposer(null);
+              await refresh();
+              go("post/" + p.id);
+              setToast("Your conversation is live.");
+            }}
+          />
+        )}
+        {projectForm && (
+          <ProjectForm
+            communities={topics}
+            joinedCommunities={joinedCommunities}
+            close={closeProject}
+            done={async (p) => {
+              setProjectForm(false);
+              await refresh();
+              go("post/" + p.post_id);
+              setToast("Your project has a home. Let the feedback begin.");
+            }}
+          />
+        )}
+        {eventForm && (
+          <EventForm
+            communities={topics}
+            event={eventForm === true ? undefined : eventForm}
+            close={closeEvent}
+            done={async () => {
+              setEventForm(false);
+              await refresh();
+              go("events");
+              setToast("Your event is ready. Invite your people.");
+            }}
+          />
+        )}
+        {editor && user && (
+          <ProfileEditor
+            user={user}
+            close={closeEditor}
+            done={(u) => {
+              setUser(u);
+              setEditor(false);
+              setToast("Your profile is up to date.");
+            }}
+          />
+        )}
+      </div>
+    </>
   );
 }
 function PostCard({

@@ -1,0 +1,1 @@
+{"name":"Studio Shell","slug":"studio-shell","version":"1.0.0","description":"A code extension that moves navigation below the workspace and styles the entire app shell.","entry":"main.js","permissions":["ui.style","ui.layout","ui.panel"],"styles":{"light":"light.css","dark":"dark.css"}}

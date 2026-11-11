@@ -6,7 +6,7 @@
   <p>
     <a href="https://github.com/Tenyokj/devdevian/actions/workflows/checks.yml"><img src="https://github.com/Tenyokj/devdevian/actions/workflows/checks.yml/badge.svg" alt="Build and tests" /></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0--only-9e8bff" alt="GPL 3.0 only" /></a>
-    <a href="package.json"><img src="https://img.shields.io/badge/version-1.1.0-7b83ff" alt="Browser/API version 1.1.0" /></a>
+    <a href="package.json"><img src="https://img.shields.io/badge/version-1.2.0-7b83ff" alt="Browser/API version 1.2.0" /></a>
     <a href="https://www.npmjs.com/package/@tenyokjs/devdevian-cli"><img src="https://img.shields.io/badge/CLI-0.22.0--alpha.1-b2a0ff" alt="CLI 0.22.0-alpha.1" /></a>
     <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/Node.js-24%2B-84bc95" alt="Node.js 24 or newer" /></a>
     <img src="https://img.shields.io/badge/status-active_development-b2a0ff" alt="Active development" />
@@ -20,7 +20,7 @@
 
 ## Your browser, your colors
 
-Browse the [Extensions library](https://devdevian.vercel.app/app#extensions), preview a palette and install it for your account. Publish immutable community themes with a token-based JSON format; no scripts or arbitrary CSS. Each version has its own review status. [Theme authoring guide](https://devdevian.vercel.app/docs/extensions)
+Browse the [Extensions library](https://devdevian.vercel.app/app#extensions), install account-specific code packages and develop your own layouts, panels and tools locally. JavaScript runs in an isolated sandbox with explicit SDK capabilities; light/dark CSS covers the app shell. Each immutable version has its own review status. [Extension SDK and examples](https://devdevian.vercel.app/docs/extensions)
 
 ## Devdevian Rooms
 

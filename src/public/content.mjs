@@ -4,11 +4,26 @@ export const launchFilm = "https://www.youtube.com/watch?v=qjFs2yy5uz0";
 export const repository = "https://github.com/Tenyokj/devdevian";
 export const updates = [
   {
+    id: "code-extensions-1-2",
+    channel: "Browser",
+    version: "1.2.0",
+    title: "Your workspace. Your code.",
+    summary:
+      "Develop real code extensions locally, preview changes and install packages just for your account.",
+    points: [
+      "Rearrange the app shell, style both modes, add interactive panels and open extra app views through a capability-based SDK.",
+      "Inspect sources and grant permissions for each immutable version. Isolated execution and protected recovery controls keep customization separate from session access.",
+    ],
+    link: "/docs/extensions",
+    label: "Build an extension",
+  },
+  {
     id: "extensions-1-1",
     channel: "Browser",
     version: "1.1.0",
     title: "Your space. Your colors.",
-    summary: "Discover browser themes, preview your workspace and publish a palette of your own.",
+    summary:
+      "Discover browser themes, preview your workspace and publish a palette of your own.",
     points: [
       "Installed exact versions follow your account; other users, CLI, docs and the landing keep their own appearance.",
       "Themes are validated color/font/corner data, with version-specific review labels and explicit installation. No scripts or arbitrary CSS.",
@@ -21,7 +36,8 @@ export const updates = [
     channel: "Browser",
     version: "1.0.0",
     title: "From conversation to contribution.",
-    summary: "Devdevian V1 brings the forum, shared project work and GitHub context together in your browser and terminal.",
+    summary:
+      "Devdevian V1 brings the forum, shared project work and GitHub context together in your browser and terminal.",
     points: [
       "Rooms, snapshot-based reviews, Contributions and My Work keep the next step beside the discussion.",
       "Choose project participation independently of visibility, and explore the dedicated documentation. CLI remains a separately versioned alpha.",

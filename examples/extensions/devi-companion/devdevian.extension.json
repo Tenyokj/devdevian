@@ -1,0 +1,1 @@
+{"name":"Devi Companion","slug":"devi-companion","version":"1.0.0","description":"An interactive local companion and multitasking launcher built with ordinary JavaScript.","entry":"main.js","permissions":["ui.panel","views.open","storage"],"styles":{"light":"","dark":""}}

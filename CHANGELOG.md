@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.2.0 — Code extensions
+
+- Local JavaScript/TypeScript development, live preview and `.devext.json` packaging replace the in-app palette builder.
+- Isolated code runtime with explicit capabilities for shell styling/layout, panels, app views, bounded data reads, device-local storage and exact HTTPS service origins.
+- Account-specific installs, source inspection, immutable versions, explicit permission grants and review withdrawal.
+- Day/night changes preserve extensions; safe mode and recovery controls can disable broken packages.
+- Studio Shell and Devi Companion examples; full SDK authoring and recovery documentation.
+- Existing palette installs remain compatible. CLI stays at 0.22.0-alpha.1.
+
 ## 1.1.0 — Extensions: your space, your colors
 
 - Add a browser theme library with four bundled palettes, community search/filtering, live previews, an authoring form and JSON import/export.

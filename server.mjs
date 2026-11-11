@@ -1,3 +1,4 @@
+import { registerExtensionRunner } from "./extension-runner.mjs";
 import { registerExtensions } from "./extensions.mjs";
 import {
   participationReady,
@@ -554,6 +555,7 @@ export async function createApp({ migrationOnly = false } = {}) {
       return null;
     }
     registerPublicConversations(app, db);
+    registerExtensionRunner(app);
     app.use("/api", (req, res) =>
       res.status(404).json({ error: "API endpoint not found." }),
     );
@@ -566,7 +568,7 @@ export async function createApp({ migrationOnly = false } = {}) {
         app.get(["/privacy", "/terms", "/faq", "/updates", "/docs", "/docs/:slug"], (req, res) =>
           res.sendFile(`${process.cwd()}/dist${req.path}/index.html`),
         );
-        app.get(["/app", "/app/{*path}"], (req, res) =>
+        app.get(["/app", "/app/{*path}", "/workspace-pane"], (req, res) =>
           res
             .set("X-Robots-Tag", "noindex, follow")
             .sendFile(`${process.cwd()}/dist/app/index.html`),

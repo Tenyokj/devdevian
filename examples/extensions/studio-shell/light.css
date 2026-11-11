@@ -1,0 +1,3 @@
+:root { background:var(--canvas); --canvas:#f1fff9; --surface:#fff; --accent:#187b67; --accent-rgb:24,123,103; --text:#133b34; --text-muted:#486b61; }
+.sidebar,.topbar,footer { background:#dff8ed;color:#133b34;border:1px solid #a3d9c3;border-radius:20px; }
+footer { padding:28px; }

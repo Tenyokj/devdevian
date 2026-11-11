@@ -215,6 +215,32 @@ test("theme publications and account installs survive encrypted restore without 
   });
   await a("/extensions/install", { release: "mint-terminal" });
   await a("/extensions/publish", publication());
+  const code = await a("/extensions/publish", {
+    name: "Restore code package",
+    slug: "restore-code",
+    version: "1.0.0",
+    description: "A package whose grants and enabled state survive recovery.",
+    manifest: {
+      schema: 2,
+      kind: "extension",
+      permissions: ["storage"],
+      entry: "main.js",
+      files: { "main.js": "void 0" },
+      styles: { light: "", dark: "" },
+    },
+  });
+  assert.equal(code.status, 201);
+  assert.equal(
+    (
+      await a("/extensions/install", {
+        release: code.data.id,
+        acknowledge_unreviewed: true,
+        granted_permissions: ["storage"],
+      })
+    ).status,
+    200,
+  );
+
   const db = new DatabaseSync(f.path),
     key = randomBytes(32).toString("hex"),
     output = join(f.directory, "extensions.ddb");
@@ -243,7 +269,17 @@ test("theme publications and account installs survive encrypted restore without 
     );
     assert.equal(
       restored.prepare("SELECT COUNT(*) n FROM extension_releases").get().n,
-      1,
+      2,
+    );
+    assert.deepEqual(
+      {
+        ...restored
+          .prepare(
+            "SELECT enabled,grants FROM extension_installs WHERE release_key=?",
+          )
+          .get(code.data.id),
+      },
+      { enabled: 1, grants: '["storage"]' },
     );
     assert.equal(
       restored.prepare("SELECT COUNT(*) n FROM sessions").get().n,

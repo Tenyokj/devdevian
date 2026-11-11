@@ -1,3 +1,4 @@
+import { validatePackage } from "../extension-package.mjs";
 import React, { useState, useEffect, useLayoutEffect } from "react";
 import {
   Palette,
@@ -11,7 +12,12 @@ import {
   Package,
   Upload,
 } from "lucide-react";
-import { api } from "./data";
+import { api as requestApi } from "./data";
+const api = (path, options = {}) =>
+  requestApi(path, {
+    ...options,
+    headers: { ...options.headers, "X-Devdevian-Extensions": "2" },
+  });
 import { Modal, Field, ErrorMessage } from "./ui";
 import {
   themeTokens,
@@ -20,7 +26,8 @@ import {
   paletteKeys,
 } from "../extension-manifest.mjs";
 import "./extensions.css";
-const change = () => window.dispatchEvent(new Event("devdevian-extensions"));
+const change = () =>
+  window.dispatchEvent(new window.Event("devdevian-extensions"));
 const clearTokens = () => {
   const root = document.documentElement;
   for (const key of Object.keys(themeTokens(builtinThemes[0].manifest)))
@@ -29,7 +36,7 @@ const clearTokens = () => {
 };
 // No cached theme is applied before account lookup. Switching accounts clears it
 // before the next paint; every response is scoped to its request's account.
-export function useExtensionTheme(user, baseTheme) {
+export function useExtensionTheme(user, baseTheme, setBaseTheme) {
   const [selection, setSelection] = useState(null);
   useLayoutEffect(() => {
     setSelection(null);
@@ -44,10 +51,24 @@ export function useExtensionTheme(user, baseTheme) {
       controller = new AbortController();
       api("/extensions/me?active_only=1", { signal: controller.signal })
         .then((s) => {
-          if (alive) setSelection(s.active || null);
+          if (alive) {
+            setSelection(s.active || null);
+            window.dispatchEvent(
+              new window.CustomEvent("devdevian-extension-state", {
+                detail: { ...s, userId: user.id },
+              }),
+            );
+          }
         })
         .catch(() => {
-          if (alive) setSelection(null);
+          if (alive) {
+            setSelection(null);
+            window.dispatchEvent(
+              new window.CustomEvent("devdevian-extension-state", {
+                detail: { userId: user.id, enabled: [] },
+              }),
+            );
+          }
         });
     };
     const visible = () => {
@@ -65,6 +86,9 @@ export function useExtensionTheme(user, baseTheme) {
       document.removeEventListener("visibilitychange", visible);
     };
   }, [user?.id]);
+  useEffect(() => {
+    if (selection && setBaseTheme) setBaseTheme(selection.manifest.mode);
+  }, [selection?.id]);
   useLayoutEffect(() => {
     clearTokens();
     const root = document.documentElement;
@@ -76,14 +100,26 @@ export function useExtensionTheme(user, baseTheme) {
     if (selection) {
       try {
         const tokens = themeTokens(selection.manifest);
+        if (baseTheme !== selection.manifest.mode) {
+          for (const key of Object.keys(tokens))
+            if (!["--extension-font", "--extension-radius"].includes(key))
+              delete tokens[key];
+        }
         for (const [k, v] of Object.entries(tokens))
           root.style.setProperty(k, v);
         document
           .querySelector('meta[name="theme-color"]')
-          ?.setAttribute("content", selection.manifest.palette.canvas);
+          ?.setAttribute(
+            "content",
+            baseTheme === selection.manifest.mode
+              ? selection.manifest.palette.canvas
+              : baseTheme === "dark"
+                ? "#0e1223"
+                : "#f6f7fc",
+          );
         root.dataset.extension = selection.id;
-        root.dataset.theme = selection.manifest.mode;
-        root.style.colorScheme = selection.manifest.mode;
+        root.dataset.theme = baseTheme;
+        root.style.colorScheme = baseTheme;
       } catch {
         clearTokens();
       }
@@ -137,6 +173,28 @@ function ThemePreview({ manifest, name = "Your workspace" }) {
   );
 }
 function ThemeCard({ item, onOpen, active }) {
+  if (item.manifest.kind === "extension")
+    return (
+      <button className="extension-card" onClick={() => onOpen(item)}>
+        <div className="extension-package-art">
+          <Package size={45} />
+          <code>JavaScript + CSS</code>
+        </div>
+        <div className="extension-card-body">
+          <h3>{item.name}</h3>
+          <p>{item.description}</p>
+          <div className="extension-card-meta">
+            <span>By @{item.author.username || item.author.name}</span>
+            <span className={"extension-badge " + item.review}>
+              {item.review === "reviewed" ? "Reviewed" : "Community"}
+            </span>
+          </div>
+          <small>
+            v{item.version} · {item.enabled ? "Enabled" : "Code extension"}
+          </small>
+        </div>
+      </button>
+    );
   return (
     <button className="extension-card" onClick={() => onOpen(item)}>
       <div
@@ -190,226 +248,189 @@ function ThemeCard({ item, onOpen, active }) {
     </button>
   );
 }
+function PermissionList({ manifest }) {
+  return (
+    <div className="extension-capabilities">
+      <strong>Requested capabilities</strong>
+      <ul>
+        {manifest.permissions.map((p) => (
+          <li key={p}>
+            <code>{p}</code>
+          </li>
+        ))}
+      </ul>
+      {manifest.permissions.includes("data.read") && (
+        <p>
+          This extension can read conversations, projects and events you can
+          access, including private work. Only install code you trust.
+        </p>
+      )}
+      {manifest.permissions.some((p) => p.startsWith("network:")) && (
+        <p>
+          Network origins are enabled inside its sandbox. Data you provide or
+          grant to this extension can be sent to those services.
+        </p>
+      )}
+    </div>
+  );
+}
 function PublishTheme({ close, onPublished }) {
-  const [manifest, setManifest] = useState(builtinThemes[0].manifest),
+  const [pkg, setPkg] = useState(null),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
-    [raw, setRaw] = useState("");
-  let valid = true;
-  try {
-    validateManifest(manifest);
-  } catch {
-    valid = false;
-  }
-  const download = () => {
-    const url = URL.createObjectURL(
-      new Blob([JSON.stringify(manifest, null, 2)], {
-        type: "application/json",
-      }),
-    );
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "devdevian-theme.json";
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    [consent, setConsent] = useState(false),
+    [live, setLive] = useState(false);
+  const accept = (value) => {
+    validatePackage(value.manifest);
+    if (
+      typeof value.name !== "string" ||
+      typeof value.slug !== "string" ||
+      typeof value.version !== "string" ||
+      typeof value.description !== "string"
+    )
+      throw Error(
+        "Package needs name, slug, version and description metadata.",
+      );
+    setPkg(value);
+    setConsent(false);
+    setError("");
   };
+  const local = async () => {
+    try {
+      const build = await api("/extensions/development");
+      accept(build);
+      return build;
+    } catch (e) {
+      setError(e.message);
+      return null;
+    }
+  };
+
   return (
-    <Modal title="Publish a theme" onClose={close} wide>
+    <Modal
+      title="Load an extension package"
+      onClose={() => {
+        setLive(false);
+        close();
+      }}
+      wide
+    >
       <p className="modal-description">
-        Your theme becomes a public, immutable version. It starts as unreviewed.
-        Publishing does not change anyone’s installed theme.
+        Develop JavaScript and CSS in your editor. Build a .devext.json package,
+        inspect its sources and capabilities here, then preview or publish it.
       </p>
       <ErrorMessage error={error} />
-      <form
-        onSubmit={async (e) => {
-          e.preventDefault();
-          setError("");
-          setBusy(true);
-          const f = new FormData(e.currentTarget);
-          try {
-            validateManifest(manifest);
-            const item = await api("/extensions/publish", {
-              method: "POST",
-              body: {
-                name: f.get("name"),
-                slug: f.get("slug"),
-                version: f.get("version"),
-                description: f.get("description"),
-                manifest,
-              },
-            });
-            onPublished(item);
-          } catch (e) {
-            setError(e.message);
-          } finally {
-            setBusy(false);
-          }
-        }}
-      >
-        <div className="extension-form-grid">
-          <Field label="Theme name">
-            <input
-              name="name"
-              required
-              minLength={3}
-              maxLength={60}
-              placeholder="Golden Hour"
-            />
-          </Field>
-          <Field label="Unique slug">
-            <input
-              name="slug"
-              required
-              pattern="[a-z][a-z0-9-]{2,47}"
-              placeholder="golden-hour"
-            />
-          </Field>
-          <Field label="Version">
-            <input
-              name="version"
-              required
-              defaultValue="1.0.0"
-              pattern="(0|[1-9][0-9]{0,3})\.(0|[1-9][0-9]{0,3})\.(0|[1-9][0-9]{0,3})"
-            />
-          </Field>
-          <Field label="Start from">
-            <select
-              aria-label="Start from"
-              onChange={(e) =>
-                setManifest(builtinThemes[Number(e.target.value)].manifest)
-              }
-            >
-              {builtinThemes.map((x, i) => (
-                <option key={x.id} value={i}>
-                  {x.name}
-                </option>
-              ))}
-            </select>
-          </Field>
-        </div>
-        <Field label="Description">
-          <textarea
-            name="description"
-            required
-            minLength={20}
-            maxLength={1200}
-            rows={3}
-            placeholder="Describe the palette and what it feels like to use."
-          />
-        </Field>
-        <div className="extension-form-grid">
-          <Field label="Font">
-            <select
-              value={manifest.font}
-              onChange={(e) =>
-                setManifest({ ...manifest, font: e.target.value })
-              }
-            >
-              {["default", "mono", "system"].map((x) => (
-                <option key={x}>{x}</option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Corners">
-            <select
-              value={manifest.corners}
-              onChange={(e) =>
-                setManifest({ ...manifest, corners: e.target.value })
-              }
-            >
-              {["round", "soft", "square"].map((x) => (
-                <option key={x}>{x}</option>
-              ))}
-            </select>
-          </Field>
-        </div>
-        <details className="extension-editor">
-          <summary>Edit palette tokens</summary>
-          <div className="extension-palette-editor">
-            {paletteKeys.map((k) => (
-              <label key={k}>
-                {k}
-                <input
-                  aria-label={k}
-                  type="color"
-                  value={manifest.palette[k]}
-                  onChange={(e) =>
-                    setManifest({
-                      ...manifest,
-                      palette: { ...manifest.palette, [k]: e.target.value },
-                    })
-                  }
-                />
-              </label>
-            ))}
-          </div>
-        </details>
-        <ThemePreview manifest={manifest} />
-        {!valid && (
-          <p className="extension-warning">
-            Adjust the palette to meet reading and accent contrast requirements
-            before publishing.
-          </p>
-        )}
-        <details className="extension-editor">
-          <summary>Import or export JSON</summary>
+      <label className="extension-package-drop">
+        Choose .devext.json
+        <input
+          aria-label="Extension package file"
+          type="file"
+          accept=".json,application/json"
+          onChange={async (e) => {
+            try {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              if (file.size > 210000)
+                throw Error("Package file exceeds the upload limit.");
+              accept(JSON.parse(await file.text()));
+            } catch (e) {
+              setError(e.message);
+            }
+          }}
+        />
+      </label>
+      <a href="/docs/extensions" target="_blank" rel="noreferrer">
+        SDK, local development and package format ↗
+      </a>
+      {["localhost", "127.0.0.1"].includes(location.hostname) && (
+        <div className="extension-editor">
+          <strong>Local development server</strong>
           <p>
-            Only schema 1 theme data is accepted. Scripts, CSS, URLs and
-            additional fields are rejected.
+            Start with npm run extension:dev -- path/to/extension. Load the
+            local build, grant its capabilities, then enable live preview.
           </p>
-          <label className="extension-file">
-            Import JSON
+          <button className="text-button" onClick={local}>
+            Load local build
+          </button>
+          {pkg && (
+            <label>
+              <input
+                type="checkbox"
+                checked={live}
+                disabled={!consent}
+                onChange={(e) => setLive(e.target.checked)}
+              />{" "}
+              Live preview (local server only)
+            </label>
+          )}
+        </div>
+      )}
+      {pkg && (
+        <>
+          <h2>
+            {pkg.name} <small>v{pkg.version}</small>
+          </h2>
+          <p>{pkg.description}</p>
+          <PermissionList manifest={pkg.manifest} />
+          <details className="extension-editor">
+            <summary>
+              Inspect packaged source files (
+              {Object.keys(pkg.manifest.files).length})
+            </summary>
+            {Object.entries(pkg.manifest.files).map(([path, source]) => (
+              <details key={path}>
+                <summary>{path}</summary>
+                <pre>{source}</pre>
+              </details>
+            ))}
+          </details>
+          <label className="extension-ack">
             <input
-              type="file"
-              accept=".json,application/json"
-              onChange={async (e) => {
-                const f = e.target.files?.[0];
-                if (!f) return;
+              type="checkbox"
+              checked={consent}
+              onChange={(e) => setConsent(e.target.checked)}
+            />
+            I trust this code and allow its declared capabilities for a local
+            preview. This does not grant other extensions access.
+          </label>
+          <div className="extension-actions">
+            <button
+              className="secondary-button"
+              disabled={!consent}
+              onClick={() => {
+                window.dispatchEvent(
+                  new window.CustomEvent("devdevian-extension-preview", {
+                    detail: { ...pkg, live },
+                  }),
+                );
+                close();
+              }}
+            >
+              Preview in my app
+            </button>
+            <button
+              className="primary-button"
+              disabled={busy}
+              onClick={async () => {
+                setBusy(true);
                 try {
-                  if (f.size > 8192)
-                    throw Error("Theme files must be smaller than 8 KB.");
-                  setManifest(validateManifest(JSON.parse(await f.text())));
-                  setError("");
+                  const result = await api("/extensions/publish", {
+                    method: "POST",
+                    body: pkg,
+                  });
+                  onPublished(result);
                 } catch (e) {
                   setError(e.message);
+                } finally {
+                  setBusy(false);
                 }
               }}
-            />
-          </label>
-          <textarea
-            aria-label="Paste theme JSON"
-            value={raw}
-            maxLength={8192}
-            onChange={(e) => setRaw(e.target.value)}
-            placeholder="Or paste a manifest here"
-          />
-          <button
-            type="button"
-            className="text-button"
-            onClick={() => {
-              try {
-                setManifest(validateManifest(JSON.parse(raw)));
-                setError("");
-              } catch (e) {
-                setError(e.message);
-              }
-            }}
-          >
-            Load JSON
-          </button>
-          <button type="button" className="text-button" onClick={download}>
-            <Download size={15} /> Export manifest
-          </button>
-        </details>
-        <div className="extension-actions">
-          <a href="/docs/extensions" target="_blank" rel="noreferrer">
-            Theme author guide <ArrowUpRight size={15} />
-          </a>
-          <button className="primary-button" disabled={busy || !valid}>
-            {busy ? "Publishing…" : "Publish version"}
-          </button>
-        </div>
-      </form>
+            >
+              {busy ? "Publishing…" : "Publish immutable package"}
+            </button>
+          </div>
+        </>
+      )}
     </Modal>
   );
 }
@@ -518,11 +539,11 @@ export function Extensions({ user, requireUser }) {
           <h1>
             Your space.
             <br />
-            <em>Your colors.</em>
+            <em>Your code.</em>
           </h1>
           <p>
-            Themes made by developers, for their own corner of the forum.
-            Install a look for your account. Everyone else keeps theirs.
+            Code your own workspace: shell layouts, panels, tools and themes.
+            Install packages for your account. Everyone else keeps theirs.
           </p>
           <div className="extension-actions">
             <button
@@ -531,7 +552,7 @@ export function Extensions({ user, requireUser }) {
                 user ? setPublish(true) : requireUser(() => setPublish(true))
               }
             >
-              <Plus size={17} /> Create a theme
+              <Plus size={17} /> Upload extension
             </button>
             <a href="/docs/extensions">
               Developer guide <ArrowUpRight size={16} />
@@ -596,7 +617,7 @@ export function Extensions({ user, requireUser }) {
           <div className="extension-search">
             <Search size={17} />
             <input
-              aria-label="Search themes"
+              aria-label="Search extensions"
               placeholder="Find your next palette…"
               value={query}
               maxLength={80}
@@ -606,14 +627,14 @@ export function Extensions({ user, requireUser }) {
               }}
             />
             <select
-              aria-label="Theme review filter"
+              aria-label="Extension review filter"
               value={filter}
               onChange={(e) => {
                 setFilter(e.target.value);
                 setPage(1);
               }}
             >
-              <option value="all">All themes</option>
+              <option value="all">All extensions</option>
               <option value="reviewed">Reviewed</option>
             </select>
           </div>
@@ -629,7 +650,7 @@ export function Extensions({ user, requireUser }) {
         ))}
       </div>
       {tab === "discover" && !library && !error && (
-        <p role="status">Loading themes…</p>
+        <p role="status">Loading extensions…</p>
       )}
       {!items.length && (library || tab !== "discover") && (
         <div className="extension-empty">
@@ -639,14 +660,14 @@ export function Extensions({ user, requireUser }) {
               ? "Make this space yours."
               : tab === "published"
                 ? "Your first palette starts here."
-                : "No themes found."}
+                : "No extensions found."}
           </h2>
           <p>
             {tab === "installed"
-              ? "Open Discover, preview a theme and install it for your account."
+              ? "Open Discover, preview an extension and install it for your account."
               : tab === "published"
                 ? "Start with a built-in palette or import your own JSON manifest."
-                : "Try another name or show all themes."}
+                : "Try another name or show all extensions."}
           </p>
         </div>
       )}
@@ -673,7 +694,7 @@ export function Extensions({ user, requireUser }) {
           <p>
             Themes use color and layout tokens. No scripts, arbitrary CSS or
             external requests. “Reviewed” applies to this exact version; it is
-            not a security guarantee. Community themes are clearly labeled.
+            not a security guarantee. Community packages are clearly labeled.
           </p>
         </div>
       </aside>
@@ -702,21 +723,40 @@ export function Extensions({ user, requireUser }) {
             </span>
           </div>
           <p className="modal-description">{selected.description}</p>
-          <ThemePreview manifest={selected.manifest} name={selected.name} />
+          {selected.manifest.kind === "theme" ? (
+            <ThemePreview manifest={selected.manifest} name={selected.name} />
+          ) : (
+            <>
+              <PermissionList manifest={selected.manifest} />
+              <details className="extension-editor">
+                <summary>Packaged sources</summary>
+                {Object.entries(selected.manifest.files).map(
+                  ([path, source]) => (
+                    <details key={path}>
+                      <summary>{path}</summary>
+                      <pre>{source}</pre>
+                    </details>
+                  ),
+                )}
+              </details>
+            </>
+          )}
           <ErrorMessage error={error} />
           {selected.review_note && (
             <p className="extension-review-note">
               Review note: {selected.review_note}
             </p>
           )}
-          {selected.review === "unreviewed" && (
+          {(selected.review === "unreviewed" ||
+            selected.manifest.kind === "extension") && (
             <label className="extension-ack">
               <input
                 type="checkbox"
                 checked={ack}
                 onChange={(e) => setAck(e.target.checked)}
               />
-              I understand this version has not been reviewed by Devdevian.
+              I trust this exact version and allow its declared capabilities.
+              Unreviewed code has not been checked by Devdevian.
             </label>
           )}
           <div className="extension-actions">
@@ -724,12 +764,46 @@ export function Extensions({ user, requireUser }) {
               className="text-button"
               href={
                 "data:application/json;charset=utf-8," +
-                encodeURIComponent(JSON.stringify(selected.manifest, null, 2))
+                encodeURIComponent(
+                  JSON.stringify(
+                    selected.manifest.kind === "extension"
+                      ? {
+                          name: selected.name,
+                          slug: selected.slug,
+                          version: selected.version,
+                          description: selected.description,
+                          manifest: selected.manifest,
+                        }
+                      : selected.manifest,
+                    null,
+                    2,
+                  ),
+                )
               }
-              download={`${selected.slug}-${selected.version}.json`}
+              download={`${selected.slug}-${selected.version}.devext.json`}
             >
               <Download size={15} /> Manifest
             </a>
+            {selected.manifest.kind === "extension" &&
+              mine.installed.find((x) => x.id === selected.id)?.enabled && (
+                <button
+                  className="text-button"
+                  disabled={busy}
+                  onClick={async () => {
+                    if (
+                      await mutate(
+                        "/extensions/disable/" + selected.id,
+                        "PUT",
+                        {},
+                        "Extension disabled.",
+                      )
+                    )
+                      setSelected(null);
+                  }}
+                >
+                  Disable extension
+                </button>
+              )}
             {installed && (
               <button
                 className="text-button"
@@ -740,7 +814,7 @@ export function Extensions({ user, requireUser }) {
                       "/extensions/installs/" + selected.id,
                       "DELETE",
                       undefined,
-                      "Theme removed.",
+                      "Extension removed.",
                     )
                   )
                     setSelected(null);
@@ -754,7 +828,9 @@ export function Extensions({ user, requireUser }) {
               disabled={
                 busy ||
                 selected.review === "withdrawn" ||
-                (selected.review === "unreviewed" && !ack) ||
+                ((selected.review === "unreviewed" ||
+                  selected.manifest.kind === "extension") &&
+                  !ack) ||
                 selected.id === active
               }
               onClick={async () => {
@@ -762,7 +838,14 @@ export function Extensions({ user, requireUser }) {
                   await mutate(
                     "/extensions/install",
                     "POST",
-                    { release: selected.id, acknowledge_unreviewed: ack },
+                    {
+                      release: selected.id,
+                      acknowledge_unreviewed: ack,
+                      granted_permissions:
+                        selected.manifest.kind === "extension" && ack
+                          ? selected.manifest.permissions
+                          : undefined,
+                    },
                     `${selected.name} applied to your account.`,
                   )
                 )
@@ -841,7 +924,7 @@ export function Extensions({ user, requireUser }) {
             loadMine();
             setTab("published");
             open(item);
-            setNotice("Version published as an unreviewed community theme.");
+            setNotice("Version published as an unreviewed community package.");
           }}
         />
       )}
