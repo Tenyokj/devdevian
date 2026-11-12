@@ -1,0 +1,19 @@
+{
+  "name": "Developer Insights",
+  "slug": "developer-insights",
+  "version": "1.0.0",
+  "description": "A real activity dashboard in developer profiles: heatmap, trends, discussions, reviews, contributions and projects. No external services.",
+  "entry": "main.js",
+  "permissions": ["ui.panel", "data.read", "ui.navigate", "ui.commands"],
+  "listing": {
+    "full_description": "## Your work, in perspective\n\nInstall Developer Insights and open a developer profile. A large dashboard appears below its header, with an activity calendar, daily chart, contribution-state and activity breakdowns, accepted solutions, code feedback, formal reviews, project attribution and topics. Choose a 30, 90 or 365-day activity window. Summary counters and project attribution describe retained lifetime records; the chart and active-day percentages describe the selected UTC window.\n\n### Public and personal\n\nOther profiles always show public data, even if you belong to the same private community. On your own profile you may explicitly include accessible private work. Hidden profiles and removed records stay hidden; losing access removes those private records from the next response. Personal saved/following/event/installed-extension counts are available only in your own private-inclusive view. An approval to participate in a project alone is not evidence of actual work.\n\n### What these numbers mean\n\nActivity means recorded creation of conversations, replies, code feedback and feedback replies, formal review outcomes, contribution submissions, task-state changes and retained decision revisions. Edits to an ordinary post and reading do not create extra activity. Accepted solutions and contribution states are current-state figures, not a quality score. Project attribution is paginated.\n\nNo visits, time spent reading, online time, GitHub-wide activity or deleted history are guessed or tracked. This dashboard is not an exhaustive historical archive. A streak is bounded by the selected UTC window. Percentages show their denominator and zero-data states are explicit.\n\n### Installation and requirements\n\nRequires Devdevian Browser/API 1.6 or newer. It uses the existing data.read capability and a profile panel; CLI 0.24 can pack and publish its package. The CLI 0.24 standalone playground predates profile panels/insights, so test this extension in Preview in my app or the current repository's local forum sandbox.\n\nNo network or storage permissions, trackers, provider tokens, analytics services or remote fonts. No data leaves Devdevian through this extension. The command Open my insights (Alt+Shift+I) opens your profile. Data is fetched on profile/window/scope changes or Refresh, not by continuous background polling.\n\nSource: examples/extensions/developer-insights.",
+    "tags": ["statistics", "profile", "charts", "activity", "contributions"],
+    "links": [
+      {
+        "label": "Source code",
+        "url": "https://github.com/Tenyokj/devdevian/tree/main/examples/extensions/developer-insights"
+      }
+    ],
+    "screenshots": []
+  }
+}

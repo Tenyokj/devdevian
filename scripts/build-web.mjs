@@ -27,7 +27,13 @@ await rm("dist/conversation.html");
 // Downloadable working examples make the upload flow testable without a toolchain.
 const { buildExtension } = await import("./extension-build.mjs");
 await mkdir("dist/extension-examples", { recursive: true });
-for (const slug of ["studio-shell", "devi-companion", "popup-focus", "focus-desk"]) {
+for (const slug of [
+  "studio-shell",
+  "devi-companion",
+  "popup-focus",
+  "focus-desk",
+  "developer-insights",
+]) {
   const { build, ...pkg } = await buildExtension("examples/extensions/" + slug);
   await writeFile(
     "dist/extension-examples/" + slug + ".devext.json",

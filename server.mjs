@@ -1,3 +1,4 @@
+import { registerDeveloperInsights } from './developer-insights.mjs';
 import { isPlatformOwner } from "./platform-owner.mjs";
 import { registerExtensionRunner } from "./extension-runner.mjs";
 import { registerExtensions } from "./extensions.mjs";
@@ -547,6 +548,7 @@ export async function createApp({ migrationOnly = false } = {}) {
     db.participationReady = participationReady(db);
     registerMyWork(app, db, required);
     registerExtensions(app, db, required, { migrate: migrationOnly });
+    registerDeveloperInsights(app, db);
     if (!db.schemaCurrent)
       db.exec(`
   CREATE INDEX IF NOT EXISTS memberships_item ON memberships(kind,item,user_id);

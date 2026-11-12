@@ -170,6 +170,18 @@ export function PublishExtension({ close, onPublished, userId }) {
           >
             Load Focus Desk example
           </button>
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={() =>
+              load("/extension-examples/developer-insights.devext.json")
+            }
+          >
+            Load Developer Insights example
+          </button>
+          <a href="/extension-examples/developer-insights.devext.json" download>
+            Download statistics extension ↗
+          </a>
           <a href="/extension-examples/studio-shell.devext.json" download>
             Download example package ↗
           </a>

@@ -258,7 +258,8 @@ html[data-extension-pane] main {
   right: 20px;
   max-height: calc(100vh - 110px);
 }
-.devext-panel-inline {
+.devext-panel-inline,
+.devext-panel-profile {
   position: fixed !important;
   right: auto !important;
   bottom: auto !important;
@@ -321,4 +322,15 @@ html[data-extension-pane] main {
 .devext-command-menu kbd {
   font-size: 10px;
   opacity: 0.7;
+}
+
+.profile-extension-slot {
+  min-width: 0;
+}
+.devext-panel-profile {
+  max-height: none !important;
+  max-width: none !important;
+}
+.devext-panel-profile iframe {
+  min-height: 0;
 }

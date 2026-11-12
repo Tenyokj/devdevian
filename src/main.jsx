@@ -2807,6 +2807,7 @@ function Profile({
           </div>
         </div>
       </section>
+      <div className="profile-extension-slot" data-extension-profile-id={p.id} aria-label="Profile extensions" />
       <div className="profile-tabs feed-tabs">
         {(own
           ? [

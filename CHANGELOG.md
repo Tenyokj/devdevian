@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.6.0 — Developer Insights
+
+- Add an optional first-party profile extension with a UTC activity calendar, daily chart, activity/contribution breakdowns, accepted solutions, code feedback, reviews, technologies and paginated project attribution. Empty states, explicit denominators and selectable 30/90/365-day windows avoid invented metrics.
+- Add bounded, rate-limited profile aggregate reads. Other profiles are public-only; explicit private-inclusive statistics and personal counters require the exact account owner, with current community access and hidden/deleted-content checks. No reading/visit telemetry or external service is added.
+- Extend the sandbox SDK with profile panels and context-change subscriptions. The packaged example has no network/storage permissions and can be loaded directly from the publisher; source and metric definitions are included. CLI remains 0.24.0-alpha.1.
+
 ## 1.5.0 — Owner moderation and extension trust
 
 - Add an owner-only moderation console tied to one server-configured verified account, with public-content moderation and public reports/logs; private-community access stays membership-scoped.

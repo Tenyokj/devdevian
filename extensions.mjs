@@ -1,3 +1,4 @@
+import { prepareDeveloperInsights } from "./developer-insights.mjs";
 import { isPlatformOwner } from "./platform-owner.mjs";
 import { inspectExtensionSecurity } from "./extension-security.mjs";
 import {
@@ -12,6 +13,7 @@ import { transaction } from "./activity.mjs";
 import { consumeBudget } from "./limits.mjs";
 export function prepareExtensions(db) {
   prepareExtensionReports(db);
+  prepareDeveloperInsights(db);
   db.exec(
     `CREATE TABLE IF NOT EXISTS extension_releases(id INTEGER PRIMARY KEY,slug TEXT NOT NULL,version TEXT NOT NULL,user_id INTEGER NOT NULL,name TEXT NOT NULL,description TEXT NOT NULL,manifest TEXT NOT NULL,review TEXT NOT NULL DEFAULT 'unreviewed' CHECK(review IN('unreviewed','reviewed','withdrawn')),reviewer_id INTEGER,review_note TEXT NOT NULL DEFAULT '',created TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,UNIQUE(slug,version)); CREATE INDEX IF NOT EXISTS extension_slug_owner ON extension_releases(slug,user_id,id); CREATE TABLE IF NOT EXISTS extension_installs(user_id INTEGER NOT NULL,release_key TEXT NOT NULL,created TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,PRIMARY KEY(user_id,release_key)); CREATE TABLE IF NOT EXISTS extension_active(user_id INTEGER PRIMARY KEY,release_key TEXT NOT NULL); CREATE INDEX IF NOT EXISTS extension_author ON extension_releases(user_id,id); CREATE INDEX IF NOT EXISTS extension_active_release ON extension_active(release_key,user_id); CREATE TABLE IF NOT EXISTS extension_reviews(id INTEGER PRIMARY KEY,release_id INTEGER NOT NULL,reviewer_id INTEGER NOT NULL,status TEXT NOT NULL,note TEXT NOT NULL,created TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);`,
   );

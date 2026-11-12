@@ -4,6 +4,21 @@ export const launchFilm = "https://www.youtube.com/watch?v=qjFs2yy5uz0";
 export const repository = "https://github.com/Tenyokj/devdevian";
 export const updates = [
   {
+    id: "developer-insights-1-6-0",
+    channel: "Browser + API",
+    version: "1.6.0",
+    title: "Your work, in perspective.",
+    summary:
+      "Developer Insights brings real activity charts to developer profiles as an optional code extension.",
+    points: [
+      "Explore an activity calendar, daily trends, accepted solutions, reviews, contributions and projects.",
+      "Other profiles show public work only; your own private-inclusive view is an explicit choice.",
+      "Load the complete example from Upload extension. No external analytics or reading-time tracking.",
+    ],
+    link: "/docs/extensions",
+    label: "Developer Insights and profile panels",
+  },
+  {
     id: "extension-trust-1-5-0",
     channel: "Browser + API",
     version: "1.5.0",

@@ -21,6 +21,7 @@
     const port = event.ports[0],
       pending = new Map(),
       listeners = new Set(),
+      contexts = new Set(),
       commands = new Map();
     let seq = 0;
     const call = (method, args) =>
@@ -35,6 +36,10 @@
       });
     port.onmessage = (event) => {
       const m = event.data;
+      if (m.type === "context") {
+        contexts.forEach((fn) => fn(m.context));
+        return;
+      }
       if (m.type === "theme") {
         listeners.forEach((fn) => fn(m.theme));
         return;
@@ -73,6 +78,10 @@
         },
       }),
       context: () => call("context"),
+      onContext: (fn) => {
+        contexts.add(fn);
+        return () => contexts.delete(fn);
+      },
       onTheme: (fn) => {
         listeners.add(fn);
         return () => listeners.delete(fn);

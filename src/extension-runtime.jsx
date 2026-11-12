@@ -24,6 +24,18 @@ const validRoute = (route) =>
   /^(feed|work|following|projects|events|github|extensions|communities|saved|profile|post\/[1-9]\d*|workspace\/[1-9]\d*(?:\/room)?)$/.test(
     route,
   );
+function extensionContext(userId, preview) {
+  const anchor = document.querySelector("[data-extension-profile-id]");
+  const id = Number(anchor?.dataset.extensionProfileId);
+  return {
+    mode: document.documentElement.dataset.theme,
+    route: location.hash.slice(1),
+    preview: !!preview,
+    profile:
+      Number.isSafeInteger(id) && id > 0 ? { id, own: id === userId } : null,
+    capabilities: { profile_panels: 1, insights: 1 },
+  };
+}
 const permissionFor = {
   style: "ui.style",
   layout: "ui.layout",
@@ -107,12 +119,7 @@ export function Runner({
         if (method !== "context" && (!required || !grants.includes(required)))
           throw Error("Capability not granted: " + method);
         let result = null;
-        if (method === "context")
-          result = {
-            mode: document.documentElement.dataset.theme,
-            route: location.hash.slice(1),
-            preview: !!preview,
-          };
+        if (method === "context") result = extensionContext(userId, preview);
         else if (method === "style") {
           style.current.textContent = scopedStyles(args?.css);
           result = true;
@@ -131,6 +138,7 @@ export function Runner({
               "hidden",
               "top",
               "inline",
+              "profile",
             ].includes(p.placement) ||
             typeof p.title !== "string" ||
             p.title.length > 60
@@ -144,7 +152,7 @@ export function Runner({
             width < 180 ||
             width > 1600 ||
             height < 100 ||
-            height > 1600
+            height > (p.placement === "profile" ? 3200 : 1600)
           )
             throw Error("Panel size outside supported bounds.");
           setPanel({ ...p, width, height });
@@ -208,12 +216,17 @@ export function Runner({
           if (
             typeof path !== "string" ||
             path.length > 240 ||
-            !/^\/(?:posts(?:\/[1-9]\d*)?|projects(?:\/[1-9]\d*)?|events(?:\/[1-9]\d*)?)(?:\?(?:page|limit)=[1-9]\d?(?:&(?:page|limit)=[1-9]\d?)?)?$/.test(
-              path,
+            !(
+              /^\/(?:posts(?:\/[1-9]\d*)?|projects(?:\/[1-9]\d*)?|events(?:\/[1-9]\d*)?)(?:\?(?:page|limit)=[1-9]\d?(?:&(?:page|limit)=[1-9]\d?)?)?$/.test(
+                path,
+              ) ||
+              /^\/users\/[1-9]\d*\/insights(?:\?(?:(?:days=(?:30|90|365)|scope=(?:public|all)|project_page=[1-9]\d{0,3}))(?:&(?:days=(?:30|90|365)|scope=(?:public|all)|project_page=[1-9]\d{0,3})){0,2})?$/.test(
+                path,
+              )
             )
           )
             throw Error(
-              "Only bounded conversation, project and event reads are supported.",
+              "Only bounded conversation, project, event and profile-insights reads are supported.",
             );
           result = await api(path);
           if (JSON.stringify(result).length > 65536)
@@ -272,6 +285,32 @@ export function Runner({
       onLayout(item.id, null);
     };
   }, [item.id, userId]);
+  useEffect(() => {
+    let last = "";
+    const notify = () => {
+      const context = extensionContext(userId, preview),
+        key = JSON.stringify(context);
+      if (key !== last) {
+        last = key;
+        port.current?.postMessage({ type: "context", context });
+      }
+    };
+    const observer = new MutationObserver(notify);
+    const root = document.getElementById("root");
+    if (root)
+      observer.observe(root, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ["data-extension-profile-id"],
+      });
+    window.addEventListener("hashchange", notify);
+    notify();
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("hashchange", notify);
+    };
+  }, [item.id, userId]);
   const invoke = (id) => {
     port.current?.postMessage({ type: "command", command: id });
     setCommandsOpen(false);
@@ -305,7 +344,7 @@ export function Runner({
     return () => window.removeEventListener("keydown", keydown);
   }, [commands]);
   useEffect(() => {
-    if (panel.placement !== "inline" || suppressed) {
+    if (!["inline", "profile"].includes(panel.placement) || suppressed) {
       setSlotRect(null);
       return;
     }
@@ -331,8 +370,15 @@ export function Runner({
     };
     const resize = new ResizeObserver(schedule);
     const locate = () => {
-      const parent = document.querySelector(".devext-content");
+      const parent = document.querySelector(
+        panel.placement === "profile"
+          ? "[data-extension-profile-id]"
+          : ".devext-content",
+      );
       if (!parent) {
+        node?.remove();
+        node = null;
+        resize.disconnect();
         setSlotRect(null);
         return;
       }
@@ -372,7 +418,7 @@ export function Runner({
         display: suppressed ? "none" : undefined,
         "--panel-width": panel.width + "px",
         "--panel-height": panel.height + "px",
-        ...(panel.placement === "inline"
+        ...(["inline", "profile"].includes(panel.placement)
           ? {
               left: slotRect?.left || 0,
               top: slotRect?.top || 0,

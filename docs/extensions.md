@@ -322,3 +322,29 @@ Open clients recheck availability on visibility changes and approximately every 
 ## Security boundaries
 
 `data.read` includes work the installing user is authorized to read, including private communities. Combining it with `network:https://…` can send that content to an external service. The installation UI explicitly warns about this combination. Only grant it to code you trust. Neither a Reviewed label nor the isolated iframe imposes a CPU quota or guarantees that an extension cannot mislead its user.
+
+## Developer Insights and profile panels
+
+[Developer Insights](https://github.com/Tenyokj/devdevian/tree/main/examples/extensions/developer-insights) is a complete statistics extension, available in **Upload extension → Load Developer Insights example**. [Download the package](/extension-examples/developer-insights.devext.json), inspect its JavaScript and permissions, then preview or publish/install it. Requires Browser/API 1.6+. CLI 0.24 can pack/publish it; test profile panels using the current forum sandbox rather than that CLI's older standalone playground.
+
+The dashboard includes a daily activity chart/calendar, current and longest window-bounded streaks, active-day percentage, action and contribution-state breakdowns, conversations, accepted solutions, code feedback, formal reviews, project attribution, declared technologies and topics. Its [metric definitions and privacy boundaries](https://github.com/Tenyokj/devdevian/tree/main/examples/extensions/developer-insights#metrics-and-boundaries) distinguish lifetime counters from the selected 30/90/365-day UTC activity window. Visits, reading time, online hours and GitHub-wide work are not tracked or inferred.
+
+With `ui.panel`, an extension may mount a panel below the profile header:
+
+```js
+const context = await devdevian.context();
+await devdevian.panel.configure({
+  placement: "profile",
+  title: "Developer Insights",
+  width: 1200,
+  height: 1100,
+});
+const unsubscribe = devdevian.onContext((next) => {
+  // next.profile is { id, own } only when a profile is actually rendered.
+  // It is null elsewhere. Clear old data and ignore stale in-flight requests.
+});
+```
+
+`context.capabilities.profile_panels` and `context.capabilities.insights` identify support. Profile panels remain hidden on other routes. `onContext` delivers route/profile/theme context changes through the sandbox message channel; it does not expose DOM access, browser events or credentials. Return the unsubscribe callback when disposing a listener.
+
+With `data.read`, `devdevian.data.get('/users/123/insights?days=90&scope=public&project_page=1')` returns bounded aggregate data. Only `days=30|90|365`, `scope=public|all` and a positive `project_page` are accepted; pages contain up to eight project attributions. `scope=all` requires the authenticated account to be that exact profile. Public scope never includes private-community activity, even for fellow members or the platform owner. Personal preference counters are returned only for the author's explicit private-inclusive view. Current server access is checked on each request, hidden/deleted profiles are unavailable to other viewers, responses are not cached, and rate limits apply. This endpoint grants no database or backend access.
