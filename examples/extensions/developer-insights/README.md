@@ -4,7 +4,9 @@ A first-party example of a real code extension: install it, open a developer pro
 
 ## Try it
 
-In **Extensions → Upload extension**, choose **Load Developer Insights example**, review the source and permissions, then **Preview in my app**. Open **Your corner**. Stop preview to return to the preserved publication draft. For a lasting installation, publish the package and install its exact version from its listing, acknowledging its review status.
+Open [Developer Insights in the extension library](https://devdevian.vercel.app/app#extensions/theme-2), inspect its source and permissions, and install version **1.0.0** for your account. Then open **Your corner** or another developer profile. Review status is separate from authorship: an owner-reviewed badge is not assigned automatically.
+
+To experiment without installing, choose **Extensions → Upload extension → Load Developer Insights example**, review permissions, then **Preview in my app** and open a profile. Stop preview to return to the preserved publication draft. For your own fork, change the package slug/name before publishing; the published first-party slug belongs to its author.
 
 Build from source:
 
