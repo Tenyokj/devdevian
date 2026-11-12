@@ -1,5 +1,5 @@
 import { scopeSQL } from "./spaces.mjs";
-import { consumeBudget } from "./limits.mjs";
+import { consumeBudget, privateKey, clientAddress } from "./limits.mjs";
 // Prepared explicitly by maintenance; no DDL is issued by a statistics request.
 export function prepareDeveloperInsights(db) {
   for (const [table, columns] of [
@@ -73,7 +73,15 @@ export function registerDeveloperInsights(app, db) {
         .status(503)
         .json({ error: "Statistics are awaiting server preparation." });
     consumeBudget(db, [
-      { key: "insights:" + (req.user?.id || req.ip), max: 60, window: 60000 },
+      {
+        key:
+          "insights:" +
+          (req.user
+            ? "user:" + req.user.id
+            : "ip:" + privateKey(clientAddress(req))),
+        max: 60,
+        window: 60000,
+      },
     ]);
     const postScope = (alias) =>
       scope === "all"
