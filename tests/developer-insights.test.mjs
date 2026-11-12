@@ -10,6 +10,15 @@ test("profile insights aggregate retained records and preserve privacy across al
     guest = f.client();
   const publicStats = await guest(`/users/${s.id}/insights?days=30`);
   assert.equal(publicStats.status, 200, JSON.stringify(publicStats.data));
+  assert.equal(
+    (
+      await guest(
+        `/users/${s.id}/insights?days=30&__api_route=users/${s.id}/insights`,
+      )
+    ).status,
+    200,
+    "Vercel rewrite routing metadata is not a user filter",
+  );
   const d = publicStats.data;
   assert.equal(d.totals.conversations, 3);
   assert.equal(d.totals.questions, 1);

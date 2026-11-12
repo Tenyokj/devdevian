@@ -29,10 +29,14 @@ export function prepareDeveloperInsights(db) {
 export function registerDeveloperInsights(app, db) {
   app.get("/api/users/:id/insights", (req, res) => {
     res.set("Cache-Control", "no-store");
+    // Vercel adds this rewrite-routing parameter to otherwise valid API reads.
+    const query = Object.fromEntries(
+      Object.entries(req.query).filter(([key]) => key !== "__api_route"),
+    );
     const id = Number(req.params.id),
-      days = Number(req.query.days || 90),
-      projectPage = Number(req.query.project_page || 1),
-      scope = req.query.scope || "public";
+      days = Number(query.days || 90),
+      projectPage = Number(query.project_page || 1),
+      scope = query.scope || "public";
     if (
       !Number.isSafeInteger(id) ||
       id < 1 ||
@@ -41,10 +45,10 @@ export function registerDeveloperInsights(app, db) {
       projectPage < 1 ||
       projectPage > 10000 ||
       !["public", "all"].includes(scope) ||
-      Object.keys(req.query).some(
+      Object.keys(query).some(
         (k) => !["days", "scope", "project_page"].includes(k),
       ) ||
-      Object.values(req.query).some((x) => typeof x !== "string")
+      Object.values(query).some((x) => typeof x !== "string")
     )
       return res.status(400).json({
         error:
