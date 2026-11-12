@@ -186,8 +186,6 @@ export function ExtensionUpdates({ user, onChanged }) {
 export function ExtensionHistory({ slug, onOpen }) {
   const [items, setItems] = useState(null),
     [page, setPage] = useState(1),
-    [pagination, setPagination] = useState(null),
-    [page, setPage] = useState(1),
     [error, setError] = useState("");
   useEffect(() => {
     setPage(1);
