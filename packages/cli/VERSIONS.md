@@ -4,6 +4,13 @@ The CLI is a separately versioned Devdevian client. Its npm version does not hav
 
 Every published npm artifact has a unique immutable version. We record each version here, even when several ship in one working session. A GitHub release can summarize a day's work and link to the individual entries; it does not need to be created for every npm publication. An unfinished change stays under **Unreleased** until its package version is assigned. Alpha packages use the `alpha` npm tag.
 
+## 0.23.0-alpha.1 — Extension publishing
+
+- `extensions list --query focus`, `extensions mine`, and `extensions publish --file package.devext.json` share the browser library and authenticated account.
+- Publication reads only the selected bounded regular package, does not execute source, previews capabilities, included files, metadata and SHA-256, then requires confirmation or explicit `--yes`.
+- Bundled source and listing media become public; publication never installs the extension. The server validates capabilities/CSS/ownership/version and quotas. No automatic retry of writes.
+- Companion browser/API 1.3.0. Source readiness and npm publication are recorded separately.
+
 ## 0.22.0-alpha.1 — Project participation
 
 - Choose Open / Approved participation when creating a project, independently of public/private visibility. Approved creation checks server readiness before publishing.

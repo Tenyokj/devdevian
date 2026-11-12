@@ -165,7 +165,8 @@ export function registerExtensions(
         .filter((r) => code || r.manifest.kind === "theme"),
     };
   };
-  const format2 = (req) => req.get("X-Devdevian-Extensions") === "2";
+  const format2 = (req) =>
+    req.get("X-Devdevian-Extensions") === "2" || req.query.format === "2";
   const budget = (req, max = 12) =>
     consumeBudget(db, [
       {
@@ -212,6 +213,39 @@ export function registerExtensions(
                 .includes(q.toLowerCase()),
             )
           : [],
+      items,
+      pagination: { page, pages: Math.max(1, Math.ceil(total / 12)), total },
+    });
+  });
+  // Public author listings never expose withdrawn packages or hidden profiles.
+  app.get("/api/extensions/authors/:id", gate, (req, res) => {
+    const id = Number(req.params.id);
+    const author =
+      Number.isSafeInteger(id) && id > 0
+        ? db
+            .prepare(
+              "SELECT id,privacy FROM users WHERE id=? AND deleted_at IS NULL",
+            )
+            .get(id)
+        : null;
+    if (!author || (author.privacy !== "public" && req.user?.id !== id))
+      return res.status(404).json({ error: "Profile not found." });
+    const page = Math.max(1, Math.min(1000, Number(req.query.page) || 1));
+    if (!Number.isInteger(page))
+      return res.status(400).json({ error: "Invalid page." });
+    const where =
+      " AND e.user_id=? AND e.review<>'withdrawn' AND e.id=(SELECT MAX(x.id) FROM extension_releases x WHERE x.slug=e.slug)";
+    const total = db
+      .prepare(
+        "SELECT COUNT(*) total FROM extension_releases e WHERE 1=1" + where,
+      )
+      .get(id).total;
+    const items = db
+      .prepare(select + where + " ORDER BY e.id DESC LIMIT 12 OFFSET ?")
+      .all(id, (page - 1) * 12)
+      .map(output)
+      .map(({ manifest, ...item }) => ({ ...item, kind: manifest.kind }));
+    res.set("Cache-Control", "no-store").json({
       items,
       pagination: { page, pages: Math.max(1, Math.ceil(total / 12)), total },
     });

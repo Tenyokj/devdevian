@@ -434,6 +434,10 @@ export function registerEnhancements(app, db, required, seed) {
         params.push(topic);
       }
       sql += " ORDER BY pr.id DESC";
+    } else if (type === "extensions") {
+      sql =
+        "SELECT id,title,excerpt,version,'extension' type FROM (SELECT 'theme-'||e.id id,e.id sort_id,e.name title,e.description excerpt,e.version,e.name||' '||e.slug||' '||e.description||' '||coalesce(json_extract(d.data,'$.tags'),'')||' '||u.username search_text FROM extension_releases e JOIN users u ON u.id=e.user_id LEFT JOIN entity_details d ON d.kind='extension' AND d.entity_id=CAST(e.id AS TEXT) WHERE u.deleted_at IS NULL AND e.review<>'withdrawn' AND e.id=(SELECT MAX(x.id) FROM extension_releases x WHERE x.slug=e.slug)) WHERE dev_search(search_text,?) ORDER BY sort_id DESC";
+      params = [q.replace(/^#/, "")];
     } else if (type === "communities") {
       sql =
         "SELECT id,name title,description excerpt,'community' type FROM private_communities WHERE dev_search(name||' '||description,?) ORDER BY created DESC";

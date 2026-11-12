@@ -308,3 +308,18 @@ Use `devdevian room import PROJECT_ID ISSUE_URL`, `devdevian room link-pr PROJEC
 ## Project participation
 
 `/participation PROJECT_ID` opens current participation rules; owners can select Open / Approved contributors and manage usernames with preview/confirmation. Room actions expose the same settings. `devdevian participation PROJECT_ID --json` reads them, while `devdevian participation set PROJECT_ID --mode approved --members "alice,bob"` prepares an explicit change. Omitting members preserves the list; an explicit empty string clears it. Approved mode never grants private community or GitHub access. [Permissions, observer behavior and rollout](../../docs/project-participation.md).
+
+
+## Publish browser extensions from the terminal
+
+Build the package in a clone of Devdevian (`npm run extension:pack -- my-extension`), sign in using `devdevian login`, then:
+
+```sh
+devdevian extensions list --query focus
+devdevian extensions mine
+devdevian extensions publish --file my-extension/dist/my-extension-1.0.0.devext.json
+```
+
+The CLI shows the name, version, capabilities, file list, listing and package SHA-256 before asking for confirmation. Read the included sources in your editor first. Use `--yes` only for an intentional noninteractive publication, and `--json` for structured results. No source is imported or executed by this command; publication does not install an extension. All bundled sources and listing screenshots become public. The browser owns installation/runtime, and all server ownership, version, validation and quota rules still apply. Do not retry an uncertain publication automatically; inspect `extensions mine` first. This is a script command, separate from the live workspace.
+
+See the [extension developer guide](https://devdevian.vercel.app/docs/extensions).

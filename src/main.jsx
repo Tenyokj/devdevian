@@ -1,3 +1,4 @@
+import { ProfileExtensions } from "./profile-extensions";
 import { ExtensionRuntime } from "./extension-runtime";
 import { Extensions, useExtensionTheme } from "./extensions";
 import { ProjectContributors } from "./project-contributors";
@@ -868,6 +869,7 @@ export function App() {
                   )}
                   {page === "extensions" && (
                     <Extensions
+                      initialRelease={id}
                       key={user?.id || "guest"}
                       user={user}
                       requireUser={authorized}
@@ -2796,8 +2798,9 @@ function Profile({
               "Projects",
               "Events",
               "Communities",
+              "Extensions",
             ]
-          : ["Conversations", "Projects"]
+          : ["Conversations", "Projects", "Extensions"]
         ).map((t) => (
           <button
             key={t}
@@ -2863,7 +2866,10 @@ function Profile({
           />
         ))}
       {tab === "Participated" && <Participation user={user} go={go} />}
-      {tab !== "Participated" && (
+      {tab === "Extensions" && (
+        <ProfileExtensions personId={p.id} own={own} go={go} />
+      )}
+      {tab !== "Participated" && tab !== "Extensions" && (
         <Pagination
           meta={
             tab === "Conversations"

@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.3.0 — Extensions, from editor to discovery
+
+- Publish built code packages from CLI 0.23 with a capability/file/listing preview and explicit confirmation. Publishing does not install or execute code.
+- Find current extension releases in global search and open their exact cards; author profiles include published extensions with pagination and privacy checks.
+- Replace placeholder hero code with a working panel/storage SDK example and fix inherited tile styling on code tokens.
+- Add Focus Desk, a source-available focus timer and device-local notes starter, downloadable and previewable before publication.
+
 ## 1.2.2 — Keep your extension work
 
 - Account-specific local drafts retain publication fields, package source and screenshot references across closing, preview and reload. Stop preview returns to the saved publisher, including after navigation.

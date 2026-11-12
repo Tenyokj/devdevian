@@ -294,7 +294,7 @@ function PermissionList({ manifest }) {
   );
 }
 
-export function Extensions({ user, requireUser }) {
+export function Extensions({ user, requireUser, initialRelease }) {
   const [library, setLibrary] = useState(null),
     [mine, setMine] = useState({ installed: [], published: [], active: null }),
     [query, setQuery] = useState(""),
@@ -321,6 +321,18 @@ export function Extensions({ user, requireUser }) {
     return () =>
       window.removeEventListener("devdevian-extension-resume", resume);
   }, [user?.id]);
+  useEffect(() => {
+    if (!/^theme-[1-9]\d{0,9}$/.test(initialRelease || "")) return;
+    const controller = new AbortController();
+    setError("");
+    setAck(false);
+    api("/extensions/releases/" + initialRelease, { signal: controller.signal })
+      .then(setSelected)
+      .catch((e) => {
+        if (!controller.signal.aborted) setError(e.message);
+      });
+    return () => controller.abort();
+  }, [initialRelease]);
   const loadMine = () => api("/extensions/me").then(setMine);
   useEffect(() => {
     const c = new AbortController();
@@ -440,10 +452,29 @@ export function Extensions({ user, requireUser }) {
             <Package size={30} />
             <strong>Build your own Devdevian.</strong>
           </div>
-          <pre>
-            <span>await</span> devdevian.layout.apply(...);{"\n"}
-            <span>await</span> devdevian.panel.configure(...);{"\n"}
-            <span>await</span> devdevian.views.open("projects");
+          <pre className="extension-sdk-example">
+            <code>
+              <span className="sdk-comment">
+                // Give your tool a place in the forum.
+              </span>
+              {"\n"}
+              <span className="sdk-keyword">await</span>
+              {" devdevian.panel.configure({\n  placement: "}
+              <span className="sdk-string">"right"</span>
+              {",\n  width: 320,\n  title: "}
+              <span className="sdk-string">"Focus Desk"</span>
+              {"\n});\n\n"}
+              <span className="sdk-comment">
+                // Keep personal notes on this device.
+              </span>
+              {"\n"}
+              <span className="sdk-keyword">await</span>
+              {" devdevian.storage.set(\n  "}
+              <span className="sdk-string">"note"</span>
+              {", "}
+              <span className="sdk-string">"Ship something useful."</span>
+              {"\n);"}
+            </code>
           </pre>
           <p>Layouts · Panels · Themes · Integrations</p>
         </div>
@@ -578,7 +609,11 @@ export function Extensions({ user, requireUser }) {
       {selected && (
         <Modal
           title={selected.name}
-          onClose={() => !busy && setSelected(null)}
+          onClose={() => {
+            if (busy) return;
+            setSelected(null);
+            if (initialRelease) location.hash = "extensions";
+          }}
           wide
         >
           <div className="extension-detail-meta">

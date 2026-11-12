@@ -7,6 +7,7 @@ import {
   FolderGit2,
   Users,
   UserRound,
+  Package,
 } from "lucide-react";
 import { Modal, Empty, ErrorMessage } from "./ui";
 import { Select } from "./controls";
@@ -65,7 +66,7 @@ export function GlobalSearch({ close, topics, onNavigate }) {
         <Search size={24} />
         <input
           autoFocus
-          placeholder="Ideas, questions, people, projects…"
+          placeholder="Ideas, people, projects, extensions…"
           aria-label="Search all Devdevian"
           value={q}
           onChange={(e) => setQ(e.target.value)}
@@ -78,6 +79,7 @@ export function GlobalSearch({ close, topics, onNavigate }) {
           ["projects", "Projects", FolderGit2],
           ["communities", "Communities", Users],
           ["people", "People", UserRound],
+          ["extensions", "Extensions", Package],
         ].map(([key, label, Icon]) => (
           <button
             key={key}
@@ -123,7 +125,10 @@ export function GlobalSearch({ close, topics, onNavigate }) {
               <Hash size={32} />
             </span>
             <h3>Your next rabbit hole starts here.</h3>
-            <p>Search across conversations, projects and your communities.</p>
+            <p>
+              Search conversations, projects, communities, people and
+              extensions.
+            </p>
             <div className="search-suggestions">
               {topics.slice(0, 4).map((t) => (
                 <button
@@ -149,19 +154,23 @@ export function GlobalSearch({ close, topics, onNavigate }) {
               key={r.type + r.id}
               onClick={() => {
                 onNavigate(
-                  r.type === "project"
-                    ? "post/" + r.post_id
-                    : r.type === "person"
-                      ? "member/" + r.id
-                      : r.type === "community"
-                        ? "community/" + r.id
-                        : "post/" + r.id,
+                  r.type === "extension"
+                    ? "extensions/" + r.id
+                    : r.type === "project"
+                      ? "post/" + r.post_id
+                      : r.type === "person"
+                        ? "member/" + r.id
+                        : r.type === "community"
+                          ? "community/" + r.id
+                          : "post/" + r.id,
                 );
                 close();
               }}
             >
               <span className="search-result-icon">
-                {r.type === "project" ? (
+                {r.type === "extension" ? (
+                  <Package size={19} />
+                ) : r.type === "project" ? (
                   <FolderGit2 size={19} />
                 ) : r.type === "community" ? (
                   <Users size={19} />

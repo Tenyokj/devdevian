@@ -251,6 +251,57 @@ try {
     0,
     "Published draft must be removed",
   );
+  await page.getByRole("button", { name: "Close dialog", exact: true }).click();
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 1000 });
+    const code = page.locator(".extension-sdk-example");
+    assert.match(await code.innerText(), /placement: "right"/);
+    assert.ok(
+      await code
+        .locator("span")
+        .first()
+        .evaluate(
+          (e) =>
+            getComputedStyle(e).display === "inline" &&
+            getComputedStyle(e).paddingTop === "0px",
+        ),
+      "Code tokens must not inherit large tile styling",
+    );
+    assert.ok(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth + 1,
+      ),
+    );
+  }
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.evaluate(() => (location.hash = "profile"));
+  await page
+    .locator(".profile-tabs")
+    .getByRole("button", { name: "Extensions", exact: true })
+    .click();
+  await page
+    .getByRole("region", { name: "My extensions" })
+    .getByRole("button", { name: /Studio Shell/ })
+    .click();
+  await page
+    .getByRole("dialog", { name: "Studio Shell", exact: true })
+    .waitFor();
+  assert.match(page.url(), /#extensions\/theme-/);
+  await page.getByRole("button", { name: "Close dialog", exact: true }).click();
+  await page.getByRole("button", { name: /Find your next idea/ }).click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Extensions", exact: true })
+    .click();
+  await page.getByLabel("Search all Devdevian").fill("productivity");
+  await page
+    .locator(".search-result")
+    .filter({ hasText: "Studio Shell" })
+    .click();
+  await page
+    .getByRole("dialog", { name: "Studio Shell", exact: true })
+    .waitFor();
+  await page.getByRole("button", { name: "Close dialog", exact: true }).click();
   // Install only after reviewing code capabilities. Also prove the server rejects missing grants.
   const result = await page.evaluate(async () => {
     const library = await (
@@ -479,6 +530,48 @@ try {
   await mkdir(".test-data/extensions-browser", { recursive: true });
   await page.screenshot({
     path: ".test-data/extensions-browser/packages.png",
+    fullPage: true,
+  });
+  // The first-party starter is real interactive code, without network/data grants.
+  await page
+    .getByRole("button", { name: "Disable all extensions", exact: true })
+    .click();
+  await page.goto(f.base + "/app#extensions");
+  await page
+    .getByRole("button", { name: "Upload extension", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Load Focus Desk example" }).click();
+  await page.waitForFunction(
+    () =>
+      document.querySelector('[aria-label="Extension name"]').value ===
+      "Focus Desk",
+  );
+  await page.getByLabel("I trust this code", { exact: false }).check();
+  await page.getByRole("button", { name: "Preview in my app" }).click();
+  const focus = page.frameLocator('iframe[title="Focus Desk sandbox"]');
+  await focus.getByRole("heading", { name: "Focus Desk" }).waitFor();
+  await focus
+    .getByLabel("A note for your next step")
+    .fill("Ship the extension workflow");
+  await focus.getByText("Saved on this device.", { exact: true }).waitFor();
+  await focus.getByRole("button", { name: "Start", exact: true }).click();
+  await focus.getByRole("button", { name: "Pause", exact: true }).waitFor();
+  await focus
+    .getByRole("button", { name: "Take a break", exact: true })
+    .click();
+  assert.equal(await focus.locator("#time").innerText(), "05:00");
+  await page.getByRole("button", { name: "Stop preview", exact: true }).click();
+  await page.getByLabel("I trust this code", { exact: false }).check();
+  await page.getByRole("button", { name: "Preview in my app" }).click();
+  await focus.getByLabel("A note for your next step").waitFor();
+  await page.waitForTimeout(200);
+  assert.equal(
+    await focus.getByLabel("A note for your next step").inputValue(),
+    "Ship the extension workflow",
+  );
+  await mkdir(".test-data/extensions-browser", { recursive: true });
+  await page.screenshot({
+    path: ".test-data/extensions-browser/focus-desk.png",
     fullPage: true,
   });
   assert.deepEqual(errors, []);

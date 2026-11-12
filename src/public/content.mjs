@@ -4,6 +4,20 @@ export const launchFilm = "https://www.youtube.com/watch?v=qjFs2yy5uz0";
 export const repository = "https://github.com/Tenyokj/devdevian";
 export const updates = [
   {
+    id: "extension-discovery-1-3-0",
+    channel: "Browser + CLI",
+    version: "1.3.0",
+    title: "From your editor to everyone’s library.",
+    summary:
+      "Publish extension packages from CLI 0.23 and find them in profiles and global search.",
+    points: [
+      "A real SDK example replaces placeholder code in the library.",
+      "Try Focus Desk: a quiet timer and personal notes with no network access.",
+    ],
+    link: "/docs/extensions",
+    label: "Build and publish an extension",
+  },
+  {
     id: "extension-drafts-1-2-2",
     channel: "Browser",
     version: "1.2.2",

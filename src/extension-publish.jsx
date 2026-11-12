@@ -152,6 +152,13 @@ export function PublishExtension({ close, onPublished, userId }) {
           >
             Load popup styling example
           </button>
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={() => load("/extension-examples/focus-desk.devext.json")}
+          >
+            Load Focus Desk example
+          </button>
           <a href="/extension-examples/studio-shell.devext.json" download>
             Download example package ↗
           </a>

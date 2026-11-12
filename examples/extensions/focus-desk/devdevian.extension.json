@@ -1,0 +1,19 @@
+{
+  "name": "Focus Desk",
+  "slug": "focus-desk",
+  "version": "1.0.0",
+  "description": "A calm focus timer and personal scratchpad beside your Devdevian conversations. No network access.",
+  "entry": "main.js",
+  "permissions": ["ui.panel", "storage"],
+  "listing": {
+    "full_description": "## A little room to focus\n\nKeep a 25-minute focus timer and a personal scratchpad beside the forum. Start, pause or reset the timer; notes save automatically on this device.\n\nSwitch between Focus (25 minutes) and Break (5 minutes). No sound, notification spam, GitHub permissions or network requests.\n\n### Privacy and storage\n\nNotes and timer state use the SDK’s account/extension-scoped device storage. They are not synced between devices and are not a secret vault. Disabling this extension hides the panel; your saved note remains until browser storage is cleared or you clear it here.\n\nThe timer uses a wall-clock deadline, so background tab throttling does not slow it down. Close the panel from Devdevian’s extension controls.\n\nSource: examples/extensions/focus-desk in the Devdevian repository.",
+    "tags": ["productivity", "focus", "notes", "timer"],
+    "links": [
+      {
+        "label": "Source code",
+        "url": "https://github.com/Tenyokj/devdevian/tree/main/examples/extensions/focus-desk"
+      }
+    ],
+    "screenshots": []
+  }
+}

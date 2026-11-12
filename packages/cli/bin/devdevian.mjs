@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { extensionPublication } from "../lib/extensions.mjs";
 import {
   participationPlan,
   participationPayload,
@@ -214,6 +215,9 @@ const help = `Devdevian CLI ${version} · alpha
   devdevian whoami
   devdevian inbox [--page 2]
   devdevian feed [--topic web] [--page 2]
+  devdevian extensions list [--query focus] [--page 2]
+  devdevian extensions mine
+  devdevian extensions publish --file my-extension.devext.json [--yes]
   devdevian search "retry strategies"
   devdevian conversation open POST_ID
   devdevian ask --title "..." --body-file question.md --topic web
@@ -1038,6 +1042,50 @@ async function execute(args, flags) {
           },
       flags.json,
     );
+    return;
+  }
+  if (command === "extensions") {
+    const action = args[1] || "list";
+    if (action === "publish") {
+      const plan = await extensionPublication(flags.file);
+      await confirm(plan.preview, flags);
+      const release = await api("/extensions/publish", {
+        method: "POST",
+        body: plan.payload,
+      });
+      show(
+        flags.json
+          ? release
+          : {
+              name: release.name,
+              version: release.version,
+              url: config.origin + "/app#extensions/" + release.id,
+            },
+        flags.json,
+      );
+    } else if (action === "list") {
+      const params = new URLSearchParams({
+        q: flags.query || "",
+        page: String(page),
+        format: "2",
+      });
+      const result = await api("/extensions/library?" + params);
+      show(
+        flags.json
+          ? result
+          : {
+              items: [...result.builtins, ...result.items],
+              pagination: result.pagination,
+            },
+        flags.json,
+      );
+    } else if (action === "mine") {
+      const state = await api("/extensions/me?format=2");
+      show(flags.json ? state : { items: state.published }, flags.json);
+    } else
+      throw Error(
+        "Use extensions list, extensions mine or extensions publish --file package.devext.json.",
+      );
     return;
   }
   if (command === "inbox") {

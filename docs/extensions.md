@@ -196,3 +196,23 @@ Appearance customization does not replace the built-in React logic or bypass SDK
 The publisher automatically saves its fields, package source and screenshot references to this browser, separately for each account. Closing the form or reloading the page keeps the draft for up to 30 days. Reopening Upload extension restores it. **Stop preview** returns to Extensions and reopens that draft, even after navigating to another section during preview. **Discard draft** clears it, and successful publication clears it automatically.
 
 Restoring a draft does not run code, restore capability consent or resume a live development watcher. Review and approve preview again. Device-local drafts are not synced across browsers. If browser storage is full/unavailable, the form reports the failure and refuses to close/start preview through its buttons so you can preserve your work. File-picker controls may look empty after restoration, but **Package ready** and the source inspector show the retained code package.
+
+
+## Publish with Devdevian CLI
+
+CLI 0.23+ accepts the **built** package, not the source config:
+
+```sh
+devdevian login
+devdevian extensions list --query focus
+devdevian extensions mine
+devdevian extensions publish --file my-extension/dist/my-popups-1.0.0.devext.json
+```
+
+The command reads only the explicitly selected regular file (up to 256 KB), never evaluates its JavaScript and shows a publication preview with capabilities, included files, listing and SHA-256. Confirm with `yes`, or pass `--yes` deliberately for automation. `--json` returns structured output. Server validation, ownership, version monotonicity and publication quotas are unchanged. Publication does not install code. A connection failure after submission can have an unknown outcome: inspect `extensions mine` before retrying. Screenshots must already be your own unattached image upload IDs; use the browser publication form to upload images. This command does not upload arbitrary local image paths or execute extensions in the terminal.
+
+Published releases appear in **profile → Extensions** (including your own profile). The global navigation search has an **Extensions** category that searches names, slugs, descriptions, tags and author usernames, and opens the exact matching card. Only the latest non-withdrawn release for each slug appears. Installed packages remain in **Extensions → Installed**; that private installation list is not a public profile feature.
+
+## Focus Desk starter
+
+[Download Focus Desk](/extension-examples/focus-desk.devext.json), or choose **Load Focus Desk example** in the publisher. Its [source directory](https://github.com/Tenyokj/devdevian/tree/main/examples/extensions/focus-desk) contains a working 25-minute focus timer, 5-minute break and personal scratchpad. The only grants are `ui.panel` and `storage`; there are no network or account-data permissions. Notes/timer state stay on this device and are not synced or suitable for secrets. The timer uses a wall-clock deadline to survive background tab throttling. The example is downloadable starter code, not an automatically installed or approved library release.
