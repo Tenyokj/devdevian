@@ -454,7 +454,10 @@ export function ExtensionRuntime({ user }) {
     return () => window.removeEventListener("hashchange", change);
   }, []);
   const layouts = useRef(new Map());
-  const disabled = user === null || location.pathname === "/workspace-pane";
+  const disabled =
+    user === null ||
+    location.pathname === "/workspace-pane" ||
+    route.split("/")[0] === "#platform";
   const applyLayouts = () => {
     const surface = document.querySelector(".devext-surface");
     if (!surface) return;
@@ -530,7 +533,7 @@ export function ExtensionRuntime({ user }) {
       layouts.current.clear();
       applyLayouts();
     };
-  }, [user?.id]);
+  }, [user?.id, disabled]);
   useEffect(() => {
     if (
       !preview?.live ||

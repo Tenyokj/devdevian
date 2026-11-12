@@ -64,7 +64,7 @@ test("code packages bound sources, capabilities, CSS scope and shell layout", as
 });
 test("code extension grants, account isolation, withdrawal and legacy client compatibility", async (t) => {
   const f = await startTestServer({
-    extensionReviewer: "reviewer@extensions.test",
+    ownerEmail: "reviewer@extensions.test",
   });
   t.after(() => f.close());
   const a = f.client(),
@@ -85,6 +85,7 @@ test("code extension grants, account isolation, withdrawal and legacy client com
       ).status,
       200,
     );
+  await f.verifyEmail("reviewer@extensions.test");
   const headers = { "X-Devdevian-Extensions": "2" },
     pkg = {
       name: "Code fixture",
@@ -159,7 +160,13 @@ test("code extension grants, account isolation, withdrawal and legacy client com
   );
   const r = await review(
     "/extensions/releases/" + id + "/review",
-    { status: "withdrawn", note: "Fixture revoked package." },
+    {
+      status: "withdrawn",
+      note: "Fixture revoked package.",
+      expected_review: "unreviewed",
+      expected_revision: 0,
+      digest: (await review("/platform/extensions/" + id)).data.security.digest,
+    },
     "PATCH",
     headers,
   );

@@ -1,3 +1,9 @@
+import { isPlatformOwner } from "./platform-owner.mjs";
+import { inspectExtensionSecurity } from "./extension-security.mjs";
+import {
+  prepareExtensionReports,
+  registerPlatformModeration,
+} from "./platform-moderation.mjs";
 import { registerExtensionUpdates } from "./extension-updates.mjs";
 import { validateListing } from "./extension-listing.mjs";
 import { validatePackage } from "./extension-package.mjs";
@@ -5,8 +11,12 @@ import { builtinThemes, validateManifest } from "./extension-manifest.mjs";
 import { transaction } from "./activity.mjs";
 import { consumeBudget } from "./limits.mjs";
 export function prepareExtensions(db) {
+  prepareExtensionReports(db);
   db.exec(
     `CREATE TABLE IF NOT EXISTS extension_releases(id INTEGER PRIMARY KEY,slug TEXT NOT NULL,version TEXT NOT NULL,user_id INTEGER NOT NULL,name TEXT NOT NULL,description TEXT NOT NULL,manifest TEXT NOT NULL,review TEXT NOT NULL DEFAULT 'unreviewed' CHECK(review IN('unreviewed','reviewed','withdrawn')),reviewer_id INTEGER,review_note TEXT NOT NULL DEFAULT '',created TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,UNIQUE(slug,version)); CREATE INDEX IF NOT EXISTS extension_slug_owner ON extension_releases(slug,user_id,id); CREATE TABLE IF NOT EXISTS extension_installs(user_id INTEGER NOT NULL,release_key TEXT NOT NULL,created TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,PRIMARY KEY(user_id,release_key)); CREATE TABLE IF NOT EXISTS extension_active(user_id INTEGER PRIMARY KEY,release_key TEXT NOT NULL); CREATE INDEX IF NOT EXISTS extension_author ON extension_releases(user_id,id); CREATE INDEX IF NOT EXISTS extension_active_release ON extension_active(release_key,user_id); CREATE TABLE IF NOT EXISTS extension_reviews(id INTEGER PRIMARY KEY,release_id INTEGER NOT NULL,reviewer_id INTEGER NOT NULL,status TEXT NOT NULL,note TEXT NOT NULL,created TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);`,
+  );
+  db.exec(
+    "CREATE INDEX IF NOT EXISTS extension_installs_release ON extension_installs(release_key)",
   );
   const columns = db
     .prepare("PRAGMA table_info(extension_installs)")
@@ -34,12 +44,7 @@ export function extensionsReady(db) {
       .filter((x) => ["enabled", "grants"].includes(x.name)).length === 2
   );
 }
-const reviewer = (user) =>
-  !!user &&
-  (process.env.EXTENSION_REVIEWER_EMAILS || "")
-    .split(",")
-    .map((x) => x.trim().toLowerCase())
-    .includes(user.email?.toLowerCase());
+const reviewer = isPlatformOwner;
 const cleanText = (v, min, max) =>
   typeof v === "string" &&
   v.trim().length >= min &&
@@ -182,6 +187,11 @@ export function registerExtensions(
         window: 3600000,
       },
     ]);
+  registerPlatformModeration(app, db, required, gate, {
+    select,
+    output,
+    release,
+  });
   registerExtensionUpdates(app, db, required, gate, {
     release,
     available,
@@ -507,8 +517,41 @@ export function registerExtensions(
         return res.status(400).json({
           error: "Choose a review status and add a short review note.",
         });
+      if (
+        isPlatformOwner(req.user) &&
+        (b.expected_review !== r.review ||
+          b.digest !== inspectExtensionSecurity(r.manifest).digest ||
+          !Number.isSafeInteger(b.expected_revision))
+      )
+        return res.status(409).json({
+          error:
+            "This version or review state changed. Reload the review before deciding.",
+        });
+      if (
+        b.status === "reviewed" &&
+        isPlatformOwner(req.user) &&
+        b.acknowledge_sources !== true
+      )
+        return res.status(400).json({
+          error:
+            "Inspect all sources and explicitly confirm the exact version.",
+        });
       budget(req, 120);
-      transaction(db, () => {
+      const changed = transaction(db, () => {
+        const current = db
+          .prepare("SELECT review FROM extension_releases WHERE id=?")
+          .get(Number(r.id.slice(6)));
+        if (
+          isPlatformOwner(req.user) &&
+          (current?.review !== b.expected_review ||
+            db
+              .prepare(
+                "SELECT COALESCE(MAX(id),0) revision FROM extension_reviews WHERE release_id=?",
+              )
+              .get(Number(r.id.slice(6))).revision !== b.expected_revision)
+        ) {
+          return false;
+        }
         db.prepare(
           "UPDATE extension_releases SET review=?,reviewer_id=?,review_note=? WHERE id=?",
         ).run(b.status, req.user.id, b.note.trim(), Number(r.id.slice(6)));
@@ -524,6 +567,10 @@ export function registerExtensions(
             r.id,
           );
       });
+      if (changed === false)
+        return res
+          .status(409)
+          .json({ error: "Review state changed. Reload the queue." });
       res.json(release(r.id));
     },
   );

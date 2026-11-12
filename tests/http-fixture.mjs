@@ -1,9 +1,15 @@
+import { openDatabase } from "../database.mjs";
 import { spawn } from "node:child_process";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createServer } from "node:net";
-export async function startTestServer({ databasePath, serverEntry = "server.mjs", extensionReviewer = "" } = {}) {
+export async function startTestServer({
+  databasePath,
+  serverEntry = "server.mjs",
+  extensionReviewer = "",
+  ownerEmail = "",
+} = {}) {
   const directory = await mkdtemp(join(tmpdir(), "devdevian-http-"));
   const probe = createServer();
   await new Promise((r) => probe.listen(0, "127.0.0.1", r));
@@ -26,6 +32,7 @@ export async function startTestServer({ databasePath, serverEntry = "server.mjs"
       PORT: String(port),
       MODERATOR_EMAILS: "moderator@fixture.test",
       EXTENSION_REVIEWER_EMAILS: extensionReviewer,
+      PLATFORM_OWNER_EMAIL: ownerEmail,
     },
     stdio: ["ignore", "pipe", "pipe"],
   });
@@ -84,6 +91,19 @@ export async function startTestServer({ databasePath, serverEntry = "server.mjs"
     path,
     directory,
     client,
+    async verifyEmail(email) {
+      const db = await openDatabase({
+        DB_PATH: path,
+        DB_DRIVER: process.env.DB_DRIVER,
+      });
+      try {
+        db.prepare("UPDATE users SET email_verified=1 WHERE email=?").run(
+          email,
+        );
+      } finally {
+        db.close();
+      }
+    },
     async close() {
       if (server.exitCode === null) {
         server.kill();

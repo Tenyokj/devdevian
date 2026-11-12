@@ -307,3 +307,18 @@ Use the **installed release ID** from `updates`, not a slug. The CLI previews th
 
 
 The compiler lives in `packages/cli/lib/extension-build.mjs`; shared code-package and listing rules live in `packages/cli/lib/sdk/`. The root validator modules re-export these rules for the server/browser. `npm run build` also generates the CLI playground bundle from the real runner component, so published packages carry the tested bridge rather than a separate mock implementation. Updates are paginated in pages of 12; script clients can use `extensions updates --page 2`. The SDK playground tests use sample data, while the application update tests use an isolated disposable database.
+
+
+## Reporting and owner review
+
+Use **Report this version** in a library card to describe a concern (10–1,000 characters). Reports refer to an immutable release, not every version of a package. One report per account/version is accepted, with a persistent limit of ten reports per day. Reporting never disables code automatically; this prevents mass reports from becoming an automatic takedown mechanism. Disable an installed package immediately if you do not trust it.
+
+The server-configured, verified platform owner has a separate **Owner console**. Its extension queue includes unreviewed, reported, reviewed and withdrawn versions. Source inspection shows all packaged files as escaped text without running them, exact manifest SHA-256, declared capabilities, author notes, open reports and decision history. Static warnings flag private data plus network access, host UI changes and some suspicious source patterns. These checks are incomplete signals for human review, not malware detection or a safety certificate.
+
+Marking a version Reviewed requires a note, source-inspection acknowledgement, exact manifest digest and the current review state. Stale decisions fail rather than overwriting another review. Reviews never transfer to a newer version. Revoking a review disables current installations; withdrawing also removes the release from discovery and blocks installation/update targets. It does not delete the immutable source or its audit history. Authors may withdraw their own versions but cannot reinstate or verify them.
+
+Open clients recheck availability on visibility changes and approximately every 60 seconds. This is not an immediate remote process kill: already-running code may continue until the next successful refresh; an unresponsive tab must be closed and reopened in safe mode. Code, host CSS, layouts, secondary app views and commands are suspended while the owner console is open.
+
+## Security boundaries
+
+`data.read` includes work the installing user is authorized to read, including private communities. Combining it with `network:https://…` can send that content to an external service. The installation UI explicitly warns about this combination. Only grant it to code you trust. Neither a Reviewed label nor the isolated iframe imposes a CPU quota or guarantees that an extension cannot mislead its user.

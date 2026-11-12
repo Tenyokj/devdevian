@@ -32,3 +32,12 @@ Set `MODERATOR_EMAILS` to the exact account email(s), separated by commas, in th
 ## Reporting problems
 
 For a moderation review, provide the publication URL and relevant context to its community owner or, for platform matters, **dv842449@gmail.com**. Do not copy private community contents into public GitHub issues. Report permission bypasses privately under [SECURITY.md](../SECURITY.md).
+
+
+## Owner console
+
+`/app#platform` is restricted server-side to the one verified account whose email matches `PLATFORM_OWNER_EMAIL`. The sidebar link appears only for that account. An empty setting disables access. A profile job title, request body, generic moderator status or legacy `EXTENSION_REVIEWER_EMAILS` does not grant access or extension-review rights. The owner receives the existing public-platform moderation role, with no override of private-community membership.
+
+The console contains exact-version extension review, a searchable list of public conversations (including project introductions), and public reports with the existing moderation log. Public conversations can be hidden/restored or have replies paused/resumed. Existing code-feedback reporting and community moderation retain their existing scope. The console does not expose account credentials, OAuth tokens, mail, database dumps, private installations or other users' private-community content. Community moderation remains a separate, membership-scoped interface.
+
+For production, set `PLATFORM_OWNER_EMAIL` in the server environment and redeploy. It must correspond to a verified account; the setting alone cannot verify an account. `node scripts/migrate.mjs --prepare-extensions` prepares the additive extension-report table; run it only after a verified backup. Owner API responses use `Cache-Control: no-store`. The existing authenticated write/CSRF rules remain in force.

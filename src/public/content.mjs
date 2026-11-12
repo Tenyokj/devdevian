@@ -4,6 +4,21 @@ export const launchFilm = "https://www.youtube.com/watch?v=qjFs2yy5uz0";
 export const repository = "https://github.com/Tenyokj/devdevian";
 export const updates = [
   {
+    id: "extension-trust-1-5-0",
+    channel: "Browser + API",
+    version: "1.5.0",
+    title: "Inspect the code. Record the decision.",
+    summary:
+      "Exact-version extension reviews, reporting and a protected owner console.",
+    points: [
+      "Report concerns about an extension version from its library card.",
+      "The verified owner can inspect sources, review versions and withdraw unsafe releases.",
+      "Extensions are suspended on the owner console; private communities keep their access boundaries.",
+    ],
+    link: "/docs/extensions",
+    label: "Trust and extension permissions",
+  },
+  {
     id: "extension-tools-1-4-0",
     channel: "Browser + CLI",
     version: "1.4.0",

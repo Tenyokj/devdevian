@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.5.0 — Owner moderation and extension trust
+
+- Add an owner-only moderation console tied to one server-configured verified account, with public-content moderation and public reports/logs; private-community access stays membership-scoped.
+- Review all immutable extension versions with escaped source inspection, manifest SHA-256, permission-risk signals, decision notes and stale-review checks. Only the verified owner can verify or reinstate versions; authors can withdraw their own.
+- Add authenticated, rate-limited extension reports, an owner review queue and report decisions. Withdrawal disables installations and blocks further installs/updates on the next successful client refresh.
+- Suspend extension code, styles, layouts, commands and app-view panels on the owner console. Warn explicitly about private-data plus external-network capabilities. Static signals and review badges are not a malware guarantee or a CPU quota.
+
+
 ## 1.4.0 — Extension developer tools and deliberate updates
 
 - CLI 0.24 includes init/dev/pack: scaffold a source project, run a loopback-only SDK playground with live rebuilds and package it without cloning the forum or signing in.

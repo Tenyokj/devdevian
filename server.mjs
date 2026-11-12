@@ -1,3 +1,4 @@
+import { isPlatformOwner } from "./platform-owner.mjs";
 import { registerExtensionRunner } from "./extension-runner.mjs";
 import { registerExtensions } from "./extensions.mjs";
 import {
@@ -157,12 +158,15 @@ export async function createApp({ migrationOnly = false } = {}) {
     function profile(u) {
       if (!u) return null;
       const { password, ...user } = u;
-      user.platform_role = (process.env.MODERATOR_EMAILS || "")
-        .split(",")
-        .map((email) => email.trim().toLowerCase())
-        .includes(u.email)
-        ? "moderator"
-        : "member";
+      user.is_platform_owner = isPlatformOwner(u);
+      user.platform_role =
+        isPlatformOwner(u) ||
+        (process.env.MODERATOR_EMAILS || "")
+          .split(",")
+          .map((email) => email.trim().toLowerCase())
+          .includes(u.email)
+          ? "moderator"
+          : "member";
       user.preferences = preferences(db, u.id);
       user.managed_communities =
         u.validator_communities ||
@@ -208,12 +212,14 @@ export async function createApp({ migrationOnly = false } = {}) {
         if (s) {
           req.user = s;
           if (req.user)
-            req.user.platform_role = (process.env.MODERATOR_EMAILS || "")
-              .split(",")
-              .map((email) => email.trim().toLowerCase())
-              .includes(req.user.email)
-              ? "moderator"
-              : "member";
+            req.user.platform_role =
+              isPlatformOwner(req.user) ||
+              (process.env.MODERATOR_EMAILS || "")
+                .split(",")
+                .map((email) => email.trim().toLowerCase())
+                .includes(req.user.email)
+                ? "moderator"
+                : "member";
         }
       }
       if (bearer && !req.user)
@@ -565,8 +571,10 @@ export async function createApp({ migrationOnly = false } = {}) {
         process.env.DEMO_MODE === "1"
       ) {
         app.use(express.static("dist", { redirect: false }));
-        app.get(["/privacy", "/terms", "/faq", "/updates", "/docs", "/docs/:slug"], (req, res) =>
-          res.sendFile(`${process.cwd()}/dist${req.path}/index.html`),
+        app.get(
+          ["/privacy", "/terms", "/faq", "/updates", "/docs", "/docs/:slug"],
+          (req, res) =>
+            res.sendFile(`${process.cwd()}/dist${req.path}/index.html`),
         );
         app.get(["/app", "/app/{*path}", "/workspace-pane"], (req, res) =>
           res

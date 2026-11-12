@@ -10,7 +10,7 @@ await buildExtension(directory);
 // This dedicated sandbox never uses production database or file credentials.
 for (const key of Object.keys(process.env))
   if (
-    /^(TURSO_|S3_|GOOGLE_|GITHUB_|BREVO_|SMTP_|AUTH_|SESSION_|MODERATOR_|EXTENSION_REVIEWER_)/.test(
+    /^(TURSO_|S3_|GOOGLE_|GITHUB_|BREVO_|SMTP_|AUTH_|SESSION_|MODERATOR_|PLATFORM_OWNER_|EXTENSION_REVIEWER_)/.test(
       key,
     )
   )

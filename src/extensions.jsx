@@ -41,6 +41,15 @@ const clearTokens = () => {
 // before the next paint; every response is scoped to its request's account.
 export function useExtensionTheme(user, baseTheme, setBaseTheme) {
   const [selection, setSelection] = useState(null);
+  const [protectedRoute, setProtectedRoute] = useState(
+    () => location.hash.split("/")[0] === "#platform",
+  );
+  useEffect(() => {
+    const change = () =>
+      setProtectedRoute(location.hash.split("/")[0] === "#platform");
+    window.addEventListener("hashchange", change);
+    return () => window.removeEventListener("hashchange", change);
+  }, []);
   useLayoutEffect(() => {
     setSelection(null);
     clearTokens();
@@ -90,8 +99,9 @@ export function useExtensionTheme(user, baseTheme, setBaseTheme) {
     };
   }, [user?.id]);
   useEffect(() => {
-    if (selection && setBaseTheme) setBaseTheme(selection.manifest.mode);
-  }, [selection?.id]);
+    if (selection && !protectedRoute && setBaseTheme)
+      setBaseTheme(selection.manifest.mode);
+  }, [selection?.id, protectedRoute]);
   useLayoutEffect(() => {
     clearTokens();
     const root = document.documentElement;
@@ -100,7 +110,7 @@ export function useExtensionTheme(user, baseTheme, setBaseTheme) {
     document
       .querySelector('meta[name="theme-color"]')
       ?.setAttribute("content", baseTheme === "dark" ? "#0e1223" : "#f6f7fc");
-    if (selection) {
+    if (selection && !protectedRoute) {
       try {
         const tokens = themeTokens(selection.manifest);
         if (baseTheme !== selection.manifest.mode) {
@@ -132,7 +142,7 @@ export function useExtensionTheme(user, baseTheme, setBaseTheme) {
       root.dataset.theme = baseTheme;
       root.style.colorScheme = baseTheme;
     };
-  }, [selection, baseTheme, user?.id]);
+  }, [selection, baseTheme, user?.id, protectedRoute]);
   return selection;
 }
 function ThemePreview({ manifest, name = "Your workspace" }) {
@@ -279,6 +289,14 @@ function PermissionList({ manifest }) {
           </li>
         ))}
       </ul>
+      {manifest.permissions.includes("data.read") &&
+        manifest.permissions.some((p) => p.startsWith("network:")) && (
+          <p className="security-signal high" role="note">
+            <strong>Private data + external network:</strong> this combination
+            can send accessible private content outside Devdevian. Reviewed is
+            not a safety guarantee.
+          </p>
+        )}
       {manifest.permissions.includes("data.read") && (
         <p>
           This extension can read conversations, projects and events you can
@@ -847,7 +865,19 @@ export function Extensions({ user, requireUser, initialRelease }) {
                     : "Install & apply"}
             </button>
           </div>
-          {(mine.can_review || selected.author.id === user?.id) &&
+          {user?.is_platform_owner && !selected.builtin && (
+            <a className="button" href="#platform">
+              Review in protected owner console
+            </a>
+          )}
+          {!selected.builtin && user && (
+            <details className="extension-editor">
+              <summary>Report this version</summary>
+              <ExtensionReport id={selected.id} />
+            </details>
+          )}
+          {!user?.is_platform_owner &&
+            (mine.can_review || selected.author.id === user?.id) &&
             !selected.builtin && (
               <details className="extension-editor">
                 <summary>
@@ -917,5 +947,47 @@ export function Extensions({ user, requireUser, initialRelease }) {
         />
       )}
     </section>
+  );
+}
+
+function ExtensionReport({ id }) {
+  const [reason, setReason] = useState(""),
+    [busy, setBusy] = useState(false),
+    [result, setResult] = useState("");
+  return (
+    <form
+      onSubmit={async (e) => {
+        e.preventDefault();
+        setBusy(true);
+        try {
+          await api("/extensions/releases/" + id + "/report", {
+            method: "POST",
+            body: { reason },
+          });
+          setResult("Report sent to the platform owner.");
+          setReason("");
+        } catch (e) {
+          setResult(e.message);
+        } finally {
+          setBusy(false);
+        }
+      }}
+    >
+      <label>
+        What is wrong with this version?
+        <textarea
+          aria-label="Extension report reason"
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          minLength={10}
+          maxLength={1000}
+          required
+        />
+      </label>
+      <button className="button" disabled={busy || reason.trim().length < 10}>
+        Send extension report
+      </button>
+      {result && <p role="status">{result}</p>}
+    </form>
   );
 }

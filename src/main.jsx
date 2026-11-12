@@ -1,3 +1,4 @@
+import { PlatformModeration } from "./platform-moderation";
 import { ProfileExtensions } from "./profile-extensions";
 import { ExtensionRuntime } from "./extension-runtime";
 import { Extensions, useExtensionTheme } from "./extensions";
@@ -536,17 +537,20 @@ export function App() {
       ? "Workspace"
       : page === "subscriptions"
         ? "Subscriptions"
-        : page === "moderation"
-          ? "Moderation"
-          : page === "community"
-            ? community?.name || "Community"
-            : page === "post"
-              ? "Conversation"
-              : page === "member"
-                ? "Developer profile"
-                : page === "profile"
-                  ? "Your profile"
-                  : navigation.find((n) => n[0] === page)?.[1] || "Saved posts";
+        : page === "platform"
+          ? "Owner console"
+          : page === "moderation"
+            ? "Moderation"
+            : page === "community"
+              ? community?.name || "Community"
+              : page === "post"
+                ? "Conversation"
+                : page === "member"
+                  ? "Developer profile"
+                  : page === "profile"
+                    ? "Your profile"
+                    : navigation.find((n) => n[0] === page)?.[1] ||
+                      "Saved posts";
   return (
     <>
       <ExtensionRuntime key={user?.id || "guest"} user={user} />
@@ -637,6 +641,15 @@ export function App() {
               <Code2 size={19} />
               <span>Your corner</span>
             </a>
+            {user?.is_platform_owner && (
+              <a
+                href="#platform"
+                className={"nav-item " + (page === "platform" ? "active" : "")}
+              >
+                <Flag size={19} />
+                <span>Owner console</span>
+              </a>
+            )}
             {user?.platform_role === "moderator" && (
               <a
                 href="#moderation/public"
@@ -1600,6 +1613,9 @@ export function App() {
                         }}
                       />
                     ))}
+                  {page === "platform" && (
+                    <PlatformModeration user={user} go={go} />
+                  )}
                   {page === "moderation" && (
                     <Moderation
                       key={id || "all"}
@@ -1615,6 +1631,7 @@ export function App() {
                     />
                   )}
                   {![
+                    "platform",
                     "moderation",
                     "following",
                     "subscriptions",

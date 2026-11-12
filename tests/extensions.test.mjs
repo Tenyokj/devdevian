@@ -1,3 +1,4 @@
+import { inspectExtensionSecurity } from "../extension-security.mjs";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { DatabaseSync } from "node:sqlite";
@@ -43,7 +44,7 @@ test("theme manifests reject executable surfaces, remote resources, missing toke
 });
 test("extensions isolate installs, pin immutable versions, require explicit trust, and scope review privileges", async (t) => {
   const f = await startTestServer({
-    extensionReviewer: "reviewer@extensions.test",
+    ownerEmail: "reviewer@extensions.test",
   });
   t.after(() => f.close());
   const author = f.client(),
@@ -67,6 +68,7 @@ test("extensions isolate installs, pin immutable versions, require explicit trus
       ).status,
       200,
     );
+  await f.verifyEmail("reviewer@extensions.test");
   assert.equal(
     (await guest("/extensions/install", { release: "amber-night" })).status,
     401,
@@ -121,7 +123,14 @@ test("extensions isolate installs, pin immutable versions, require explicit trus
   );
   const checked = await reviewer(
     "/extensions/releases/" + first.data.id + "/review",
-    { status: "reviewed", note: "Verified palette contrast and rendering." },
+    {
+      status: "reviewed",
+      note: "Verified palette contrast and rendering.",
+      acknowledge_sources: true,
+      expected_review: "unreviewed",
+      expected_revision: 0,
+      digest: inspectExtensionSecurity(first.data.manifest).digest,
+    },
     "PATCH",
   );
   assert.equal(checked.status, 200);
@@ -146,7 +155,13 @@ test("extensions isolate installs, pin immutable versions, require explicit trus
   );
   await reviewer(
     "/extensions/releases/" + first.data.id + "/review",
-    { status: "unreviewed", note: "Review revoked for further inspection." },
+    {
+      status: "unreviewed",
+      note: "Review revoked for further inspection.",
+      expected_review: "reviewed",
+      expected_revision: 1,
+      digest: inspectExtensionSecurity(first.data.manifest).digest,
+    },
     "PATCH",
   );
   assert.equal((await reader("/extensions/me")).data.active, null);
