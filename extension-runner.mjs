@@ -45,7 +45,7 @@ export function registerExtensionRunner(app) {
       "Content-Security-Policy": `default-src 'none'; script-src 'self' blob:; style-src 'unsafe-inline'; img-src data: blob: ${origins.join(" ")}; connect-src ${origins.length ? origins.join(" ") : "'none'"}; font-src data:; media-src data: blob:; frame-src 'none'; worker-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'self'; sandbox allow-scripts`,
     });
     res.send(
-      '<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>html,body{margin:0;font:14px system-ui;color:#eae9ff;background:#131426}*{box-sizing:border-box}button,input,textarea{font:inherit}button{cursor:pointer}a{color:#b8abff}</style></head><body><div id="root"></div><script src="/api/extensions/runner-script"></script></body></html>',
+      '<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>html,body{margin:0;font:14px system-ui;color:#eae9ff;background:#131426}*{box-sizing:border-box}button,input,textarea{font:inherit}button{cursor:pointer}a{color:#b8abff}</style></head><body><div id="root"></div><script src="/api/extensions/runner-script?v=3"></script></body></html>',
     );
   });
   app.get("/api/extensions/runner-script", (_req, res) =>

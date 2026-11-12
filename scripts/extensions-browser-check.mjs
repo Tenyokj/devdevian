@@ -487,6 +487,7 @@ try {
     });
   }, companion);
   await page.reload();
+  await page.evaluate(() => (location.hash = "feed"));
   const companionFrame = await page.waitForSelector(
     'iframe[title="Devi Companion sandbox"]',
   );
@@ -574,6 +575,91 @@ try {
     path: ".test-data/extensions-browser/focus-desk.png",
     fullPage: true,
   });
+  await page.getByRole("button", { name: "Stop preview", exact: true }).click();
+  await page.getByRole("button", { name: "Publish immutable package" }).click();
+  await page.getByRole("dialog", { name: "Focus Desk", exact: true }).waitFor();
+  const updateCase = await page.evaluate(async () => {
+    const library = await fetch("/api/extensions/library?format=2").then((r) =>
+      r.json(),
+    );
+    const old = library.items.find((x) => x.slug === "focus-desk");
+    const install = await fetch("/api/extensions/install?format=2", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        release: old.id,
+        acknowledge_unreviewed: true,
+        granted_permissions: old.manifest.permissions,
+      }),
+    });
+    if (!install.ok) throw Error(await install.text());
+    const manifest = structuredClone(old.manifest);
+    manifest.permissions.push("ui.commands");
+    manifest.files[manifest.entry] +=
+      ';devdevian.commands.register({id:"updated",title:"Updated command",shortcut:"Alt+Shift+U"},()=>{document.getElementById("save-status").textContent="Updated command works.";});';
+    const newer = await fetch("/api/extensions/publish", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: old.name,
+        slug: old.slug,
+        description: old.description,
+        version: "1.1.0",
+        listing: {
+          ...old.listing,
+          changelog: "Added an explicit SDK command.",
+        },
+        manifest,
+      }),
+    }).then((r) => r.json());
+    return { old: old.id, newer: newer.id };
+  });
+  await page.reload();
+  await page.getByRole("tab", { name: "Updates", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Review update", exact: true })
+    .click();
+  const updateModal = page.getByRole("dialog", {
+    name: "Update Focus Desk",
+    exact: true,
+  });
+  await updateModal.getByText("ui.commands", { exact: true }).waitFor();
+  assert.equal(
+    await updateModal
+      .getByRole("button", { name: "Confirm update", exact: true })
+      .isDisabled(),
+    true,
+  );
+  await updateModal
+    .getByLabel("I reviewed this version", { exact: false })
+    .check();
+  await updateModal
+    .getByRole("button", { name: "Confirm update", exact: true })
+    .click();
+  await page
+    .getByText("All installed extensions are up to date.", { exact: true })
+    .waitFor();
+  await page.evaluate(() => (location.hash = "feed"));
+  await page.getByRole("button", { name: "⌘ Focus Desk", exact: true }).click();
+  await page.getByRole("button", { name: /Updated command/ }).click();
+  await page
+    .frameLocator('iframe[title="Focus Desk sandbox"]')
+    .getByText("Updated command works.", { exact: true })
+    .waitFor();
+  const changed = await page.evaluate(() =>
+    fetch("/api/extensions/me?format=2").then((r) => r.json()),
+  );
+  assert.equal(changed.enabled[0].id, updateCase.newer);
+  assert.ok(!changed.installed.some((x) => x.id === updateCase.old));
+  await page.evaluate(
+    (id) => (location.hash = "extensions/" + id),
+    updateCase.newer,
+  );
+  const detail = page.getByRole("dialog", { name: "Focus Desk", exact: true });
+  await detail.getByText("Version history", { exact: true }).click();
+  await detail
+    .getByText("Added an explicit SDK command.", { exact: true })
+    .waitFor();
   assert.deepEqual(errors, []);
   console.log(
     "Browser extension checks passed: package upload, opaque runner, SDK grants, layout, day/night, recovery and safe mode.",

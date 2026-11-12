@@ -323,3 +323,16 @@ devdevian extensions publish --file my-extension/dist/my-extension-1.0.0.devext.
 The CLI shows the name, version, capabilities, file list, listing and package SHA-256 before asking for confirmation. Read the included sources in your editor first. Use `--yes` only for an intentional noninteractive publication, and `--json` for structured results. No source is imported or executed by this command; publication does not install an extension. All bundled sources and listing screenshots become public. The browser owns installation/runtime, and all server ownership, version, validation and quota rules still apply. Do not retry an uncertain publication automatically; inspect `extensions mine` first. This is a script command, separate from the live workspace.
 
 See the [extension developer guide](https://devdevian.vercel.app/docs/extensions).
+
+## Develop extensions without cloning the forum
+
+```sh
+devdevian extensions init my-extension
+cd my-extension
+devdevian extensions dev .
+devdevian extensions pack .
+```
+
+`init` refuses existing directories. `dev` serves a loopback-only SDK playground with sample UI/data, no sign-in and no production credentials. Review capabilities, then Start preview; source changes live-reload, while changed grants require a fresh start. Use `--port 4190` or `--no-open`; Ctrl+C closes the server. Validate final styling with Preview in the hosted forum. `pack` produces the uploadable package under `dist/`. The package includes its compiler and playground; neither command needs a clone of Devdevian or an account.
+
+`extensions history SLUG` lists release notes. `extensions updates` lists installed release IDs with newer versions; `extensions update INSTALLED_RELEASE_ID` previews changes and asks for explicit confirmation. It never silently expands permissions or enables a disabled package. See [SDK commands, panel slots and update behavior](https://devdevian.vercel.app/docs/extensions).

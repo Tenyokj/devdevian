@@ -4,6 +4,21 @@ export const launchFilm = "https://www.youtube.com/watch?v=qjFs2yy5uz0";
 export const repository = "https://github.com/Tenyokj/devdevian";
 export const updates = [
   {
+    id: "extension-tools-1-4-0",
+    channel: "Browser + CLI",
+    version: "1.4.0",
+    title: "Your editor. Your tools. Your next version.",
+    summary:
+      "Build extensions without a repository clone, add commands and update installed versions on your terms.",
+    points: [
+      "CLI 0.24 scaffolds, previews and packs code in a local SDK playground.",
+      "Version history and capability comparisons make every update explicit.",
+      "SDK 2 brings command menus, safe shortcuts and top/inline panels.",
+    ],
+    link: "/docs/extensions",
+    label: "Extension developer guide",
+  },
+  {
     id: "extension-discovery-1-3-0",
     channel: "Browser + CLI",
     version: "1.3.0",

@@ -1,3 +1,4 @@
+import { ExtensionUpdates, ExtensionHistory } from "./extension-updates";
 import { consumeExtensionResume } from "./extension-drafts";
 import { PublishExtension } from "./extension-publish";
 import { validatePackage } from "../extension-package.mjs";
@@ -509,6 +510,7 @@ export function Extensions({ user, requireUser, initialRelease }) {
             ["discover", "Discover"],
             ["installed", "Installed"],
             ["published", "Your publications"],
+            ...(user ? [["updates", "Updates"]] : []),
           ].map(([key, label]) => (
             <button
               key={key}
@@ -551,33 +553,51 @@ export function Extensions({ user, requireUser, initialRelease }) {
       <p className="extension-notice" role="status">
         {notice}
       </p>
-      <div className="extension-grid">
-        {items.map((item) => (
-          <ThemeCard key={item.id} item={item} onOpen={open} active={active} />
-        ))}
-      </div>
+      {tab === "updates" && (
+        <ExtensionUpdates
+          user={user}
+          onChanged={async () => {
+            await loadMine();
+            change();
+          }}
+        />
+      )}
+      {tab !== "updates" && (
+        <div className="extension-grid">
+          {items.map((item) => (
+            <ThemeCard
+              key={item.id}
+              item={item}
+              onOpen={open}
+              active={active}
+            />
+          ))}
+        </div>
+      )}
       {tab === "discover" && !library && !error && (
         <p role="status">Loading extensions…</p>
       )}
-      {!items.length && (library || tab !== "discover") && (
-        <div className="extension-empty">
-          <Palette size={32} />
-          <h2>
-            {tab === "installed"
-              ? "Make this space yours."
-              : tab === "published"
-                ? "Your first extension starts here."
-                : "No extensions found."}
-          </h2>
-          <p>
-            {tab === "installed"
-              ? "Open Discover, preview an extension and install it for your account."
-              : tab === "published"
-                ? "Build a package locally, inspect its sources and upload your .devext.json."
-                : "Try another name or show all extensions."}
-          </p>
-        </div>
-      )}
+      {tab !== "updates" &&
+        !items.length &&
+        (library || tab !== "discover") && (
+          <div className="extension-empty">
+            <Palette size={32} />
+            <h2>
+              {tab === "installed"
+                ? "Make this space yours."
+                : tab === "published"
+                  ? "Your first extension starts here."
+                  : "No extensions found."}
+            </h2>
+            <p>
+              {tab === "installed"
+                ? "Open Discover, preview an extension and install it for your account."
+                : tab === "published"
+                  ? "Build a package locally, inspect its sources and upload your .devext.json."
+                  : "Try another name or show all extensions."}
+            </p>
+          </div>
+        )}
       {tab === "discover" && library?.pagination.pages > 1 && (
         <div className="extension-pagination">
           <button disabled={page === 1} onClick={() => setPage((p) => p - 1)}>
@@ -674,6 +694,19 @@ export function Extensions({ user, requireUser, initialRelease }) {
                 ))}
               </div>
             </section>
+          )}
+          {!selected.builtin && (
+            <ExtensionHistory
+              slug={selected.slug}
+              onOpen={async (id) => {
+                try {
+                  const item = await api("/extensions/releases/" + id);
+                  open(item);
+                } catch (e) {
+                  setError(e.message);
+                }
+              }}
+            />
           )}
           {selected.manifest.kind === "theme" ? (
             <ThemePreview manifest={selected.manifest} name={selected.name} />

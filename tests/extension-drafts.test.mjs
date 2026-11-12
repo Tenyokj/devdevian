@@ -23,6 +23,7 @@ test("extension drafts preserve incomplete fields, package and image references 
       version: "1.0.0",
       description: "Short description here",
       full_description: "## Guide",
+      changelog: "Initial release notes",
       tags: "theme,",
       links: [{ label: "Source", url: "https://" }],
       screenshots: ["owned-screenshot-0000000001"],

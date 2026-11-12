@@ -11,6 +11,7 @@ import {
   scopedStyles,
   layoutCSS,
   networkOrigins,
+  validateCommand,
 } from "../extension-package.mjs";
 import "./extension-runtime.css";
 const api = (path, options = {}) =>
@@ -32,11 +33,26 @@ const permissionFor = {
   "storage.get": "storage",
   "storage.set": "storage",
   "data.get": "data.read",
+  "commands.register": "ui.commands",
+  "commands.unregister": "ui.commands",
 };
-function Runner({ item, userId, mode, onError, onLayout, onView, preview }) {
+export function Runner({
+  item,
+  userId,
+  mode,
+  onError,
+  onLayout,
+  onView,
+  preview,
+  commandIndex = 0,
+  suppressed = false,
+}) {
   const frame = useRef(),
     style = useRef(),
     port = useRef(),
+    [commands, setCommands] = useState([]),
+    [commandsOpen, setCommandsOpen] = useState(false),
+    [slotRect, setSlotRect] = useState(null),
     [panel, setPanel] = useState({
       placement: "right",
       width: 380,
@@ -60,14 +76,24 @@ function Runner({ item, userId, mode, onError, onLayout, onView, preview }) {
   useEffect(() => {
     let alive = true,
       channel,
+      connectedWindow,
+      connectedNonce,
+      epoch = 0,
       requests = 0,
       windowStart = Date.now();
-    const pending = new Set();
-    const handle = async (message) => {
+    const pending = new Set(),
+      registered = new Map();
+    const handle = async (message, connection, replyPort) => {
       const { id, method, args } = message || {};
-      if (!Number.isInteger(id) || id < 1 || id > 1e9 || pending.has(id))
+      const requestKey = connection + ":" + id;
+      if (
+        !Number.isInteger(id) ||
+        id < 1 ||
+        id > 1e9 ||
+        pending.has(requestKey)
+      )
         return;
-      pending.add(id);
+      pending.add(requestKey);
       try {
         if (Date.now() - windowStart > 1000) {
           windowStart = Date.now();
@@ -96,9 +122,16 @@ function Runner({ item, userId, mode, onError, onLayout, onView, preview }) {
         } else if (method === "panel") {
           const p = args || {};
           if (
-            !["right", "left", "bottom", "overlay", "full", "hidden"].includes(
-              p.placement,
-            ) ||
+            ![
+              "right",
+              "left",
+              "bottom",
+              "overlay",
+              "full",
+              "hidden",
+              "top",
+              "inline",
+            ].includes(p.placement) ||
             typeof p.title !== "string" ||
             p.title.length > 60
           )
@@ -115,6 +148,17 @@ function Runner({ item, userId, mode, onError, onLayout, onView, preview }) {
           )
             throw Error("Panel size outside supported bounds.");
           setPanel({ ...p, width, height });
+          result = true;
+        } else if (method === "commands.register") {
+          const command = validateCommand(args);
+          if (!registered.has(command.id) && registered.size >= 8)
+            throw Error("At most eight commands per extension.");
+          registered.set(command.id, command);
+          setCommands([...registered.values()]);
+          result = true;
+        } else if (method === "commands.unregister") {
+          registered.delete(args?.id);
+          setCommands([...registered.values()]);
           result = true;
         } else if (method === "navigate") {
           if (!validRoute(args?.route)) throw Error("Unsupported app route.");
@@ -175,34 +219,43 @@ function Runner({ item, userId, mode, onError, onLayout, onView, preview }) {
           if (JSON.stringify(result).length > 65536)
             throw Error("This result is too large; select a smaller page.");
         }
-        if (alive) channel.port1.postMessage({ id, result });
+        if (alive) replyPort.postMessage({ id, result });
       } catch (e) {
         if (alive)
-          channel.port1.postMessage({
+          replyPort.postMessage({
             id,
             error: String(e.message).slice(0, 240),
           });
       } finally {
-        pending.delete(id);
+        pending.delete(requestKey);
       }
     };
     const ready = (event) => {
       if (
-        channel ||
+        (channel &&
+          connectedWindow === event.source &&
+          connectedNonce === event.data?.nonce) ||
         event.source !== frame.current?.contentWindow ||
         event.data?.type !== "devdevian:ready" ||
         event.origin !== "null"
       )
         return;
       channel?.port1.close();
+      connectedWindow = event.source;
+      connectedNonce = event.data?.nonce;
+      const connection = ++epoch;
+      pending.clear();
+      registered.clear();
+      setCommands([]);
       channel = new MessageChannel();
+      const replyPort = channel.port1;
       port.current = channel.port1;
       channel.port1.onmessage = (e) => {
         if (e.data?.type === "error") {
           onError(item.id, String(e.data.message).slice(0, 300));
           return;
         }
-        handle(e.data);
+        handle(e.data, connection, replyPort);
       };
       frame.current.contentWindow.postMessage(
         { type: "devdevian:connect", source: own.files[own.entry] },
@@ -219,13 +272,116 @@ function Runner({ item, userId, mode, onError, onLayout, onView, preview }) {
       onLayout(item.id, null);
     };
   }, [item.id, userId]);
+  const invoke = (id) => {
+    port.current?.postMessage({ type: "command", command: id });
+    setCommandsOpen(false);
+  };
+  useEffect(() => {
+    const keydown = (event) => {
+      if (
+        !event.isTrusted ||
+        event.repeat ||
+        !event.altKey ||
+        !event.shiftKey ||
+        event.ctrlKey ||
+        event.metaKey ||
+        event.defaultPrevented ||
+        event.target?.closest?.(
+          "input,textarea,select,[contenteditable], [role=dialog]",
+        ) ||
+        document.querySelector('[role="dialog"]')
+      )
+        return;
+      const command = commands.find(
+        (c) =>
+          c.shortcut === "Alt+Shift+" + event.code.replace(/^(Key|Digit)/, ""),
+      );
+      if (command) {
+        event.preventDefault();
+        invoke(command.id);
+      }
+    };
+    window.addEventListener("keydown", keydown);
+    return () => window.removeEventListener("keydown", keydown);
+  }, [commands]);
+  useEffect(() => {
+    if (panel.placement !== "inline" || suppressed) {
+      setSlotRect(null);
+      return;
+    }
+    let node, raf;
+    const measure = () => {
+      if (!node?.isConnected) return;
+      const r = node.getBoundingClientRect(),
+        nav = document.querySelector(".topbar")?.getBoundingClientRect();
+      const next = {
+        left: r.left,
+        top: r.top,
+        width: r.width,
+        height: panel.height,
+        clip: Math.max(0, (nav?.bottom || 0) - r.top),
+      };
+      setSlotRect((old) =>
+        JSON.stringify(old) === JSON.stringify(next) ? old : next,
+      );
+    };
+    const schedule = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(measure);
+    };
+    const resize = new ResizeObserver(schedule);
+    const locate = () => {
+      const parent = document.querySelector(".devext-content");
+      if (!parent) {
+        setSlotRect(null);
+        return;
+      }
+      if (node?.parentNode === parent) return;
+      node?.remove();
+      resize.disconnect();
+      node = document.createElement("div");
+      node.className = "devext-inline-slot";
+      node.style.height = panel.height + "px";
+      node.style.marginBottom = "24px";
+      parent.prepend(node);
+      resize.observe(node);
+      schedule();
+    };
+    locate();
+    const observer = new MutationObserver(locate);
+    observer.observe(document.getElementById("root"), {
+      childList: true,
+      subtree: true,
+    });
+    window.addEventListener("scroll", schedule, true);
+    window.addEventListener("resize", schedule);
+    return () => {
+      observer.disconnect();
+      resize.disconnect();
+      cancelAnimationFrame(raf);
+      window.removeEventListener("scroll", schedule, true);
+      window.removeEventListener("resize", schedule);
+      node?.remove();
+    };
+  }, [panel.placement, panel.height, suppressed]);
   const network = own.permissions.filter((x) => x.startsWith("network:"));
-  return (
+  const content = (
     <section
       className={"devext-panel devext-panel-" + panel.placement}
       style={{
+        display: suppressed ? "none" : undefined,
         "--panel-width": panel.width + "px",
         "--panel-height": panel.height + "px",
+        ...(panel.placement === "inline"
+          ? {
+              left: slotRect?.left || 0,
+              top: slotRect?.top || 0,
+              width: slotRect?.width || 0,
+              height: panel.height,
+              visibility: slotRect ? "visible" : "hidden",
+              clipPath: `inset(${Math.min(panel.height, slotRect?.clip || 0)}px 0 0 0)`,
+            }
+          : {}),
       }}
       aria-label={item.name + " extension panel"}
     >
@@ -245,16 +401,58 @@ function Runner({ item, userId, mode, onError, onLayout, onView, preview }) {
       />
     </section>
   );
+  return (
+    <>
+      {content}
+      {commands.length > 0 && (
+        <div
+          className="devext-command-controls"
+          style={{ "--command-index": commandIndex }}
+          aria-label={item.name + " commands"}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") {
+              setCommandsOpen(false);
+              event.currentTarget.querySelector("button")?.focus();
+              event.stopPropagation();
+            }
+          }}
+        >
+          <button
+            aria-expanded={commandsOpen}
+            onClick={() => setCommandsOpen((x) => !x)}
+          >
+            ⌘ {item.name}
+          </button>
+          {commandsOpen && (
+            <div className="devext-command-menu">
+              {commands.map((c) => (
+                <button key={c.id} onClick={() => invoke(c.id)}>
+                  {c.title}
+                  {c.shortcut && <kbd>{c.shortcut}</kbd>}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </>
+  );
 }
 export function ExtensionRuntime({ user }) {
   const [enabled, setEnabled] = useState([]),
     [preview, setPreview] = useState(null),
+    [route, setRoute] = useState(location.hash),
     [errors, setErrors] = useState({}),
     [mode, setMode] = useState(document.documentElement.dataset.theme),
     [views, setViews] = useState([]),
     [safe, setSafe] = useState(() =>
       new URLSearchParams(location.search).has("extensions-safe"),
     );
+  useEffect(() => {
+    const change = () => setRoute(location.hash);
+    window.addEventListener("hashchange", change);
+    return () => window.removeEventListener("hashchange", change);
+  }, []);
   const layouts = useRef(new Map());
   const disabled = user === null || location.pathname === "/workspace-pane";
   const applyLayouts = () => {
@@ -486,9 +684,13 @@ export function ExtensionRuntime({ user }) {
           <button onClick={() => setErrors({})}>Dismiss</button>
         </div>
       )}
-      {active.map((item) => (
+      {active.map((item, index) => (
         <Runner
           key={item.id + (item.build || "")}
+          commandIndex={index}
+          suppressed={
+            item.id !== "local-preview" && route.startsWith("#extensions")
+          }
           item={item}
           userId={user.id}
           mode={mode}

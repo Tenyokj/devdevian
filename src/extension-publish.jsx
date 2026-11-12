@@ -14,6 +14,7 @@ const blank = {
   version: "1.0.0",
   description: "",
   full_description: "",
+  changelog: "",
   tags: "",
   links: [],
   screenshots: [],
@@ -88,6 +89,7 @@ export function PublishExtension({ close, onPublished, userId }) {
       manifest: pkg.manifest,
       listing: validateListing({
         full_description: draft.full_description,
+        changelog: draft.changelog || "",
         tags: draft.tags.split(/[,\s]+/).filter(Boolean),
         links: draft.links,
         screenshots: draft.screenshots,
@@ -130,6 +132,15 @@ export function PublishExtension({ close, onPublished, userId }) {
         version.
       </p>
       <ErrorMessage error={error} />
+      <Field label="What changed in this version?">
+        <textarea
+          aria-label="Extension changelog"
+          value={draft.changelog || ""}
+          maxLength={10000}
+          onChange={(e) => edit("changelog", e.target.value)}
+          placeholder="Describe fixes, new features and permission changes."
+        />
+      </Field>
       <section className="extension-example-help">
         <strong>First time here? Try a working extension.</strong>
         <p>
@@ -181,7 +192,7 @@ export function PublishExtension({ close, onPublished, userId }) {
               setConsent(false);
               const file = e.target.files?.[0];
               if (!file) return;
-              if (file.size > 210000)
+              if (file.size > 262144)
                 throw Error(
                   "Package exceeds 210 KB. Build a smaller .devext.json package.",
                 );

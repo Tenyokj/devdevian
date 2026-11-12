@@ -1,8 +1,10 @@
 // Executed only inside the opaque-origin, script-only sandbox document.
 (() => {
   let connected = false;
+  const nonce = crypto.randomUUID();
   // A cached iframe may load before React attaches its message listener.
-  const announce = () => parent.postMessage({ type: "devdevian:ready" }, "*");
+  const announce = () =>
+    parent.postMessage({ type: "devdevian:ready", nonce }, "*");
   const hello = setInterval(announce, 500);
   const deadline = setTimeout(() => clearInterval(hello), 30000);
   addEventListener("message", (event) => {
@@ -18,7 +20,8 @@
     clearTimeout(deadline);
     const port = event.ports[0],
       pending = new Map(),
-      listeners = new Set();
+      listeners = new Set(),
+      commands = new Map();
     let seq = 0;
     const call = (method, args) =>
       new Promise((resolve, reject) => {
@@ -36,6 +39,19 @@
         listeners.forEach((fn) => fn(m.theme));
         return;
       }
+      if (m.type === "command") {
+        const fn = commands.get(m.command);
+        if (fn)
+          Promise.resolve()
+            .then(fn)
+            .catch((error) =>
+              port.postMessage({
+                type: "error",
+                message: String(error.message).slice(0, 300),
+              }),
+            );
+        return;
+      }
       const p = pending.get(m.id);
       if (!p) return;
       clearTimeout(p.timer);
@@ -43,7 +59,19 @@
       m.error ? p.reject(Error(m.error)) : p.resolve(m.result);
     };
     const api = Object.freeze({
-      version: 1,
+      version: 2,
+      commands: Object.freeze({
+        register: async (definition, callback) => {
+          if (typeof callback !== "function")
+            throw Error("A command callback is required.");
+          await call("commands.register", definition);
+          commands.set(definition.id, callback);
+          return async () => {
+            commands.delete(definition.id);
+            await call("commands.unregister", { id: definition.id });
+          };
+        },
+      }),
       context: () => call("context"),
       onTheme: (fn) => {
         listeners.add(fn);
@@ -79,5 +107,5 @@
     script.onload = () => URL.revokeObjectURL(url);
     document.body.append(script);
   });
-  parent.postMessage({ type: "devdevian:ready" }, "*");
+  parent.postMessage({ type: "devdevian:ready", nonce }, "*");
 })();

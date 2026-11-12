@@ -216,3 +216,94 @@ Published releases appear in **profile → Extensions** (including your own prof
 ## Focus Desk starter
 
 [Download Focus Desk](/extension-examples/focus-desk.devext.json), or choose **Load Focus Desk example** in the publisher. Its [source directory](https://github.com/Tenyokj/devdevian/tree/main/examples/extensions/focus-desk) contains a working 25-minute focus timer, 5-minute break and personal scratchpad. The only grants are `ui.panel` and `storage`; there are no network or account-data permissions. Notes/timer state stay on this device and are not synced or suitable for secrets. The timer uses a wall-clock deadline to survive background tab throttling. The example is downloadable starter code, not an automatically installed or approved library release.
+
+## Standalone developer tools (CLI 0.24+)
+
+You no longer need a clone of Devdevian to start an extension. Install the CLI, then create a new source directory:
+
+```sh
+npm install -g @tenyokjs/devdevian-cli@alpha
+devdevian extensions init my-extension
+cd my-extension
+devdevian extensions dev .
+```
+
+`init` creates `devdevian.extension.json`, `main.js` and a short README. It refuses an existing directory rather than overwriting files. The starter has a working panel, local storage and an SDK command. Edit these ordinary source files in your editor; add `light.css` and `dark.css` paths in the config if you want host styling.
+
+`dev` opens a **local SDK playground**, bound to `127.0.0.1:4188`. Use `--port 4190` to change the port and `--no-open` to keep the browser closed. It does not log in, load `.env`, use a production database or send your code to Devdevian. The displayed forum surface and read APIs use sample data. Review the capability list and press **Start preview**. Source edits rebuild and reload the sandbox. A build error leaves the last running build visible with an error; a changed permission list stops preview until you review and start it again. Ctrl+C stops the local server.
+
+The playground runs the same browser runner, scoped host CSS validator and SDK bridge as the forum. It is useful for panel logic, commands, layouts, appearance and local storage; its sample pages are not a substitute for checking your final extension with **Preview in my app** on the real forum. Network permissions still require explicit capabilities, browser CSP and the destination's CORS support. There are no accounts or provider credentials in the playground.
+
+When ready:
+
+```sh
+devdevian extensions pack .
+devdevian extensions publish --file dist/my-extension-1.0.0.devext.json
+```
+
+`pack` bundles the entry and its local imports, includes inspectable source and host CSS, validates the result and writes `dist/SLUG-VERSION.devext.json`. The same compiler is used by the repository's `extension:pack` script. Individual inputs are bounded to 192 KB; the complete validated manifest also has a 192 KB limit. `.env`, `.git`, `node_modules` and paths escaping the source directory are refused. Third-party bundles must be prepared separately within those limits. Treat every included source as public, and inspect the package before confirming publication.
+
+## SDK 2 commands and shortcuts
+
+Declare `ui.commands` in `permissions` to register up to eight commands for an enabled extension:
+
+```js
+const unregister = await devdevian.commands.register({
+  id: 'notes.open',
+  title: 'Open my notes',
+  shortcut: 'Alt+Shift+N'
+}, async () => {
+  await devdevian.panel.configure({
+    placement: 'top', title: 'My notes', width: 420, height: 300
+  });
+});
+
+// Remove the command when your tool no longer needs it.
+await unregister();
+```
+
+The forum provides a command menu labeled with the extension's name. This is also the fallback when an operating system intercepts a shortcut. Command IDs use 1–40 lowercase letters, digits, dots or hyphens and start with a letter. Titles are at most 60 printable characters. Optional shortcuts are deliberately limited to **Alt+Shift+A–Z** or **Alt+Shift+0–9**. The host invokes the callback; it never streams key events into the extension.
+
+Shortcuts work while the host forum has focus. They do not fire while typing in an input, textarea, select or editable element, while a forum dialog is open, or inside an extension/app-view iframe. Repeated keys are ignored. If enabled extensions choose the same shortcut, the first registered matching host listener handles it; both commands remain available through their menus. Disabled, removed or restarted extensions lose their registered commands. Registering a command grants no extra data, navigation or network access: the callback must still use its explicitly granted SDK capabilities. Existing SDK 1 packages continue working; the current `devdevian.version` is `2`.
+
+## Top and inline panels
+
+Alongside the original placements, SDK 2 adds `top` and `inline`:
+
+```js
+await devdevian.panel.configure({
+  placement: 'inline', title: 'My project tools', width: 600, height: 260
+});
+```
+
+`top` places a floating panel near the top of the viewport. `inline` reserves space before the current page content and follows that slot as the page scrolls or resizes. The iframe stays mounted when it moves, preserving its running state. Changing app sections relocates the slot; use device-local SDK storage for durable user data. Size bounds still apply. Installed panels are visually parked while you manage the Extensions library so they do not cover update/install controls; their code remains running and commands are still available. Temporary developer previews remain visible there. **Disable** stops the code and removes its commands, styles and layout changes.
+
+## Version history and deliberate updates
+
+Publication is immutable. To ship changes, increment the semantic version in the source config and add `listing.changelog`, then pack and publish again:
+
+```json
+{
+  "listing": {
+    "changelog": "## 1.1.0\n\nAdded a notes command. Requires ui.commands.",
+    "tags": ["productivity"]
+  }
+}
+```
+
+The changelog is Markdown text of at most 10,000 characters. The browser publisher has a **What changed in this version?** field, retained in its draft. Each library card has **Version history** with release notes and links to inspect individual versions. Review badges belong to each exact release; a reviewed 1.0.0 does not make 1.1.0 reviewed.
+
+Open **Extensions → Updates** to see available newer releases. **Review update** shows the old/new version, author notes, added and removed capabilities, changed source/style filenames and a link to inspect the complete new package. Check the trust checkbox and explicitly confirm. Nothing auto-updates, including releases with unchanged capabilities. The server independently validates the exact target version and grants; withdrawn targets, unrelated authors/slugs, downgrades and stale requests fail without replacing the installed package. Updating a disabled extension keeps it disabled. Updating an enabled extension replaces the running version after confirmation. Device-local storage remains scoped to its account and slug.
+
+The equivalent script commands are:
+
+```sh
+devdevian extensions history my-extension
+devdevian extensions updates --json
+devdevian extensions update theme-42
+```
+
+Use the **installed release ID** from `updates`, not a slug. The CLI previews the same version/capability/file comparison and requires confirmation (or an intentional `--yes`). A network error can leave a write's outcome unknown: inspect `extensions mine` before retrying. No automatic write retry is performed.
+
+
+The compiler lives in `packages/cli/lib/extension-build.mjs`; shared code-package and listing rules live in `packages/cli/lib/sdk/`. The root validator modules re-export these rules for the server/browser. `npm run build` also generates the CLI playground bundle from the real runner component, so published packages carry the tested bridge rather than a separate mock implementation. Updates are paginated in pages of 12; script clients can use `extensions updates --page 2`. The SDK playground tests use sample data, while the application update tests use an isolated disposable database.

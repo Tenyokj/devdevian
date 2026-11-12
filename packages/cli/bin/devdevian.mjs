@@ -81,6 +81,7 @@ const version = packageInfo.version;
 const options = {
   host: { type: "string" },
   page: { type: "string" },
+  port: { type: "string" },
   topic: { type: "string" },
   section: { type: "string" },
   mode: { type: "string" },
@@ -215,6 +216,12 @@ const help = `Devdevian CLI ${version} · alpha
   devdevian whoami
   devdevian inbox [--page 2]
   devdevian feed [--topic web] [--page 2]
+  devdevian extensions init my-extension
+  devdevian extensions dev my-extension [--port 4188] [--no-open]
+  devdevian extensions pack my-extension
+  devdevian extensions updates
+  devdevian extensions update INSTALLED_RELEASE_ID [--yes]
+  devdevian extensions history SLUG
   devdevian extensions list [--query focus] [--page 2]
   devdevian extensions mine
   devdevian extensions publish --file my-extension.devext.json [--yes]
@@ -525,6 +532,36 @@ async function execute(args, flags) {
         ? await saveAppearance({ ...loaded.settings, ...updates })
         : loaded.settings;
     out(JSON.stringify(settings, null, 2));
+    return;
+  }
+  if (command === "extensions" && ["init", "pack", "dev"].includes(args[1])) {
+    const tools = await import("../lib/extension-tools.mjs"),
+      directory = args[2] || (args[1] === "init" ? null : ".");
+    if (!directory) throw Error("Use extensions init my-extension.");
+    if (args[1] === "init")
+      show(await tools.initExtension(directory), flags.json);
+    else if (args[1] === "pack")
+      show(await tools.packExtension(directory), flags.json);
+    else {
+      const port = Number(flags.port || "4188");
+      if (!Number.isInteger(port) || port < 1 || port > 65535)
+        throw Error("Use a port from 1 to 65535.");
+      const server = await tools.serveExtension(directory, { port });
+      out(
+        "Local SDK playground: " +
+          server.origin +
+          "\nSample UI and data only. No account or production connection. Review capabilities and start preview. Ctrl+C to stop.",
+      );
+      if (!flags["no-open"]) openBrowser(server.origin);
+      process.once("SIGINT", async () => {
+        await server.close();
+        process.exit(0);
+      });
+      process.once("SIGTERM", async () => {
+        await server.close();
+        process.exit(0);
+      });
+    }
     return;
   }
   if (command === "login") return login(flags);
@@ -1079,12 +1116,61 @@ async function execute(args, flags) {
             },
         flags.json,
       );
+    } else if (action === "updates") {
+      const data = await api("/extensions/updates?page=" + page);
+      show(
+        flags.json
+          ? data
+          : {
+              pagination: data.pagination,
+              items: data.items.map((x) => ({
+                id: x.from.id,
+                name: `${x.to.name} · ${x.from.version} → ${x.to.version} · ${x.added_permissions.length} new capabilities`,
+              })),
+            },
+        flags.json,
+      );
+    } else if (action === "update") {
+      const updates = await api(
+          "/extensions/updates?from=" + encodeURIComponent(args[2] || ""),
+        ),
+        plan = updates.items.find((x) => x.from.id === args[2]);
+      if (!plan)
+        throw Error("Choose an installed release ID from extensions updates.");
+      await confirm(
+        {
+          ...plan,
+          audience:
+            "Your account only. Replaces the installed version; grants all new-version capabilities.",
+        },
+        flags,
+      );
+      show(
+        await api("/extensions/update?format=2", {
+          method: "POST",
+          body: {
+            from: plan.from.id,
+            release: plan.to.id,
+            acknowledge_update: true,
+            acknowledge_unreviewed: true,
+            granted_permissions: plan.to.permissions,
+          },
+        }),
+        flags.json,
+      );
+    } else if (action === "history") {
+      if (!/^[a-z][a-z0-9-]{2,47}$/.test(args[2] || ""))
+        throw Error("Use extensions history SLUG.");
+      show(
+        await api("/extensions/history/" + args[2] + "?page=" + page),
+        flags.json,
+      );
     } else if (action === "mine") {
       const state = await api("/extensions/me?format=2");
       show(flags.json ? state : { items: state.published }, flags.json);
     } else
       throw Error(
-        "Use extensions list, extensions mine or extensions publish --file package.devext.json.",
+        "Use extensions init, dev, pack, list, mine, history, updates, update or publish.",
       );
     return;
   }

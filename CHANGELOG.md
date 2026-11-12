@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.4.0 — Extension developer tools and deliberate updates
+
+- CLI 0.24 includes init/dev/pack: scaffold a source project, run a loopback-only SDK playground with live rebuilds and package it without cloning the forum or signing in.
+- Share package/listing validation between the server, browser and CLI compiler; source inputs remain bounded and cannot escape the project or include secrets/dependencies.
+- Add immutable release notes and version history, plus browser/CLI update comparisons with added/removed capabilities and changed source/style files. Every update requires explicit consent, preserves disabled state and rejects unrelated, stale, withdrawn or older targets.
+- SDK 2 adds capability-gated commands with bounded Alt+Shift shortcuts, and top/inline panels. Inline panels retain their iframe while moving; shortcuts exclude editable fields and open dialogs.
+- Installed panels are parked visually in the extension manager, keeping update controls accessible. Previews remain visible; disabling still stops code and clears commands/styles/layout.
+
 ## 1.3.0 — Extensions, from editor to discovery
 
 - Publish built code packages from CLI 0.23 with a capability/file/listing preview and explicit confirmation. Publishing does not install or execute code.

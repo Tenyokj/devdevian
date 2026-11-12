@@ -251,3 +251,74 @@ html[data-extension-pane] main {
 .devext-recovery:has(> a:only-child):not(:hover) {
   transform: none;
 }
+
+.devext-panel-top {
+  top: 92px;
+  bottom: auto;
+  right: 20px;
+  max-height: calc(100vh - 110px);
+}
+.devext-panel-inline {
+  position: fixed !important;
+  right: auto !important;
+  bottom: auto !important;
+  max-width: 100% !important;
+  margin: 0;
+  z-index: 1 !important;
+  min-height: 100px;
+  max-height: none !important;
+  box-shadow: 0 5px 20px #0002;
+}
+
+.devext-inline-slot {
+  min-width: 0;
+}
+.devext-command-controls {
+  position: fixed;
+  right: 18px;
+  top: calc(88px + var(--command-index, 0) * 40px);
+  z-index: 2147483500;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  font: 12px system-ui;
+  color: #f0eaff;
+}
+.devext-command-controls > button {
+  border: 1px solid #9380b8;
+  background: #241d38;
+  border-radius: 12px;
+  padding: 8px 12px;
+  max-width: 190px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.devext-command-menu {
+  position: absolute;
+  right: 0;
+  top: 38px;
+  width: 280px;
+  max-width: calc(100vw - 30px);
+  padding: 7px;
+  background: #1b172c;
+  border: 1px solid #9380b8;
+  border-radius: 14px;
+  box-shadow: 0 8px 30px #0005;
+}
+.devext-command-menu button {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 10px;
+  text-align: left;
+  border-radius: 9px;
+}
+.devext-command-menu button:hover {
+  background: #9980bf33;
+}
+.devext-command-menu kbd {
+  font-size: 10px;
+  opacity: 0.7;
+}

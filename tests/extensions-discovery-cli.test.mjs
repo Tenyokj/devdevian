@@ -119,6 +119,33 @@ test("CLI publishes inert packages with explicit confirmation; search and profil
     (await guest("/search?type=extensions&q=focus")).data[0].id,
     newer.data.id,
   );
+  assert.equal(
+    (
+      await author("/extensions/install", {
+        release: release.id,
+        acknowledge_unreviewed: true,
+        granted_permissions: pkg.manifest.permissions,
+      })
+    ).status,
+    200,
+  );
+  const availableUpdates = await run(["extensions", "updates", "--json"]);
+  assert.equal(availableUpdates.code, 0, availableUpdates.err);
+  assert.equal(JSON.parse(availableUpdates.out).items[0].from.id, release.id);
+  const history = await run(["extensions", "history", "focus-desk", "--json"]);
+  assert.equal(history.code, 0, history.err);
+  assert.equal(JSON.parse(history.out).items.length, 2);
+  const refusedUpdate = await run(["extensions", "update", release.id]);
+  assert.notEqual(refusedUpdate.code, 0);
+  const confirmedUpdate = await run([
+    "extensions",
+    "update",
+    release.id,
+    "--yes",
+    "--json",
+  ]);
+  assert.equal(confirmedUpdate.code, 0, confirmedUpdate.err);
+  assert.equal(JSON.parse(confirmedUpdate.out).installed[0].id, newer.data.id);
   const db = new DatabaseSync(f.path);
   try {
     db.prepare("UPDATE users SET privacy='hidden' WHERE id=?").run(me.id);

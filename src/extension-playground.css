@@ -1,0 +1,152 @@
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background: #100e1b;
+  color: #f0eaff;
+  font: 15px/1.6 system-ui;
+}
+button,
+input {
+  font: inherit;
+}
+button {
+  color: inherit;
+  cursor: pointer;
+  background: #7960b333;
+  border: 1px solid #8d76bc77;
+  padding: 8px 14px;
+  border-radius: 10px;
+}
+button:disabled {
+  opacity: 0.5;
+}
+a {
+  color: inherit;
+}
+h1,
+h2,
+h3 {
+  line-height: 1.2;
+}
+code {
+  color: #bca2ed;
+}
+html[data-theme="light"] body {
+  background: #faf5ff;
+  color: #2b2042;
+}
+.playground-controls {
+  position: sticky;
+  top: 0;
+  z-index: 2147483600;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  flex-wrap: wrap;
+  padding: 14px 22px;
+  background: #272035;
+  color: #f0eaff;
+}
+.playground-controls span {
+  margin-right: auto;
+  font-size: 12px;
+  color: #c6badc;
+}
+.playground-review {
+  max-width: 900px;
+  margin: 25px auto;
+  padding: 20px;
+  border: 1px solid #8d76bc55;
+  border-radius: 16px;
+}
+.playground-review p {
+  max-width: 72ch;
+}
+.playground-review code {
+  display: block;
+  margin-bottom: 12px;
+}
+.app {
+  margin: 20px;
+  min-height: 65vh;
+  border: 1px solid #8d76bc55;
+  border-radius: 20px;
+  overflow: hidden;
+}
+.sidebar {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 190px;
+  padding: 25px;
+  background: #29213d;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  color: #e8ddff;
+}
+.main-shell {
+  margin-left: 190px;
+}
+.topbar {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid #8d76bc55;
+}
+.devext-content {
+  padding: 30px;
+}
+.post-card {
+  padding: 25px;
+  border: 1px solid #8d76bc55;
+  border-radius: 18px;
+  background: #8d76bc11;
+}
+footer {
+  padding: 25px;
+}
+.playground-dialog {
+  position: fixed !important;
+  inset: 0;
+  z-index: 2147483400 !important;
+  display: grid;
+  place-items: center;
+  background: #100b20aa;
+}
+.modal {
+  padding: 30px;
+  border: 1px solid #8d76bc;
+  background: #261d37;
+  border-radius: 18px;
+  color: #f0eaff;
+  max-width: 600px;
+}
+.modal > button {
+  float: right;
+}
+@media (max-width: 700px) {
+  .sidebar {
+    width: 120px;
+    padding: 18px;
+  }
+  .main-shell {
+    margin-left: 120px;
+  }
+  .devext-content {
+    padding: 15px;
+  }
+  .topbar {
+    flex-wrap: wrap;
+    padding: 12px;
+  }
+  .playground-review {
+    margin: 15px;
+  }
+  .app {
+    margin: 10px;
+  }
+}

@@ -7,6 +7,7 @@ const strings = {
   version: 30,
   description: 1200,
   full_description: 20000,
+  changelog: 10000,
   tags: 300,
 };
 function fields(value = {}) {

@@ -8,7 +8,7 @@ import { resolve } from "node:path";
 export async function extensionPublication(file) {
   if (typeof file !== "string" || !file.endsWith(".devext.json"))
     throw Error(
-      "Select a built .devext.json package using --file. Run extension:pack in the source repository first.",
+      "Select a built .devext.json package using --file. Build it first with devdevian extensions pack DIR.",
     );
   const info = await lstat(resolve(file));
   if (!info.isFile() || info.isSymbolicLink())
@@ -44,7 +44,7 @@ export async function extensionPublication(file) {
   try {
     pkg = JSON.parse(bytes.toString("utf8"));
   } catch {
-    throw Error("The package is not valid JSON. Build it with extension:pack.");
+    throw Error("The package is not valid JSON. Build it with devdevian extensions pack DIR.");
   }
   const m = pkg?.manifest;
   if (

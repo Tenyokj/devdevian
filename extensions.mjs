@@ -1,3 +1,4 @@
+import { registerExtensionUpdates } from "./extension-updates.mjs";
 import { validateListing } from "./extension-listing.mjs";
 import { validatePackage } from "./extension-package.mjs";
 import { builtinThemes, validateManifest } from "./extension-manifest.mjs";
@@ -181,6 +182,15 @@ export function registerExtensions(
         window: 3600000,
       },
     ]);
+  registerExtensionUpdates(app, db, required, gate, {
+    release,
+    available,
+    state,
+    format2,
+    budget,
+    select,
+    output,
+  });
   app.get("/api/extensions/library", gate, (req, res) => {
     const page = Math.max(1, Math.min(1000, Number(req.query.page) || 1)),
       q = String(req.query.q || "")
