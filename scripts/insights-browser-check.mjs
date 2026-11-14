@@ -70,6 +70,22 @@ try {
     if (!install.ok) throw Error(await install.text());
   }, pkg);
   await page.goto(f.base + "/app#profile");
+  await page
+    .getByRole("button", { name: "Developer Insights", exact: true })
+    .waitFor();
+  assert.equal(
+    await page.locator(".devext-command-controls, .devext-recovery").count(),
+    0,
+    "No floating extension controls on profiles",
+  );
+  await page.waitForFunction(
+    () =>
+      getComputedStyle(document.querySelector(".devext-panel-profile"))
+        .visibility === "hidden",
+  );
+  await page
+    .getByRole("button", { name: "Developer Insights", exact: true })
+    .click();
   const panel = page.locator(".devext-panel-profile"),
     frame = page.frameLocator('iframe[title="Developer Insights sandbox"]');
   await frame
@@ -81,7 +97,26 @@ try {
   assert.equal(await frame.locator(".metric").count(), 6);
   await frame.getByLabel("Include my accessible private work").check();
   await frame.getByRole("heading", { name: "Only you", exact: true }).waitFor();
+  await page
+    .getByRole("button", { name: "Conversations", exact: true })
+    .click();
+  await page.waitForFunction(
+    () =>
+      getComputedStyle(document.querySelector(".devext-panel-profile"))
+        .visibility === "hidden",
+  );
+  await page
+    .getByRole("button", { name: "Developer Insights", exact: true })
+    .click();
+  await frame.getByRole("heading", { name: "Only you", exact: true }).waitFor();
   await page.evaluate((id) => (location.hash = "member/" + id), seeded.other);
+  await page
+    .locator(".profile-hero")
+    .getByRole("heading", { name: "Another Developer", exact: true })
+    .waitFor();
+  await page
+    .getByRole("button", { name: "Developer Insights", exact: true })
+    .click();
   await frame
     .getByRole("heading", { name: "Another Developer's rhythm." })
     .waitFor();
@@ -100,6 +135,13 @@ try {
         .visibility === "hidden",
   );
   await page.evaluate(() => (location.hash = "profile"));
+  await page
+    .locator(".profile-hero")
+    .getByRole("heading", { name: "Insight Author", exact: true })
+    .waitFor();
+  await page
+    .getByRole("button", { name: "Developer Insights", exact: true })
+    .click();
   await frame
     .getByRole("heading", { name: "Insight Author's rhythm." })
     .waitFor();
@@ -119,9 +161,17 @@ try {
     "profile panel stays in content column",
   );
   await mkdir(".test-data/insights-browser", { recursive: true });
+  await page.screenshot({ path: ".test-data/insights-browser/viewport.png" });
   await page.screenshot({
     path: ".test-data/insights-browser/desktop.png",
     fullPage: true,
+  });
+  await page
+    .getByRole("button", { name: "Switch to dark theme", exact: true })
+    .click();
+  await frame.locator('body[data-mode="dark"]').waitFor();
+  await page.screenshot({
+    path: ".test-data/insights-browser/dark-viewport.png",
   });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.waitForTimeout(400);
@@ -140,6 +190,26 @@ try {
       .locator('iframe[title="Developer Insights sandbox"]')
       .getAttribute("sandbox"),
     "allow-scripts",
+  );
+  await page.evaluate(async () => {
+    const r = await fetch("/api/extensions/disable-all", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Devdevian-Extensions": "2",
+      },
+      body: "{}",
+    });
+    if (!r.ok) throw Error(await r.text());
+    window.dispatchEvent(new Event("devdevian-extensions"));
+  });
+  await page
+    .getByRole("button", { name: "Developer Insights", exact: true })
+    .waitFor({ state: "detached" });
+  await page.locator(".devext-panel-profile").waitFor({ state: "detached" });
+  assert.equal(
+    await page.locator(".profile-tabs button.selected").innerText(),
+    "Conversations",
   );
   assert.deepEqual(errors, []);
   console.log(

@@ -4,9 +4,9 @@ A first-party example of a real code extension: install it, open a developer pro
 
 ## Try it
 
-Open [Developer Insights in the extension library](https://devdevian.vercel.app/app#extensions/theme-2), inspect its source and permissions, and install version **1.0.0** for your account. Then open **Your corner** or another developer profile. Review status is separate from authorship: an owner-reviewed badge is not assigned automatically.
+Open [Developer Insights in the extension library](https://devdevian.vercel.app/app#extensions/theme-2), inspect its source and permissions, and install version **1.0.0** for your account. Then open **Your corner** or another developer profile and select the **Developer Insights** tab (Browser 1.6.1+). Existing installs acquire the tab automatically; no package update is needed. Review status is separate from authorship: an owner-reviewed badge is not assigned automatically.
 
-To experiment without installing, choose **Extensions → Upload extension → Load Developer Insights example**, review permissions, then **Preview in my app** and open a profile. Stop preview to return to the preserved publication draft. For your own fork, change the package slug/name before publishing; the published first-party slug belongs to its author.
+To experiment without installing, choose **Extensions → Upload extension → Load Developer Insights example**, review permissions, then **Preview in my app**, open a profile and select **Developer Insights**. Stop preview to return to the preserved publication draft. For your own fork, change the package slug/name before publishing; the published first-party slug belongs to its author.
 
 Build from source:
 

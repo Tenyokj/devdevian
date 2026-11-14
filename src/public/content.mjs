@@ -4,6 +4,21 @@ export const launchFilm = "https://www.youtube.com/watch?v=qjFs2yy5uz0";
 export const repository = "https://github.com/Tenyokj/devdevian";
 export const updates = [
   {
+    id: "profile-insights-tabs-1-6-1",
+    channel: "Browser",
+    version: "1.6.1",
+    title: "Insights have their own place.",
+    summary:
+      "Open Developer Insights as a dedicated profile tab, with a cleaner browsing interface.",
+    points: [
+      "Profile extensions appear beside Conversations and Projects, rather than above every section.",
+      "Extension command and recovery controls stay in the Extensions manager; ordinary pages stay clear.",
+      "Existing Developer Insights installs work automatically. Keyboard shortcuts and explicit safe mode remain available.",
+    ],
+    link: "/docs/extensions",
+    label: "Profile extensions",
+  },
+  {
     id: "developer-insights-1-6-0",
     channel: "Browser + API",
     version: "1.6.0",

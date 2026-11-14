@@ -157,6 +157,7 @@ try {
   await page.evaluate(() => {
     location.hash = "feed";
   });
+  await page.evaluate(() => (location.hash = "extensions"));
   await page.getByRole("button", { name: "Stop preview", exact: true }).click();
   await page
     .getByRole("dialog", { name: "Publish an extension", exact: true })
@@ -454,6 +455,7 @@ try {
       .evaluate((e) => getComputedStyle(e).zIndex),
     "0",
   );
+  await page.evaluate(() => (location.hash = "extensions"));
   await page
     .getByRole("button", { name: "Disable all extensions", exact: true })
     .click();
@@ -509,6 +511,7 @@ try {
       .count(),
     0,
   );
+  await page.evaluate(() => (location.hash = "extensions"));
   await page
     .getByRole("button", { name: "Disable all extensions", exact: true })
     .click();
@@ -534,6 +537,7 @@ try {
     fullPage: true,
   });
   // The first-party starter is real interactive code, without network/data grants.
+  await page.evaluate(() => (location.hash = "extensions"));
   await page
     .getByRole("button", { name: "Disable all extensions", exact: true })
     .click();
@@ -561,6 +565,7 @@ try {
     .getByRole("button", { name: "Take a break", exact: true })
     .click();
   assert.equal(await focus.locator("#time").innerText(), "05:00");
+  await page.evaluate(() => (location.hash = "extensions"));
   await page.getByRole("button", { name: "Stop preview", exact: true }).click();
   await page.getByLabel("I trust this code", { exact: false }).check();
   await page.getByRole("button", { name: "Preview in my app" }).click();
@@ -575,6 +580,7 @@ try {
     path: ".test-data/extensions-browser/focus-desk.png",
     fullPage: true,
   });
+  await page.evaluate(() => (location.hash = "extensions"));
   await page.getByRole("button", { name: "Stop preview", exact: true }).click();
   await page.getByRole("button", { name: "Publish immutable package" }).click();
   await page.getByRole("dialog", { name: "Focus Desk", exact: true }).waitFor();
@@ -639,9 +645,10 @@ try {
   await page
     .getByText("All installed extensions are up to date.", { exact: true })
     .waitFor();
-  await page.evaluate(() => (location.hash = "feed"));
+  await page.evaluate(() => (location.hash = "extensions"));
   await page.getByRole("button", { name: "⌘ Focus Desk", exact: true }).click();
   await page.getByRole("button", { name: /Updated command/ }).click();
+  await page.evaluate(() => (location.hash = "feed"));
   await page
     .frameLocator('iframe[title="Focus Desk sandbox"]')
     .getByText("Updated command works.", { exact: true })

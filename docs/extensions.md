@@ -125,7 +125,7 @@ Community packages start unreviewed. A configured reviewer can mark an exact ver
 
 ## Recovery and limits
 
-A separate **Extensions / Disable all extensions** recovery bar remains outside extension styling. Use it to disable code packages and restore the default appearance. To bypass execution before the page loads, open:
+On the **Extensions** management page, separate **Extensions / Disable all extensions** recovery controls remain outside extension styling. These controls and extension command menus are not shown over ordinary profile/feed pages. Explicit safe mode keeps recovery controls visible. Use it to disable code packages and restore the default appearance. To bypass execution before the page loads, open:
 
 ```text
 https://devdevian.vercel.app/app?extensions-safe=1#extensions
@@ -262,7 +262,7 @@ const unregister = await devdevian.commands.register({
 await unregister();
 ```
 
-The forum provides a command menu labeled with the extension's name. This is also the fallback when an operating system intercepts a shortcut. Command IDs use 1–40 lowercase letters, digits, dots or hyphens and start with a letter. Titles are at most 60 printable characters. Optional shortcuts are deliberately limited to **Alt+Shift+A–Z** or **Alt+Shift+0–9**. The host invokes the callback; it never streams key events into the extension.
+The Extensions management page provides a command menu labeled with the extension's name. The standalone developer playground also shows it; ordinary app pages retain keyboard shortcuts without floating command buttons. This is also the fallback when an operating system intercepts a shortcut. Command IDs use 1–40 lowercase letters, digits, dots or hyphens and start with a letter. Titles are at most 60 printable characters. Optional shortcuts are deliberately limited to **Alt+Shift+A–Z** or **Alt+Shift+0–9**. The host invokes the callback; it never streams key events into the extension.
 
 Shortcuts work while the host forum has focus. They do not fire while typing in an input, textarea, select or editable element, while a forum dialog is open, or inside an extension/app-view iframe. Repeated keys are ignored. If enabled extensions choose the same shortcut, the first registered matching host listener handles it; both commands remain available through their menus. Disabled, removed or restarted extensions lose their registered commands. Registering a command grants no extra data, navigation or network access: the callback must still use its explicitly granted SDK capabilities. Existing SDK 1 packages continue working; the current `devdevian.version` is `2`.
 
@@ -329,7 +329,7 @@ Open clients recheck availability on visibility changes and approximately every 
 
 The dashboard includes a daily activity chart/calendar, current and longest window-bounded streaks, active-day percentage, action and contribution-state breakdowns, conversations, accepted solutions, code feedback, formal reviews, project attribution, declared technologies and topics. Its [metric definitions and privacy boundaries](https://github.com/Tenyokj/devdevian/tree/main/examples/extensions/developer-insights#metrics-and-boundaries) distinguish lifetime counters from the selected 30/90/365-day UTC activity window. Visits, reading time, online hours and GitHub-wide work are not tracked or inferred.
 
-With `ui.panel`, an extension may mount a panel below the profile header:
+With `ui.panel`, an extension may request its own profile tab (Browser 1.6.1+). The host uses the configured panel title as the tab label, renders its panel only in the selected section and removes the tab when the extension stops. Existing Developer Insights 1.0.0 installations gain this behavior automatically. Other profile sections keep their own content; switching tabs preserves the sandbox state. Profile context remains available while browsing the profile. Configure the panel as follows:
 
 ```js
 const context = await devdevian.context();
@@ -345,6 +345,6 @@ const unsubscribe = devdevian.onContext((next) => {
 });
 ```
 
-`context.capabilities.profile_panels` and `context.capabilities.insights` identify support. Profile panels remain hidden on other routes. `onContext` delivers route/profile/theme context changes through the sandbox message channel; it does not expose DOM access, browser events or credentials. Return the unsubscribe callback when disposing a listener.
+`context.capabilities.profile_panels` and `context.capabilities.insights` identify support. Profile panels remain hidden on other routes and while another profile tab is selected. `onContext` delivers route/profile/theme context changes through the sandbox message channel; it does not expose DOM access, browser events or credentials. Return the unsubscribe callback when disposing a listener.
 
 With `data.read`, `devdevian.data.get('/users/123/insights?days=90&scope=public&project_page=1')` returns bounded aggregate data. Only `days=30|90|365`, `scope=public|all` and a positive `project_page` are accepted; pages contain up to eight project attributions. `scope=all` requires the authenticated account to be that exact profile. Public scope never includes private-community activity, even for fellow members or the platform owner. Personal preference counters are returned only for the author's explicit private-inclusive view. Current server access is checked on each request, hidden/deleted profiles are unavailable to other viewers, responses are not cached, and rate limits apply. This endpoint grants no database or backend access.

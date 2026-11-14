@@ -332,5 +332,6 @@ html[data-extension-pane] main {
   max-width: none !important;
 }
 .devext-panel-profile iframe {
+  height: 100%;
   min-height: 0;
 }

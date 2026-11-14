@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.6.1 — A dedicated place for profile insights
+
+- Mount profile extensions in their own profile tabs instead of inserting dashboards before every profile section. Switching tabs preserves the sandbox; disabling an extension removes its tab and returns to Conversations.
+- Show extension command menus and recovery controls only in the Extensions manager (or explicit safe mode), removing floating controls from ordinary app pages. Keyboard shortcuts and the safe-mode URL remain available; developer playground controls stay visible.
+- Keep Developer Insights 1.0.0 compatible without reinstalling or republishing its immutable package. Privacy and aggregate API behavior are unchanged.
+
 ## 1.6.0 — Developer Insights
 
 - Add an optional first-party profile extension with a UTC activity calendar, daily chart, activity/contribution breakdowns, accepted solutions, code feedback, reviews, technologies and paginated project attribution. Empty states, explicit denominators and selectable 30/90/365-day windows avoid invented metrics.

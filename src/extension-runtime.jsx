@@ -1,3 +1,4 @@
+import { registerProfilePanel } from "./profile-extension-panels";
 import {
   requestExtensionResume,
   readExtensionDraft,
@@ -57,6 +58,7 @@ export function Runner({
   onView,
   preview,
   commandIndex = 0,
+  showCommands = false,
   suppressed = false,
 }) {
   const frame = useRef(),
@@ -71,6 +73,10 @@ export function Runner({
       height: 420,
       title: item.name,
     });
+  useEffect(() => {
+    if (panel.placement !== "profile" || suppressed) return;
+    return registerProfilePanel({ id: item.id, userId, title: panel.title });
+  }, [item.id, userId, panel.placement, panel.title, suppressed]);
   const own = item.manifest,
     grants = item.grants || [],
     identity = item.slug;
@@ -370,11 +376,12 @@ export function Runner({
     };
     const resize = new ResizeObserver(schedule);
     const locate = () => {
-      const parent = document.querySelector(
+      const parent =
         panel.placement === "profile"
-          ? "[data-extension-profile-id]"
-          : ".devext-content",
-      );
+          ? [
+              ...document.querySelectorAll("[data-extension-profile-panel]"),
+            ].find((node) => node.dataset.extensionProfilePanel === item.id)
+          : document.querySelector(".devext-content");
       if (!parent) {
         node?.remove();
         node = null;
@@ -409,7 +416,7 @@ export function Runner({
       window.removeEventListener("resize", schedule);
       node?.remove();
     };
-  }, [panel.placement, panel.height, suppressed]);
+  }, [item.id, panel.placement, panel.height, suppressed]);
   const network = own.permissions.filter((x) => x.startsWith("network:"));
   const content = (
     <section
@@ -431,10 +438,12 @@ export function Runner({
       }}
       aria-label={item.name + " extension panel"}
     >
-      <header>
-        <strong>{panel.title}</strong>
-        <small>{preview ? "Local preview" : `v${item.version}`}</small>
-      </header>
+      {panel.placement !== "profile" && (
+        <header>
+          <strong>{panel.title}</strong>
+          <small>{preview ? "Local preview" : `v${item.version}`}</small>
+        </header>
+      )}
       <iframe
         ref={frame}
         title={item.name + " sandbox"}
@@ -450,7 +459,7 @@ export function Runner({
   return (
     <>
       {content}
-      {commands.length > 0 && (
+      {commands.length > 0 && showCommands && (
         <div
           className="devext-command-controls"
           style={{ "--command-index": commandIndex }}
@@ -689,40 +698,42 @@ export function ExtensionRuntime({ user }) {
     disabled || safe ? [] : [...enabled, ...(preview ? [preview] : [])];
   return (
     <>
-      {!disabled && (active.length > 0 || safe) && (
-        <div
-          className="devext-recovery"
-          aria-label="Extension recovery controls"
-        >
-          <a href="/app#extensions">Extensions</a>
-          {(enabled.length > 0 || preview) && (
-            <>
-              <span>
-                {preview ? "Developer preview" : `${enabled.length} enabled`}
-              </span>
-              <button onClick={stop}>Disable all extensions</button>
-            </>
-          )}
-          {safe && (
-            <>
-              <span>Safe mode</span>
-              <button
-                onClick={() => {
-                  setSafe(false);
-                  history.replaceState(
-                    null,
-                    "",
-                    location.pathname + location.hash,
-                  );
-                }}
-              >
-                Leave safe mode
-              </button>
-            </>
-          )}
-          {preview && <button onClick={stopPreview}>Stop preview</button>}
-        </div>
-      )}
+      {!disabled &&
+        (safe || route.startsWith("#extensions")) &&
+        (active.length > 0 || safe) && (
+          <div
+            className="devext-recovery"
+            aria-label="Extension recovery controls"
+          >
+            <a href="/app#extensions">Extensions</a>
+            {(enabled.length > 0 || preview) && (
+              <>
+                <span>
+                  {preview ? "Developer preview" : `${enabled.length} enabled`}
+                </span>
+                <button onClick={stop}>Disable all extensions</button>
+              </>
+            )}
+            {safe && (
+              <>
+                <span>Safe mode</span>
+                <button
+                  onClick={() => {
+                    setSafe(false);
+                    history.replaceState(
+                      null,
+                      "",
+                      location.pathname + location.hash,
+                    );
+                  }}
+                >
+                  Leave safe mode
+                </button>
+              </>
+            )}
+            {preview && <button onClick={stopPreview}>Stop preview</button>}
+          </div>
+        )}
       {Object.keys(errors).length > 0 && (
         <div className="devext-errors" role="status">
           {Object.entries(errors).map(([id, message]) => (
@@ -737,6 +748,7 @@ export function ExtensionRuntime({ user }) {
         <Runner
           key={item.id + (item.build || "")}
           commandIndex={index}
+          showCommands={route.startsWith("#extensions")}
           suppressed={
             item.id !== "local-preview" && route.startsWith("#extensions")
           }

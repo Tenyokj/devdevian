@@ -164,6 +164,7 @@ function Playground() {
       )}
       {active && (
         <Runner
+          showCommands
           key={active.build}
           item={active}
           userId="sdk-playground"

@@ -1,3 +1,4 @@
+import { useProfileExtensionPanels } from "./profile-extension-panels";
 import { PlatformModeration } from "./platform-moderation";
 import { ProfileExtensions } from "./profile-extensions";
 import { ExtensionRuntime } from "./extension-runtime";
@@ -2707,6 +2708,17 @@ function Profile({
   logout,
 }) {
   const [tab, setTab] = useState("Conversations");
+  const profilePanels = useProfileExtensionPanels(user?.id);
+  useEffect(() => {
+    setTab("Conversations");
+  }, [p.id]);
+  useEffect(() => {
+    if (
+      tab.startsWith("extension:") &&
+      !profilePanels.some((panel) => tab === "extension:" + panel.id)
+    )
+      setTab("Conversations");
+  }, [tab, profilePanels]);
   const [confirmSignout, setConfirmSignout] = useState(false);
   const authored = posts.filter((post) => post.user_id === p.id);
   return (
@@ -2730,7 +2742,7 @@ function Profile({
           </div>
         </Modal>
       )}
-      <section className="profile-hero">
+      <section className="profile-hero" data-extension-profile-id={p.id}>
         <div
           className="profile-cover"
           style={
@@ -2807,7 +2819,6 @@ function Profile({
           </div>
         </div>
       </section>
-      <div className="profile-extension-slot" data-extension-profile-id={p.id} aria-label="Profile extensions" />
       <div className="profile-tabs feed-tabs">
         {(own
           ? [
@@ -2831,6 +2842,16 @@ function Profile({
             {t}
           </button>
         ))}
+        {profilePanels.map((panel) => (
+          <button
+            key={panel.id}
+            className={tab === "extension:" + panel.id ? "selected" : ""}
+            aria-pressed={tab === "extension:" + panel.id}
+            onClick={() => setTab("extension:" + panel.id)}
+          >
+            {panel.title}
+          </button>
+        ))}
         {own && (
           <button
             className="logout-button"
@@ -2841,6 +2862,18 @@ function Profile({
           </button>
         )}
       </div>
+      {profilePanels.map(
+        (panel) =>
+          tab === "extension:" + panel.id && (
+            <section
+              key={panel.id}
+              className="profile-extension-slot"
+              role="region"
+              aria-label={panel.title}
+              data-extension-profile-panel={panel.id}
+            />
+          ),
+      )}
       {tab === "Conversations" &&
         (authored.length ? (
           <div className="profile-list">
@@ -2887,21 +2920,23 @@ function Profile({
       {tab === "Extensions" && (
         <ProfileExtensions personId={p.id} own={own} go={go} />
       )}
-      {tab !== "Participated" && tab !== "Extensions" && (
-        <Pagination
-          meta={
-            tab === "Conversations"
-              ? posts.pagination
-              : tab === "Projects"
-                ? projects.pagination
-                : tab === "Events"
-                  ? events.pagination
-                  : communities.pagination
-          }
-          label={tab.toLowerCase()}
-          onPage={onPage}
-        />
-      )}
+      {!tab.startsWith("extension:") &&
+        tab !== "Participated" &&
+        tab !== "Extensions" && (
+          <Pagination
+            meta={
+              tab === "Conversations"
+                ? posts.pagination
+                : tab === "Projects"
+                  ? projects.pagination
+                  : tab === "Events"
+                    ? events.pagination
+                    : communities.pagination
+            }
+            label={tab.toLowerCase()}
+            onPage={onPage}
+          />
+        )}
 
       {tab === "Projects" &&
         (projects.filter((pr) => pr.user_id === p.id).length ? (
