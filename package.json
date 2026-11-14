@@ -34,7 +34,7 @@
     "highlight.js": "^11.11.1",
     "libsql": "^0.5.29",
     "lowlight": "^3.3.0",
-    "lucide-react": "^0.468.0",
+    "lucide-react": "^1.71.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-markdown": "^10.1.0",
