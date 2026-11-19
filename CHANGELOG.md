@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.7.0 — Project Devlogs
+
+- Add a dedicated project journal with Markdown previews, owner-only server drafts, tab-local writing recovery, publishing and optimistic editing. Published updates retain the project community audience.
+- Keep drafts in a separate table so legacy readers and rollback releases can only see published text. Preserve old project updates and synchronize published edits with the existing introduction timeline.
+- Notify subscribed readers once on first publication, respecting project preferences and current membership. Add publication quotas, bounded pagination, duplicate-create protection, draft discard and encrypted restore coverage.
+- Add browser/CLI workflows and a Devlogs guide. CLI 0.25.0-alpha.1 is independently published; the optional schema is prepared explicitly after a verified encrypted backup and restoration check.
+
 ## 1.6.1 — A dedicated place for profile insights
 
 - Mount profile extensions in their own profile tabs instead of inserting dashboards before every profile section. Switching tabs preserves the sandbox; disabling an extension removes its tab and returns to Conversations.
