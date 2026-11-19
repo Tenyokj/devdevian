@@ -49,6 +49,25 @@ export function contextActions({ route, data, selected, user, live }) {
     add("room-board", "Back to room tasks");
     return actions;
   }
+  if (route.view === "devlogs") {
+    if (selected) add("devlog-read", "Read Devlog");
+    if (data?.can_manage) {
+      add("devlog-new", "Write a Devlog");
+      add(
+        "devlog-drafts",
+        route.drafts ? "Published Devlogs" : "My private drafts",
+      );
+      if (selected) {
+        add("devlog-edit", "Edit Devlog");
+        if (selected.status === "draft") {
+          add("devlog-publish", "Publish this draft");
+          add("devlog-discard", "Discard draft");
+        }
+      }
+    }
+    add("sync", "Refresh Devlogs");
+    return actions;
+  }
   if (route.view === "room") {
     if (selected) {
       add("room-open", "Open task conversation");
@@ -90,6 +109,7 @@ export function contextActions({ route, data, selected, user, live }) {
         : "Participation rules",
     );
     add("contribution-list", "Contributions");
+    add("devlog-list", "Project Devlogs");
     add("room-decisions", "Pinned decisions");
     add("room-activity", "Room activity");
     add("sync", "Refresh this view");
@@ -126,8 +146,10 @@ export function contextActions({ route, data, selected, user, live }) {
     add("room-board", "Back to room tasks");
     return actions;
   }
-  if (["project", "workspace"].includes(route.view))
+  if (["project", "workspace"].includes(route.view)) {
     add("room-board", "Open project room");
+    add("devlog-list", "Project Devlogs");
+  }
   if (["assigned", "reviewers"].includes(route.view)) {
     if (selected) {
       add("flow-original", "View assigned code");

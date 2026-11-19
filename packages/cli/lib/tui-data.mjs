@@ -1,3 +1,4 @@
+import { loadDevlogs } from "./devlogs.mjs";
 import { connectedGitHubReader, githubList } from "./github-connected.mjs";
 import { contributionRoot, requireContributions } from "./contributions.mjs";
 import { loadRoom, requireRoom } from "./rooms.mjs";
@@ -52,6 +53,8 @@ export const navigation = [
   ],
 ];
 export async function notificationRoute(api, item) {
+  if (item.type === "project_update" && item.project_id)
+    return { view: "devlogs", id: item.project_id, page: 1 };
   if (item.code_review_id)
     return {
       view: "feedback",
@@ -178,6 +181,12 @@ export async function loadPage(api, route, signal) {
     };
   }
 
+  if (route.view === "devlogs")
+    return loadDevlogs(api, route.id, {
+      page: route.page || 1,
+      drafts: route.drafts,
+      signal,
+    });
   if (route.view === "room")
     return loadRoom(api, route.id, {
       state: route.state || "",
@@ -553,6 +562,8 @@ export function contentLines(route, data) {
       "/room [ID]       Project room tasks; uses the directory binding",
       "/decisions [ID]  Pinned decisions · X edit/history/archive",
       "/room-activity [ID] Tasks, decisions and reviews",
+      "/devlogs ID       Project progress updates · X write/drafts",
+      "/devlog ID        Write a project Devlog",
       "/pin             Pin a decision in the current room (owner)",
       "/assigned        Waiting / In review / Sent / History · ← → sections",
       "/reviewers ID    Named reviewers and outcomes for a conversation",

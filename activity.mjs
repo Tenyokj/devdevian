@@ -128,7 +128,7 @@ export function registerActivity(app, db, required) {
     const result = pageRows(
       db,
       req,
-      `SELECT n.id,n.type,n.post_id,n.event_id,n.reply_id,n.code_review_id,n.feedback_reply_id,n.created,n.read_at,u.name actor_name,(SELECT json_extract(photo.data,'$.avatar') FROM entity_details photo WHERE photo.kind='user' AND photo.entity_id=CAST(u.id AS TEXT)) actor_avatar,u.id actor_id,COALESCE(p.title,e.title) post_title` +
+      `SELECT (SELECT pr.id FROM projects pr WHERE pr.post_id=n.post_id) project_id,n.id,n.type,n.post_id,n.event_id,n.reply_id,n.code_review_id,n.feedback_reply_id,n.created,n.read_at,u.name actor_name,(SELECT json_extract(photo.data,'$.avatar') FROM entity_details photo WHERE photo.kind='user' AND photo.entity_id=CAST(u.id AS TEXT)) actor_avatar,u.id actor_id,COALESCE(p.title,e.title) post_title` +
         from +
         " ORDER BY n.id DESC",
       [req.user.id],
@@ -416,54 +416,5 @@ export function registerActivity(app, db, required) {
         .status(409)
         .json({ error: "This reply changed. Refresh before deleting it." });
     res.json({ id: reply.id, deleted: true });
-  });
-  app.post("/api/projects/:id/updates", required, (req, res) => {
-    const project = db
-      .prepare("SELECT * FROM projects WHERE id=?")
-      .get(req.params.id);
-    if (!project) return res.status(404).json({ error: "Project not found." });
-    if (project.user_id !== req.user.id)
-      return res
-        .status(403)
-        .json({ error: "Only the project founder can publish updates." });
-    const { title, body } = req.body;
-    if (!text(title, 160, 5) || !text(body, 10000, 10))
-      return res.status(400).json({
-        error:
-          "Add an update title (5–160 characters) and message (10–10,000 characters).",
-      });
-    if (
-      db
-        .prepare(
-          "SELECT COUNT(*) n FROM project_updates WHERE user_id=? AND created>datetime('now','-1 day')",
-        )
-        .get(req.user.id).n >= 5
-    )
-      return res.status(429).json({
-        error:
-          "You can share five project updates a day. Give your readers time to catch up.",
-      });
-    const id = transaction(db, () => {
-      const result = db
-        .prepare(
-          "INSERT INTO project_updates(project_id,user_id,title,body) VALUES(?,?,?,?)",
-        )
-        .run(project.id, req.user.id, title.trim(), body.trim());
-      const recipients = db
-        .prepare(
-          `SELECT user_id FROM replies WHERE post_id=? UNION SELECT user_id FROM memberships WHERE kind='post' AND item=?`,
-        )
-        .all(project.post_id, String(project.post_id));
-      for (const { user_id } of recipients)
-        notify(db, {
-          recipient: user_id,
-          actor: req.user.id,
-          post: project.post_id,
-          type: "project_update",
-          key: `update:${result.lastInsertRowid}`,
-        });
-      return Number(result.lastInsertRowid);
-    });
-    res.status(201).json({ id, post_id: project.post_id });
   });
 }

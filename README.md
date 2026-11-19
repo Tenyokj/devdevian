@@ -22,6 +22,10 @@
 
 Browse the [Extensions library](https://devdevian.vercel.app/app#extensions), install account-specific code packages and develop your own layouts, panels and tools locally. JavaScript runs in an isolated sandbox with explicit SDK capabilities; light/dark CSS covers the app shell. Each immutable version has its own review status. [Extension SDK and examples](https://devdevian.vercel.app/docs/extensions)
 
+## Project Devlogs
+
+Keep a project journal with Markdown, private server drafts, publication previews and follower notifications. Read and write from the browser or CLI; private updates retain their community audience. [Devlogs guide](docs/devlogs.md)
+
 ## Devdevian Rooms
 
 Find the next task, take responsibility and keep the decisions with the work. Project rooms add a shared Open / In progress / Ready board, named assignees, pinned decisions with edit history and permission-scoped activity in browser and CLI. Code reviews gain syntax colors while preserving exact snapshots and line anchors. [Rooms guide](docs/rooms.md)

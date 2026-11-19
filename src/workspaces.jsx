@@ -1,3 +1,4 @@
+import { Devlogs } from "./devlogs";
 import { GitHubHub } from "./github-app";
 import { Contributions } from "./contributions";
 import { RoomSurface } from "./rooms";
@@ -690,6 +691,7 @@ export function Workspace({
         "room-activity",
         "contributions",
         "github",
+        "devlogs",
       ].includes(tab)
     )
       return () => controller.abort();
@@ -781,6 +783,7 @@ export function Workspace({
         >
           {[
             ["overview", "Overview", LayoutDashboard],
+            ["devlogs", "Devlogs", MessageSquare],
             ["room", "Room board", LayoutDashboard],
             ["decisions", "Decisions", CheckCircle2],
             ["contributions", "Contributions", GitPullRequest],
@@ -890,7 +893,14 @@ export function Workspace({
             </div>
           </>
         )}
-        {tab === "github" ? (
+        {tab === "devlogs" ? (
+          <Devlogs
+            key={`${project.id}:${user?.id || "guest"}`}
+            project={project}
+            user={user}
+            requireUser={requireUser}
+          />
+        ) : tab === "github" ? (
           <GitHubHub
             project={project}
             user={user}

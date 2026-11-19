@@ -98,11 +98,13 @@ export function NotificationCenter({ user, onNavigate }) {
       await refresh();
       setOpen(false);
       onNavigate(
-        item.event_id
-          ? `events/${item.event_id}`
-          : item.code_review_id
-            ? `post/${item.post_id}/review/${item.code_review_id}${item.feedback_reply_id ? "/reply/" + item.feedback_reply_id : ""}`
-            : `post/${item.post_id}${item.reply_id ? "/reply/" + item.reply_id : ""}`,
+        item.type === "project_update" && item.project_id
+          ? `workspace/${item.project_id}/devlogs`
+          : item.event_id
+            ? `events/${item.event_id}`
+            : item.code_review_id
+              ? `post/${item.post_id}/review/${item.code_review_id}${item.feedback_reply_id ? "/reply/" + item.feedback_reply_id : ""}`
+              : `post/${item.post_id}${item.reply_id ? "/reply/" + item.reply_id : ""}`,
       );
     } catch (e) {
       setError(e.message);
@@ -191,7 +193,11 @@ export function NotificationCenter({ user, onNavigate }) {
                   onClick={() => read(item)}
                   disabled={pending}
                 >
-                  <Avatar name={item.actor_name} userId={item.actor_id} image={item.actor_avatar} />
+                  <Avatar
+                    name={item.actor_name}
+                    userId={item.actor_id}
+                    image={item.actor_avatar}
+                  />
                   <span>
                     <strong>{item.actor_name}</strong>{" "}
                     {messages[item.type] || "shared an update"}
@@ -452,6 +458,9 @@ export function ProjectTimeline({
           </button>
         )}
       </div>
+      <a className="text-button" href={`#workspace/${project.id}/devlogs`}>
+        Open Devlogs · progress, drafts and history <ArrowUpRight size={15} />
+      </a>
       {updates.length ? (
         <div className="project-update-list">
           {updates.map((update) => (

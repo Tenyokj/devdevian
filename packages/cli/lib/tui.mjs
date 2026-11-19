@@ -1,3 +1,4 @@
+import { devlogPlan } from "./devlogs.mjs";
 import {
   participationPlan,
   participationPayload,
@@ -584,6 +585,10 @@ function listRows(route, data, index, width, colors, density = "comfortable") {
           .filter((e) => e.revision === item.revision)
           .map((e) => `\n${e.actor_name} · ${e.state}: ${e.body}`)
           .join("");
+    } else if (route.view === "devlogs") {
+      title = item.title;
+      meta = `${item.status === "draft" ? "Private draft" : "Published"} · v${item.version} · ${stamp(item.published_at || item.created)}`;
+      body = item.body;
     } else if (route.view === "room") {
       meta = `${item.state.replaceAll("_", " ")} · ${item.kind} · ${item.assignee_name ? "@" + item.assignee_username : "Available to pick up"}`;
       body = item.excerpt;
@@ -2457,7 +2462,13 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       setScroll(0);
       if (form.kind === "flow" && form.roomRoute) {
         navigate(form.roomRoute, { replace: true });
-        setNotice("Saved to the project room.");
+        setNotice(
+          form.mode === "devlog"
+            ? preview.payload.status === "draft"
+              ? "Draft saved. Only you can read it."
+              : "Devlog saved."
+            : "Saved to the project room.",
+        );
         return;
       }
       if (form.kind === "flow") {
@@ -2555,6 +2566,10 @@ function App({ initialConfig, flags, root, initialAppearance }) {
           tab: selected.kind === "review" ? "feedback" : "overview",
           page: 1,
         });
+      return;
+    }
+    if (route.view === "devlogs") {
+      if (selected) readItem(selected);
       return;
     }
     if (route.view === "room-decisions") {
@@ -3047,6 +3062,7 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       ? workspaceId(value)
       : [
             "room",
+            "devlogs",
             "room-decisions",
             "room-activity",
             "room-decision-history",
@@ -3408,6 +3424,65 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       });
       return;
     }
+    if (id?.startsWith("devlog-")) {
+      if (id === "devlog-list") {
+        openRoom(route.id, "devlogs");
+        return;
+      }
+      if (id === "devlog-read") {
+        if (selected) readItem(selected);
+        return;
+      }
+      if (id === "devlog-drafts") {
+        navigate({ ...route, drafts: !route.drafts, page: 1 });
+        return;
+      }
+      if (id === "devlog-discard" && selected) {
+        askConfirm("Discard this draft?", selected.title, () =>
+          task(async () => {
+            await api(`/projects/${route.id}/devlogs/${selected.id}`, {
+              method: "DELETE",
+              body: { expected_version: selected.version },
+            });
+            cache.current.clear();
+            setRefresh((n) => n + 1);
+            setNotice("Draft discarded.");
+          }),
+        );
+        return;
+      }
+      task(async () => {
+        const plan = await devlogPlan(
+          api,
+          route.id,
+          id === "devlog-new" ? null : selected?.id,
+          id === "devlog-publish" ||
+            (selected?.status === "published" && id === "devlog-edit")
+            ? "published"
+            : "draft",
+        );
+        openForm({
+          kind: "flow",
+          mode: "devlog",
+          title: plan.title,
+          plan,
+          roomRoute: plan.roomRoute,
+          postId: plan.url,
+          audience: plan.audience,
+          fields: [
+            { key: "title", label: "Devlog title", min: 1, max: 160 },
+            {
+              key: "body",
+              label: "Update (Markdown)",
+              max: 10000,
+              multiline: true,
+            },
+          ],
+          values: plan.values,
+        });
+      });
+      return;
+    }
     if (id?.startsWith("room-")) {
       roomAction(id);
       return;
@@ -3599,6 +3674,34 @@ function App({ initialConfig, flags, root, initialAppearance }) {
           parsed.arg,
           parsed.command === "decisions" ? "room-decisions" : parsed.command,
         );
+        return;
+      }
+      if (parsed.command === "devlogs") {
+        await openRoom(parsed.arg, "devlogs");
+        return;
+      }
+      if (parsed.command === "devlog") {
+        const project = workspaceId(parsed.arg);
+        const plan = await devlogPlan(api, project, null, "draft");
+        openForm({
+          kind: "flow",
+          mode: "devlog",
+          title: plan.title,
+          plan,
+          roomRoute: plan.roomRoute,
+          postId: plan.url,
+          audience: plan.audience,
+          fields: [
+            { key: "title", label: "Devlog title", min: 1, max: 160 },
+            {
+              key: "body",
+              label: "Update (Markdown)",
+              max: 10000,
+              multiline: true,
+            },
+          ],
+          values: plan.values,
+        });
         return;
       }
       if (parsed.command === "pin") {
@@ -5084,7 +5187,11 @@ function App({ initialConfig, flags, root, initialAppearance }) {
         ...(preview.flow
           ? [
               "",
-              preview.roomRoute ? "ROOM CHANGE" : "EXACT REVIEW REQUEST",
+              form?.mode === "devlog"
+                ? "DEVLOG PREVIEW"
+                : preview.roomRoute
+                  ? "ROOM CHANGE"
+                  : "EXACT REVIEW REQUEST",
               ...flowPreview(payload),
             ]
           : []),

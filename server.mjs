@@ -1,4 +1,5 @@
-import { registerDeveloperInsights } from './developer-insights.mjs';
+import { registerDevlogs } from "./devlogs.mjs";
+import { registerDeveloperInsights } from "./developer-insights.mjs";
 import { isPlatformOwner } from "./platform-owner.mjs";
 import { registerExtensionRunner } from "./extension-runner.mjs";
 import { registerExtensions } from "./extensions.mjs";
@@ -530,6 +531,7 @@ export async function createApp({ migrationOnly = false } = {}) {
     registerDomain(app, db, required, profile);
     importPublicTechnologies(db);
     registerActivity(app, db, required);
+    registerDevlogs(app, db, required, { migrate: migrationOnly });
     registerSubscriptions(app, db, required);
     registerModeration(app, db, required);
     registerEventManagement(app, db, required);

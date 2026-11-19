@@ -336,3 +336,7 @@ devdevian extensions pack .
 `init` refuses existing directories. `dev` serves a loopback-only SDK playground with sample UI/data, no sign-in and no production credentials. Review capabilities, then Start preview; source changes live-reload, while changed grants require a fresh start. Use `--port 4190` or `--no-open`; Ctrl+C closes the server. Validate final styling with Preview in the hosted forum. `pack` produces the uploadable package under `dist/`. The package includes its compiler and playground; neither command needs a clone of Devdevian or an account.
 
 `extensions history SLUG` lists release notes. `extensions updates` lists installed release IDs with newer versions; `extensions update INSTALLED_RELEASE_ID` previews changes and asks for explicit confirmation. It never silently expands permissions or enables a disabled package. See [SDK commands, panel slots and update behavior](https://devdevian.vercel.app/docs/extensions).
+
+## Project Devlogs
+
+Use `/devlogs PROJECT_ID` to read progress, and `/devlog PROJECT_ID` to write a private draft. X opens owner actions including edit, publish and discard. Ctrl+S previews changes before confirmation. Script commands and draft recovery are covered in the [Devlogs guide](https://github.com/Tenyokj/devdevian/blob/main/docs/devlogs.md).

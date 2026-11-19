@@ -4,6 +4,20 @@ export const launchFilm = "https://www.youtube.com/watch?v=qjFs2yy5uz0";
 export const repository = "https://github.com/Tenyokj/devdevian";
 export const updates = [
   {
+    id: "project-devlogs-1-7-0",
+    channel: "Browser + API",
+    version: "1.7.0",
+    title: "Every project has a story.",
+    summary: "Keep progress, lessons and next steps together with Project Devlogs.",
+    points: [
+      "Write Markdown updates in a dedicated workspace tab; preview before publishing and edit with version protection.",
+      "Save private drafts across devices. Drafts stay separate from published updates, including during rollout and rollback.",
+      "Follow the project introduction for first-publication notifications. Read and write from the terminal with the same permissions.",
+    ],
+    link: "/docs/devlogs",
+    label: "Project Devlogs guide",
+  },
+  {
     id: "profile-insights-tabs-1-6-1",
     channel: "Browser",
     version: "1.6.1",

@@ -4,6 +4,13 @@ The CLI is a separately versioned Devdevian client. Its npm version does not hav
 
 Every published npm artifact has a unique immutable version. We record each version here, even when several ship in one working session. A GitHub release can summarize a day's work and link to the individual entries; it does not need to be created for every npm publication. An unfinished change stays under **Unreleased** until its package version is assigned. Alpha packages use the `alpha` npm tag.
 
+## 0.25.0-alpha.1 — Project Devlogs
+
+- `/devlogs ID`, `/devlog ID` and project/room context actions open the shared journal, owner-only drafts, Markdown reader and publication workflow.
+- Script `devlogs` and `devlog create|edit|publish|open|discard` share the same API. Create/edit default to private drafts; publication and discard show confirmation unless `--yes` is explicit.
+- Account-scoped local writing recovery, explicit audiences, create idempotency and optimistic editing protect work. Published edits do not resend notifications; private journals keep community access checks.
+- Companion Browser/API 1.7.0 and explicit additive `--prepare-devlogs` migration. No new dependencies or GitHub write permissions. npm publication is recorded separately from source readiness.
+
 ## 0.24.0-alpha.1 — Build, preview and update extensions
 
 - `extensions init DIR` creates a safe starter without overwriting an existing directory. `extensions dev DIR` serves a standalone loopback SDK playground, with sample data, live reload and renewed consent when capabilities change. No clone, account or .env loading is required.

@@ -31,6 +31,7 @@ export function registerWorkspaces(app, db, required) {
       project: {
         id: pr.id,
         post_id: pr.post_id,
+        community_id: pr.community_id,
         name: pr.name,
         description: pr.description,
         user_id: pr.user_id,

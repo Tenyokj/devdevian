@@ -783,6 +783,10 @@ export function registerEnhancements(app, db, required, seed) {
       });
     db.exec("BEGIN");
     try {
+      if (db.devlogsReady)
+        db.prepare(
+          "DELETE FROM project_devlogs WHERE user_id=? AND status='draft'",
+        ).run(req.user.id);
       if (db.githubAppReady) {
         db.prepare("DELETE FROM github_connections WHERE user_id=?").run(
           req.user.id,

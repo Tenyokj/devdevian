@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { devlogPlan, loadDevlogs, devlogId } from "../lib/devlogs.mjs";
 import { extensionPublication } from "../lib/extensions.mjs";
 import {
   participationPlan,
@@ -198,6 +199,9 @@ const help = `Devdevian CLI ${version} · alpha
   devdevian room link-pr PROJECT_ID POST_ID PR_URL [--contribution ID] [--share-private]
   devdevian room github PROJECT_ID POST_ID [--json]
   devdevian room github-history PROJECT_ID POST_ID [--page 2]
+  devdevian devlogs PROJECT_ID [--status draft]
+  devdevian devlog create|edit PROJECT_ID [DEVLOG_ID] --title "..." --body-file update.md [--status draft|published]
+  devdevian devlog publish|open|discard PROJECT_ID DEVLOG_ID
   devdevian room decisions PROJECT_ID [--archived]
   devdevian room activity PROJECT_ID
   devdevian room claim|release|assign|state PROJECT_ID POST_ID [--username NAME] [--state ready]
@@ -755,6 +759,66 @@ async function execute(args, flags) {
       ),
       flags.json,
     );
+    return;
+  }
+  if (command === "devlogs") {
+    if (flags.status && !["draft", "published"].includes(flags.status))
+      throw Error("Choose draft or published.");
+    show(
+      await loadDevlogs(api, args[1], {
+        page,
+        drafts: flags.status === "draft",
+      }),
+      flags.json,
+    );
+    return;
+  }
+  if (command === "devlog") {
+    const action = args[1];
+    if (action === "discard") {
+      const project = workspaceId(args[2]),
+        id = devlogId(args[3]);
+      const d = (await api(`/projects/${project}/devlogs/${id}`)).devlog;
+      if (d.status !== "draft") throw Error("Only drafts can be discarded.");
+      await confirm(
+        {
+          title: d.title,
+          audience: "Your private draft",
+          action: "Discard draft",
+        },
+        flags,
+      );
+      show(
+        await api(`/projects/${project}/devlogs/${id}`, {
+          method: "DELETE",
+          body: { expected_version: d.version },
+        }),
+        flags.json,
+      );
+      return;
+    }
+    if (action === "open") {
+      const d = await api(
+        `/projects/${workspaceId(args[2])}/devlogs/${devlogId(args[3])}`,
+      );
+      show(d.devlog, flags.json);
+      return;
+    }
+    if (!["create", "edit", "publish"].includes(action))
+      throw Error("Choose create, edit, publish, open or discard.");
+    const plan = await devlogPlan(
+      api,
+      args[2],
+      action === "create" ? null : args[3],
+      action === "publish" ? "published" : flags.status || "draft",
+    );
+    const body = { ...plan.payload, ...plan.values };
+    if (action !== "publish") {
+      body.title = flags.title || body.title;
+      body.body = await message(flags, body.body);
+    }
+    await confirm({ ...body, audience: plan.audience }, flags);
+    show(await api(plan.url, { method: plan.method, body }), flags.json);
     return;
   }
   if (command === "room") {

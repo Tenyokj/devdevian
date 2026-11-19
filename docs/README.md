@@ -56,3 +56,5 @@ Documentation describes the current implementation. Free provider quotas, consol
 
 - [GitHub issues → room tasks → PRs](github-room-work.md)
 - [0.7 security verification and limits](security-review-0.7.md)
+
+- [Project Devlogs](devlogs.md): progress updates, private drafts, publication and browser/CLI workflows.
