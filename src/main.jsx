@@ -3133,7 +3133,8 @@ function Participation({ user, go }) {
             <span>
               <strong>{p.title}</strong>
               <small>
-                {p.name} · {p.reply_count} replies
+                <UserName userId={p.user_id}>{p.name}</UserName> ·{" "}
+                {p.reply_count} replies
               </small>
             </span>
             <ArrowUpRight size={17} />

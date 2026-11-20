@@ -372,7 +372,8 @@ export function FeedbackModeration({ scope }) {
           <MD>{r.reported_body || "This feedback was deleted."}</MD>
           <p>Report: {r.reason}</p>
           <small>
-            {r.reporter_name} · {dateStamp(r.created)}
+            <UserName userId={r.user_id}>{r.reporter_name}</UserName> ·{" "}
+            {dateStamp(r.created)}
           </small>
           <p>{r.review_note}</p>
           <a
