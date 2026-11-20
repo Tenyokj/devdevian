@@ -1,3 +1,4 @@
+import { GitHubWriteback } from "./github-writeback";
 import React, { useEffect, useState } from "react";
 import {
   Github,
@@ -643,6 +644,7 @@ export function GitHubHub({ user, requireUser, project = null, onReview }) {
         </div>
       </header>
       <GitHubConnection />
+      <GitHubWriteback key={user?.id} />
       {importURL && (
         <GitHubWorkDialog
           project={project}

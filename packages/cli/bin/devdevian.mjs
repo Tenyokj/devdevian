@@ -80,6 +80,9 @@ import { commandProblemMessage } from "../lib/problems.mjs";
 import { renderHelp } from "../lib/help.mjs";
 const version = packageInfo.version;
 const options = {
+  target: { type: "string" },
+  operation: { type: "string" },
+  "share-private": { type: "boolean" },
   host: { type: "string" },
   page: { type: "string" },
   port: { type: "string" },
@@ -246,6 +249,10 @@ const help = `Devdevian CLI ${version} · alpha
   devdevian github connect                  Connect the GitHub App in your browser
   devdevian github status
   devdevian github installations
+  devdevian github writeback issue POST_ID --target REPO_URL --title "..." --body-file outcome.md
+  devdevian github writeback comment POST_ID --target ISSUE_OR_PR_URL --body-file outcome.md
+  devdevian github writeback send|status OPERATION_ID
+  devdevian github writeback list
   devdevian github repositories --installation ID
   devdevian github pulls|issues --repository https://github.com/owner/repo
   devdevian github checks PR_URL
@@ -577,6 +584,60 @@ async function execute(args, flags) {
     );
   const api = client(config.origin, config.token),
     page = positive(flags.page || "1", "Page");
+  if (command === "github" && args[1] === "writeback") {
+    const action = args[2];
+    if (action === "list") {
+      show(await api("/github/writeback"), flags.json);
+      return;
+    }
+    if (action === "status" || action === "send") {
+      if (!/^[a-f0-9-]{36}$/.test(args[3] || ""))
+        throw Error("Choose an operation ID from preview or list.");
+      const preview = await api("/github/writeback/" + args[3]);
+      if (action === "status") {
+        show(preview, flags.json);
+        return;
+      }
+      if (preview.state !== "preview" && preview.state !== "sent")
+        throw Error(
+          "This write was already attempted. Check status and GitHub; it will not be resent.",
+        );
+      await confirm(
+        {
+          audience: `GitHub as @${preview.actor} · ${preview.private ? "private" : "public"} repository`,
+          ...preview,
+        },
+        flags,
+      );
+      show(
+        await api("/github/writeback/" + args[3] + "/send", {
+          method: "POST",
+          body: { confirm: true },
+        }),
+        flags.json,
+      );
+      return;
+    }
+    if (!["issue", "comment"].includes(action))
+      throw Error("Use github writeback issue|comment|send|status|list.");
+    const result = await api("/github/writeback/preview", {
+      method: "POST",
+      body: {
+        kind: action,
+        post_id: positive(args[3], "Conversation"),
+        target: flags.target,
+        title: flags.title,
+        body: await message(flags),
+        share_private: !!flags["share-private"],
+      },
+    });
+    show(result, flags.json);
+    if (!flags.json)
+      out(
+        `Preview saved. Send explicitly: devdevian github writeback send ${result.id}`,
+      );
+    return;
+  }
   if (command === "assigned") {
     show(
       await flowPage(api, flags.section || "waiting", page),

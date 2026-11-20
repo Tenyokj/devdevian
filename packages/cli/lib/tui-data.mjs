@@ -562,6 +562,7 @@ export function contentLines(route, data) {
       "/room [ID]       Project room tasks; uses the directory binding",
       "/decisions [ID]  Pinned decisions · X edit/history/archive",
       "/room-activity [ID] Tasks, decisions and reviews",
+      "/writeback ID [issue|comment]  Preview a GitHub publication",
       "/devlogs ID       Project progress updates · X write/drafts",
       "/devlog ID        Write a project Devlog",
       "/pin             Pin a decision in the current room (owner)",

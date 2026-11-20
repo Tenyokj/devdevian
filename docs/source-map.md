@@ -58,3 +58,7 @@ Review workflow: `review-queue.mjs` defines the authenticated last-visible-speak
 
 
 Owner console and extension trust: `platform-owner.mjs` (verified server-configured identity), `platform-moderation.mjs` (public-only console/read scope and extension reports), `extension-security.mjs` (non-executing static signals), `src/platform-moderation.jsx` (protected owner UI). Boundary checks live in `tests/platform-owner.test.mjs` and `scripts/platform-owner-browser-check.mjs`.
+
+## GitHub writeback
+
+`github-writeback.mjs` owns immutable previews, source access and durable send claims; `github-app-core.mjs` restricts the POST transport. `src/github-writeback.jsx` serves browser previews. `packages/cli/bin/devdevian.mjs` and the TUI share the same endpoints. `tests/github-writeback.test.mjs` and `scripts/github-writeback-browser-check.mjs` exercise isolated providers, never real GitHub writes.

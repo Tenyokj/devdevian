@@ -19,6 +19,7 @@ on:
           - github-app
           - github-work
           - participation
+          - writeback
           - devlogs
           - extensions
 permissions:
@@ -133,3 +134,10 @@ jobs:
           TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
           TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
         run: node scripts/migrate.mjs --prepare-devlogs
+
+      - name: Prepare additive GitHub writeback after verified backup
+        if: github.event_name == 'workflow_dispatch' && inputs.workspace_action == 'writeback'
+        env:
+          TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
+          TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
+        run: node scripts/migrate.mjs --prepare-writeback

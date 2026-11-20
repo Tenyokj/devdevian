@@ -249,3 +249,9 @@ Choose a product release title and list the exact npm versions it includes. Summ
 ## 0.20.0-alpha.1 · GitHub work in Rooms
 
 Issue import with frozen previews, private-copy consent and idempotency; PR association with exact task/link/contribution versions; live state/checks/current-head reviews; room TUI actions, script commands and private project creation. Linking/merging does not accept a contribution or mark a task ready. Server/API0.7.0 with optional GitHub work schema required.
+
+## 0.26.0-alpha.1 — GitHub writeback
+
+- TUI X actions and `/writeback POST_ID issue|comment` compose an outcome with an identity/destination/text preview.
+- Script `github writeback issue|comment`, `send`, `status`, `list` use the same durable operation API.
+- Explicit private sharing, stale source / account checks and no automatic retries after uncertain outcomes. Requires server1.8 and separately approved GitHub installation write permissions.

@@ -788,6 +788,16 @@ export function registerEnhancements(app, db, required, seed) {
           "DELETE FROM project_devlogs WHERE user_id=? AND status='draft'",
         ).run(req.user.id);
       if (db.githubAppReady) {
+        if (
+          db
+            .prepare(
+              "SELECT 1 FROM sqlite_master WHERE name='github_writebacks'",
+            )
+            .get()
+        )
+          db.prepare("DELETE FROM github_writebacks WHERE user_id=?").run(
+            req.user.id,
+          );
         db.prepare("DELETE FROM github_connections WHERE user_id=?").run(
           req.user.id,
         );

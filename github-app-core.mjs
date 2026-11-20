@@ -182,3 +182,36 @@ export function allowedRead(input) {
     kind: m[3],
   };
 }
+
+// Only the writeback service builds these paths. Never accept arbitrary methods/URLs.
+export async function githubPOST(path, token, body, { fetcher = fetch } = {}) {
+  if (
+    !/^\/repos\/[A-Za-z0-9-]+\/[A-Za-z0-9_.-]+\/issues(?:\/[1-9]\d*\/comments)?$/.test(
+      path,
+    )
+  )
+    throw githubError("Unsupported GitHub write resource.", 400);
+  const r = await fetcher("https://api.github.com" + path, {
+    method: "POST",
+    headers: {
+      Accept: "application/vnd.github+json",
+      "Content-Type": "application/json",
+      "X-GitHub-Api-Version": "2026-03-10",
+      "User-Agent": "Devdevian",
+      Authorization: "Bearer " + token,
+    },
+    body: JSON.stringify(body),
+    redirect: "manual",
+    credentials: "omit",
+    signal: AbortSignal.timeout(15000),
+  });
+  if (!r.ok) {
+    await r.body?.cancel().catch(() => {});
+    throw Object.assign(githubError("GitHub rejected the write.", r.status), {
+      definitelyRejected: [400, 401, 403, 404, 410, 422, 429].includes(
+        r.status,
+      ),
+    });
+  }
+  return { data: await boundedJSON(r, 262144) };
+}

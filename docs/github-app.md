@@ -9,7 +9,7 @@ Browser/API **0.6.0** and CLI **0.19 alpha** add a GitHub App workspace beside D
 3. Choose **Choose repositories**, install the app and select the repositories you want it to read. Return to Devdevian and refresh.
 4. Select an installation/repository or enter its canonical `https://github.com/owner/repository` URL.
 
-The GitHub App requests read-only Contents, Pull requests, Issues, Checks, Commit statuses and Metadata. A user access token can access only resources available to both that user and the installed app. Each viewer connects independently; a project owner's installation does not grant other Devdevian members private GitHub access. Organization approval and SAML may require additional steps in GitHub.
+The reading integration uses read-only Contents, Pull requests, Issues, Checks, Commit statuses and Metadata. [GitHub writeback](/docs/github-writeback) additionally supports explicitly approved Issues / Pull requests write permissions; Contents stays read-only. A user access token can access only resources available to both that user and the installed app. Each viewer connects independently; a project owner's installation does not grant other Devdevian members private GitHub access. Organization approval and SAML may require additional steps in GitHub.
 
 Disconnecting removes this Devdevian connection and cancels pending authorization/refresh. It does not unlink GitHub sign-in or delete published conversations. To revoke the authorization or uninstall the app at GitHub as well, use GitHub's application settings.
 
@@ -59,7 +59,7 @@ Active terminal PR/issue lists and connected PR overviews refresh through the ex
 - Webhooks require an HMAC-SHA256 signature over the original request bytes, deduplicate delivery IDs and reject conflicting retries. Payloads are capped at 1 MiB; no unverified event can revoke credentials or update generations.
 - Account deletion removes the connection and pending authorization. Encrypted application backups deliberately omit GitHub connections, pending OAuth state and delivery deduplication records. Restoring a backup requires users to reconnect GitHub; published Devdevian review snapshots remain ordinary access-controlled application data.
 
-This release reads GitHub and publishes explicitly selected work into Devdevian. It does not comment on, approve or merge GitHub PRs. GitHub writeback would need additional App permissions and a separate confirmation flow.
+Reading/importing stays separate from [GitHub writeback](/docs/github-writeback). Writeback can create an issue or an ordinary issue/PR comment after additional permission approval and an explicit preview. It does not submit PR review verdicts or merge changes.
 
 ## Operator setup
 

@@ -1,3 +1,4 @@
+import { registerWriteback } from "./github-writeback.mjs";
 import { randomBytes, randomUUID, createHash } from "node:crypto";
 import {
   appConfig,
@@ -6,6 +7,7 @@ import {
   openToken,
   validWebhook,
   githubGET,
+  githubPOST,
   exchangeAppToken,
   allowedRead,
   githubError,
@@ -59,6 +61,7 @@ export function registerGitHubApp(
     config = appConfig(),
     get = githubGET,
     exchange = exchangeAppToken,
+    post = githubPOST,
   } = {},
 ) {
   if (!db.schemaCurrent || migrate) prepareGitHubApp(db);
@@ -212,7 +215,10 @@ export function registerGitHubApp(
   }
   app.get("/api/github/config", (req, res) =>
     res.json({
-      capabilities: { github_app: db.githubAppReady ? 1 : 0 },
+      capabilities: {
+        github_app: db.githubAppReady ? 1 : 0,
+        github_writeback: db.githubWritebackReady ? 1 : 0,
+      },
       configured: db.githubAppReady && appConfigured(config),
       app_url:
         config.slug && /^[a-z0-9-]+$/.test(config.slug)
@@ -589,7 +595,32 @@ export function registerGitHubApp(
       .status(outcome === "conflict" ? 409 : 200)
       .json(outcome ? { duplicate: true } : { ok: true });
   });
-  registerGitHubWork(app, db, required, { migrate, get: request, repository, ready });
+  registerGitHubWork(app, db, required, {
+    migrate,
+    get: request,
+    repository,
+    ready,
+  });
+  registerWriteback(app, db, required, {
+    migrate,
+    ready,
+    repository,
+    get: request,
+    origin: config.origin,
+    write: async (req, path, body, subject) => {
+      const auth = await token(req.user.id);
+      const row = db
+        .prepare(
+          "SELECT subject,version FROM github_connections WHERE user_id=?",
+        )
+        .get(req.user.id);
+      if (!row || row.subject !== subject || row.version !== auth.version)
+        throw Object.assign(githubError("GitHub connection changed.", 409), {
+          definitelyRejected: true,
+        });
+      return post(path, auth.value, body);
+    },
+  });
   app.use((error, req, res, next) => {
     if (!error.githubPublic) return next(error);
     res

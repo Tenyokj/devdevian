@@ -4,11 +4,27 @@ export const launchFilm = "https://www.youtube.com/watch?v=qjFs2yy5uz0";
 export const repository = "https://github.com/Tenyokj/devdevian";
 export const updates = [
   {
+    id: "github-writeback-1-8-0",
+    channel: "Browser + API + CLI",
+    version: "1.8.0",
+    title: "From conversation to contribution.",
+    summary:
+      "Carry an agreed outcome into GitHub, with every word under your control.",
+    points: [
+      "Create an issue or comment on an issue / PR as your connected GitHub account, after an explicit preview.",
+      "Keep private conversations in private destinations with separate sharing consent and current access checks.",
+      "Use the browser, live terminal or script commands. Saved operation records prevent automatic retry duplicates.",
+    ],
+    link: "/docs/github-writeback",
+    label: "GitHub writeback guide",
+  },
+  {
     id: "project-devlogs-1-7-0",
     channel: "Browser + API",
     version: "1.7.0",
     title: "Every project has a story.",
-    summary: "Keep progress, lessons and next steps together with Project Devlogs.",
+    summary:
+      "Keep progress, lessons and next steps together with Project Devlogs.",
     points: [
       "Write Markdown updates in a dedicated workspace tab; preview before publishing and edit with version protection.",
       "Save private drafts across devices. Drafts stay separate from published updates, including during rollout and rollback.",

@@ -290,7 +290,7 @@ The review discussion header shows **Open / Resolved / Earlier** totals: open an
 
 Leaving a review and reopening it with **V** in the same terminal session restores code focus, file/line, horizontal position, range and the selected remark. The remark target is located by ID, including later feedback pages. Positions are held in a bounded in-memory cache, cleared on account reset, and invalidated if the exact code changes; they are not saved across CLI restarts. Esc also restores ordinary navigation history. Inbox already opens exact remarks and replies; those explicit targets take priority over remembered positions.
 
-This release does not write anything back to GitHub or add new OAuth permissions. Network failures do not automatically repeat publications; ordinary previews, scoped drafts and reconnect rules still apply.
+These import/link actions do not write back to GitHub. The separate GitHub writeback workflow requires additional installation permission approval and explicit confirmation. Network failures do not automatically repeat publications; ordinary previews, scoped drafts and reconnect rules still apply.
 
 ## Contributions
 
@@ -340,3 +340,7 @@ devdevian extensions pack .
 ## Project Devlogs
 
 Use `/devlogs PROJECT_ID` to read progress, and `/devlog PROJECT_ID` to write a private draft. X opens owner actions including edit, publish and discard. Ctrl+S previews changes before confirmation. Script commands and draft recovery are covered in the [Devlogs guide](https://github.com/Tenyokj/devdevian/blob/main/docs/devlogs.md).
+
+## Send outcomes to GitHub
+
+In a conversation use X → Create GitHub issue / Share outcome, or `/writeback POST_ID issue|comment`. Ctrl+S prepares a preview showing your connected GitHub account and destination. Explicitly confirm before sending. Script commands: `devdevian github writeback issue|comment POST_ID --target URL --title "..." --body-file outcome.md`, followed by `devdevian github writeback send OPERATION_ID`. `status OPERATION_ID` and `list` inspect saved operations. Uncertain operations are never automatically resent. [Complete guide](https://devdevian.vercel.app/docs/github-writeback).

@@ -46,6 +46,11 @@ export const docGroups = [
     [
       ["github-app", "Connect the GitHub App", "docs/github-app.md"],
       ["github-work", "Issues, tasks & PRs", "docs/github-room-work.md"],
+      [
+        "github-writeback",
+        "Send outcomes to GitHub",
+        "docs/github-writeback.md",
+      ],
       ["github-context", "Source context", "docs/github-context.md"],
       ["github-pr", "Public pull requests", "docs/github-pr-reader.md"],
     ],

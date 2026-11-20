@@ -2160,6 +2160,46 @@ function App({ initialConfig, flags, root, initialAppearance }) {
         return;
       }
       if (form.kind === "flow") {
+        if (form.mode === "writeback") {
+          if (form.writebackId) {
+            const previous = await api("/github/writeback/" + form.writebackId);
+            if (previous.state !== "preview")
+              throw Error(
+                "Previous operation was attempted. Check devdevian github writeback status " +
+                  previous.id +
+                  " and GitHub before starting another.",
+              );
+          }
+          const prepared = await api("/github/writeback/preview", {
+            method: "POST",
+            body: {
+              kind: form.writebackKind,
+              post_id: form.postId,
+              target: form.values.target,
+              title: form.values.title,
+              body: form.values.body,
+              share_private: form.values.sharing === "SHARE",
+            },
+          });
+          setForm({ ...form, writebackId: prepared.id });
+          setPreview({
+            url: "/github/writeback/" + prepared.id + "/send",
+            method: "POST",
+            flow: true,
+            title: "GITHUB WRITEBACK PREVIEW",
+            audience: `GitHub as @${prepared.actor} · ${prepared.private ? "private" : "public"}`,
+            payload: {
+              confirm: true,
+              title: prepared.title,
+              body: prepared.body,
+              target: prepared.target,
+              actor: prepared.actor,
+            },
+          });
+          setScroll(0);
+          setYes(false);
+          return;
+        }
         if (form.mode === "github-work") {
           const prepared = await githubWorkPlan(
             api,
@@ -2460,6 +2500,14 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       setPreview(null);
       setForm(null);
       setScroll(0);
+      if (form.mode === "writeback") {
+        navigate(
+          { view: "post", id: form.postId, tab: "overview", page: 1 },
+          { replace: true },
+        );
+        setNotice("Published to GitHub: " + response.result_url);
+        return;
+      }
       if (form.kind === "flow" && form.roomRoute) {
         navigate(form.roomRoute, { replace: true });
         setNotice(
@@ -3424,6 +3472,12 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       });
       return;
     }
+    if (id === "writeback-issue" || id === "writeback-comment") {
+      const post = data?.post;
+      if (!post) return;
+      startWriteback(post, id === "writeback-issue" ? "issue" : "comment");
+      return;
+    }
     if (id?.startsWith("devlog-")) {
       if (id === "devlog-list") {
         openRoom(route.id, "devlogs");
@@ -3616,6 +3670,45 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       );
     });
   }
+  function startWriteback(post, kind) {
+    openForm({
+      kind: "flow",
+      mode: "writeback",
+      writebackKind: kind === "issue" ? "issue" : "comment",
+      postId: post.id,
+      title: "Send to GitHub · explicit preview before publishing",
+      plan: { payload: {} },
+      fields: [
+        {
+          key: "target",
+          label: kind === "issue" ? "Repository URL" : "Issue / PR URL",
+          min: 10,
+          max: 250,
+        },
+        ...(kind === "issue"
+          ? [{ key: "title", label: "Issue title", min: 5, max: 160 }]
+          : []),
+        {
+          key: "body",
+          label: "Outcome (Markdown)",
+          min: 10,
+          max: 12000,
+          multiline: true,
+        },
+        ...(post.community_id
+          ? [
+              {
+                key: "sharing",
+                label: "Type SHARE to share with private repository readers",
+                min: 5,
+                max: 5,
+              },
+            ]
+          : []),
+      ],
+      values: { target: "", title: post.title || "", body: "", sharing: "" },
+    });
+  }
   async function runCommand(override) {
     const value = (override ?? commandText.current).trim();
     if (!value) return;
@@ -3626,6 +3719,14 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       const parsed = value.startsWith("/")
         ? parseCommand(value)
         : { command: "search", arg: value };
+      if (parsed.command === "writeback") {
+        const [id, kind = "issue"] = parsed.arg.split(/\s+/);
+        if (!["issue", "comment"].includes(kind))
+          throw Error("Use /writeback POST_ID issue|comment.");
+        const post = await api("/posts/" + workspaceId(id));
+        startWriteback(post, kind);
+        return;
+      }
       if (parsed.command === "github") {
         if (parsed.arg) {
           const repo = githubRepository(parsed.arg);
@@ -5187,11 +5288,16 @@ function App({ initialConfig, flags, root, initialAppearance }) {
         ...(preview.flow
           ? [
               "",
-              form?.mode === "devlog"
-                ? "DEVLOG PREVIEW"
-                : preview.roomRoute
-                  ? "ROOM CHANGE"
-                  : "EXACT REVIEW REQUEST",
+              form?.mode === "writeback"
+                ? "GITHUB WRITEBACK · " +
+                  preview.audience +
+                  " · " +
+                  payload.target
+                : form?.mode === "devlog"
+                  ? "DEVLOG PREVIEW"
+                  : preview.roomRoute
+                    ? "ROOM CHANGE"
+                    : "EXACT REVIEW REQUEST",
               ...flowPreview(payload),
             ]
           : []),

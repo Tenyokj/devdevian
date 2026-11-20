@@ -1,0 +1,70 @@
+.gh-writeback-entry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: linear-gradient(110deg, #9678ef12, #58c6bb0a);
+}
+.gh-writeback-entry h3 {
+  margin: 0 0 8px;
+}
+.gh-writeback-entry p {
+  margin: 0;
+  max-width: 65ch;
+}
+.gh-writeback form {
+  display: grid;
+  gap: 18px;
+}
+.gh-writeback label {
+  display: grid;
+  gap: 8px;
+}
+.gh-writeback input,
+.gh-writeback select,
+.gh-writeback textarea {
+  width: 100%;
+  min-width: 0;
+}
+.gh-writeback .gh-writeback-consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.gh-writeback-consent input {
+  width: auto;
+  margin-top: 5px;
+}
+.gh-writeback-actions {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 24px;
+}
+.gh-writeback-identity {
+  padding: 14px;
+  background: #9678ef18;
+  border-radius: 12px;
+}
+.gh-writeback-history {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 12px;
+  overflow-wrap: anywhere;
+}
+.gh-writeback details {
+  margin-top: 28px;
+}
+.gh-writeback a {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 650px) {
+  .gh-writeback-entry {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

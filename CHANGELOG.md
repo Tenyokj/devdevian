@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.8.0 — GitHub writeback
+
+- Create issues and publish issue/PR outcome comments from an explicit browser or CLI preview, as the connected GitHub user.
+- Immutable previews, source/identity/privacy rechecks, rate limits and durable send claims. Uncertain outcomes are not automatically resent.
+- CLI0.26 alpha adds live TUI and script workflows. GitHub installation write permissions require separate owner approval; Contents remains read-only.
+- Additive writeback schema prepared only after verified backup/restore.
+
 ## 1.7.0 — Project Devlogs
 
 - Add a dedicated project journal with Markdown previews, owner-only server drafts, tab-local writing recovery, publishing and optimistic editing. Published updates retain the project community audience.

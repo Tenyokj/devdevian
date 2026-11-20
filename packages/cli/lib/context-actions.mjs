@@ -220,6 +220,8 @@ export function contextActions({ route, data, selected, user, live }) {
     add("delete", "Delete your reply / remark…");
   }
   if (post && user && post.user_id === user.id) {
+    add("writeback-issue", "Create GitHub issue from this conversation");
+    add("writeback-comment", "Share outcome in GitHub issue / PR");
     const note =
       route.view === "feedback" ? data.note : feedback ? selected : null;
     if (note && !note.deleted_at)

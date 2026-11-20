@@ -1,3 +1,4 @@
+import { GitHubWriteback } from "./github-writeback";
 import { useProfileExtensionPanels } from "./profile-extension-panels";
 import { PlatformModeration } from "./platform-moderation";
 import { ProfileExtensions } from "./profile-extensions";
@@ -2291,6 +2292,13 @@ function PostDetail({
             <LinkIcon size={16} />
             Share
           </button>
+          {user?.id === p.user_id && (
+            <GitHubWriteback
+              key={p.id + ":" + user?.id}
+              sourcePost={p}
+              compact
+            />
+          )}
           {user?.id === p.user_id && !p.project && (
             <button onClick={() => setEditing({ content: p, reply: false })}>
               <PenLine size={15} />
