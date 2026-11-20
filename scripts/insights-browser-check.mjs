@@ -209,7 +209,7 @@ try {
   await page.locator(".devext-panel-profile").waitFor({ state: "detached" });
   assert.equal(
     await page.locator(".profile-tabs button.selected").innerText(),
-    "Conversations",
+    "Overview",
   );
   assert.deepEqual(errors, []);
   console.log(
