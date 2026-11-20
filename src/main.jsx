@@ -1,4 +1,4 @@
-import { BadgeCheck } from "lucide-react";
+import { UserName } from "./user-name";
 import { Portfolio } from "./portfolio";
 import { GitHubWriteback } from "./github-writeback";
 import { useProfileExtensionPanels } from "./profile-extension-panels";
@@ -738,7 +738,9 @@ export function App() {
             >
               <Avatar name={user?.name || "New builder"} image={user?.avatar} />
               <span>
-                {user?.name || "Your place is here"}
+                <UserName userId={user?.id} identity={user}>
+                  {user?.name || "Your place is here"}
+                </UserName>
                 <small>{user?.role || "Join the community"}</small>
               </span>
               <ChevronDown size={14} />
@@ -1292,7 +1294,9 @@ export function App() {
                                         size="small"
                                       />
                                       <span>
-                                        {m.name}
+                                        <UserName userId={m.user_id}>
+                                          {m.name}
+                                        </UserName>
                                         <small>{m.role}</small>
                                       </span>
                                     </button>
@@ -1329,7 +1333,9 @@ export function App() {
                                     image={p.founder_avatar}
                                     size="small"
                                   />
-                                  {p.founder_name}
+                                  <UserName userId={p.user_id}>
+                                    {p.founder_name}
+                                  </UserName>
                                 </button>
                                 <a href={"#post/" + p.post_id}>
                                   <MessageCircle size={14} />
@@ -1917,7 +1923,7 @@ function PostCard({
             image={p.author_avatar}
             size="small"
           />
-          <span>{p.name}</span>
+          <UserName userId={p.user_id}>{p.name}</UserName>
         </button>
         <div className="post-actions">
           <button
@@ -2134,7 +2140,7 @@ function PostDetail({
         >
           <Avatar name={p.name} userId={p.user_id} image={p.author_avatar} />
           <span>
-            {p.name}
+            <UserName userId={p.user_id}>{p.name}</UserName>
             <small>{p.role || "Developer"}</small>
           </span>
         </button>
@@ -2182,7 +2188,7 @@ function PostDetail({
                       name={m.name || "Builder"}
                     />
                     <span>
-                      {m.name}
+                      <UserName userId={m.user_id}>{m.name}</UserName>
                       <small>{m.role}</small>
                     </span>
                   </button>
@@ -2645,7 +2651,10 @@ function EventCard({
             size="small"
           />
           <span>
-            Hosted by <strong>{e.organizer_name}</strong>
+            Hosted by{" "}
+            <strong>
+              <UserName userId={e.user_id}>{e.organizer_name}</UserName>
+            </strong>
           </span>
           <ArrowUpRight size={13} />
         </button>
@@ -2775,23 +2784,9 @@ function Profile({
           <div className="profile-main">
             <div>
               <h1 className="profile-identity-name">
-                {p.name}
-                {p.verified && (
-                  <BadgeCheck
-                    className="identity-verified"
-                    size={28}
-                    aria-label={
-                      p.founder ? "Devdevian founder" : "Verified by Devdevian"
-                    }
-                    role="img"
-                  >
-                    <title>
-                      {p.founder
-                        ? "Devdevian founder"
-                        : "Verified by Devdevian"}
-                    </title>
-                  </BadgeCheck>
-                )}
+                <UserName userId={p.id} identity={p} size={28}>
+                  {p.name}
+                </UserName>
               </h1>
               {own && p.privacy === "hidden" && (
                 <p className="profile-privacy-note">

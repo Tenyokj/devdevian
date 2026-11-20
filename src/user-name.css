@@ -1,0 +1,11 @@
+.user-identity {
+  display: inline;
+}
+.user-identity > .identity-verified {
+  display: inline-block;
+  margin-inline-start: 0.3em;
+  vertical-align: -0.15em;
+  color: #3295ff;
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 8px #3295ff35);
+}

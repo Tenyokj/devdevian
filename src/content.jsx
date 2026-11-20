@@ -1,3 +1,4 @@
+import { UserName } from "./user-name";
 import React, { useState, useEffect, createContext, useContext } from "react";
 import {
   ChevronLeft,
@@ -275,8 +276,13 @@ function ReplyRow({ r, depth }) {
           className="post-author"
           onClick={() => go("member/" + r.user_id)}
         >
-          <Avatar name={r.name} userId={r.user_id} image={r.author_avatar} size="small" />
-          <span>{r.name}</span>
+          <Avatar
+            name={r.name}
+            userId={r.user_id}
+            image={r.author_avatar}
+            size="small"
+          />
+          <UserName userId={r.user_id}>{r.name}</UserName>
         </button>
         <span>
           {dateStamp(r.created)}

@@ -1,3 +1,4 @@
+import { UserName } from "../user-name";
 import React, { useEffect, useRef, useState, lazy, Suspense } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -211,7 +212,13 @@ export default function ConversationPage({ seed }) {
             className="button outline"
             href={user ? "/app#profile" : workspace}
           >
-            {user ? user.name : "Open the forum"}
+            {user ? (
+              <UserName userId={user.id} identity={user}>
+                {user.name}
+              </UserName>
+            ) : (
+              "Open the forum"
+            )}
             <ArrowUpRight size={15} aria-hidden="true" />
           </a>
         </div>
@@ -241,7 +248,9 @@ export default function ConversationPage({ seed }) {
             </div>
             <h1 id="conversation-title">{p.title}</h1>
             <div className="conversation-byline">
-              <a href={"/app#member/" + p.user_id}>{p.name}</a>
+              <a href={"/app#member/" + p.user_id}>
+                <UserName userId={p.user_id}>{p.name}</UserName>
+              </a>
               <span>·</span>
               <Stamp value={p.created} zone={zone} />
               <span>·</span>
@@ -360,7 +369,9 @@ export default function ConversationPage({ seed }) {
               key={reply.id}
             >
               <header>
-                <a href={"/app#member/" + reply.user_id}>{reply.name}</a>
+                <a href={"/app#member/" + reply.user_id}>
+                  <UserName userId={reply.user_id}>{reply.name}</UserName>
+                </a>
                 <Stamp value={reply.created} zone={zone} />
                 {p.accepted_reply_id === reply.id && (
                   <span className="public-solution">

@@ -1,3 +1,4 @@
+import { openDatabase } from "../database.mjs";
 import { chromium, expect } from "@playwright/test";
 import { mkdirSync } from "node:fs";
 import { startTestServer } from "../tests/http-fixture.mjs";
@@ -21,6 +22,28 @@ try {
     })
   ).data.user;
   await f.verifyEmail("owner@fixture.test");
+  const db = await openDatabase({
+    DB_PATH: f.path,
+    DB_DRIVER: process.env.DB_DRIVER,
+  });
+  const post = Number(
+    db
+      .prepare(
+        "INSERT INTO posts(user_id,title,body,kind,topic,stack) VALUES(?,?,?,'discussion','web','TypeScript')",
+      )
+      .run(
+        a.id,
+        "Verified author conversation",
+        "A bounded identity rendering fixture.",
+      ).lastInsertRowid,
+  );
+  db.prepare("INSERT INTO replies(user_id,post_id,body) VALUES(?,?,?)").run(
+    a.id,
+    post,
+    "An answer from the founder.",
+  );
+  db.close();
+
   browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({
       viewport: { width: 1440, height: 1000 },
@@ -33,7 +56,9 @@ try {
   });
   await p.goto(f.base + "/app#profile");
   await expect(
-    p.getByRole("img", { name: "Devdevian founder", exact: true }),
+    p
+      .locator(".profile-identity-name")
+      .getByRole("img", { name: "Devdevian founder", exact: true }),
   ).toBeVisible();
   await expect(p.locator(".identity-founder")).toHaveText("Founder");
   await p.getByRole("link", { name: "Owner console", exact: true }).click();
@@ -67,16 +92,51 @@ try {
   await p.goto(f.base + "/app#profile");
   await p.setViewportSize({ width: 390, height: 844 });
   await expect(
-    p.getByRole("img", { name: "Devdevian founder", exact: true }),
+    p
+      .locator(".profile-identity-name")
+      .getByRole("img", { name: "Devdevian founder", exact: true }),
   ).toBeVisible();
   expect(
     await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
   ).toBeTruthy();
   mkdirSync(".test-data/verification-browser", { recursive: true });
   await p.screenshot({ path: ".test-data/verification-browser/mobile.png" });
+
+  await p.setViewportSize({ width: 1440, height: 1000 });
+  const batchReads = [];
+  p.on("request", (r) => {
+    if (r.url().includes("/api/identities?")) batchReads.push(r.url());
+  });
+  await p.goto(f.base + "/app#post/" + post);
+  await expect(
+    p.locator(".post-detail .detail-author .identity-verified"),
+  ).toBeVisible();
+  await expect(p.locator(".reply-heading .identity-verified")).toHaveCount(1);
+  expect(batchReads.length).toBeLessThanOrEqual(1);
+  await p.screenshot({ path: ".test-data/verification-browser/post.png" });
+  await p.goto(f.base + "/app#feed");
+  await expect(
+    p.locator(".post-card .post-author .identity-verified"),
+  ).toHaveCount(1);
+  await visitor.goto(f.base + "/app#post/" + post);
+  await expect(
+    visitor.locator(".post-detail .detail-author .identity-verified"),
+  ).toBeVisible();
+  await expect(
+    visitor.locator(".reply-heading .identity-verified"),
+  ).toHaveCount(1);
+  await visitor.goto(
+    f.base + "/conversation/" + post + "/verified-author-conversation",
+  );
+  await expect(
+    visitor.locator(".conversation-byline .identity-verified"),
+  ).toHaveCount(1);
+  await expect(visitor.locator(".public-reply .identity-verified")).toHaveCount(
+    1,
+  );
   expect(errors).toEqual([]);
   console.log(
-    "Verification browser: founder identity, owner grant/revoke, visitor badge, mobile and no JS errors passed.",
+    "Verification browser: founder identity, owner grant/revoke, visitor/post/feed/reply badges, bounded batch reads, mobile and no JS errors passed.",
   );
 } finally {
   await browser?.close();

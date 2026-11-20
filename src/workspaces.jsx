@@ -1,3 +1,4 @@
+import { UserName } from "./user-name";
 import { Devlogs } from "./devlogs";
 import { GitHubHub } from "./github-app";
 import { Contributions } from "./contributions";
@@ -1020,7 +1021,7 @@ export function Workspace({
                         size="small"
                       />
                       <span>
-                        {r.author_name}
+                        <UserName userId={r.user_id}>{r.author_name}</UserName>
                         <small>{dateStamp(r.created)}</small>
                       </span>
                     </button>

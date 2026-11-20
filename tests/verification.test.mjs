@@ -41,6 +41,20 @@ test("only verified configured owner grants or revokes badges; profile edits and
   assert.equal(founder.verified, true);
   assert.equal(founder.founder, true);
   assert.equal(founder.role, "Founder");
+  const bulk = await guest(`/identities?ids=${a.id},${b.id},999999`);
+  assert.equal(bulk.status, 200);
+  assert.equal(bulk.data.identities[a.id].founder, true);
+  assert.equal(bulk.data.identities[b.id].verified, false);
+  assert.deepEqual(bulk.data.identities[999999], {
+    verified: false,
+    founder: false,
+  });
+  assert.equal(
+    (await guest("/identities?ids=" + Array(101).fill(a.id).join(","))).status,
+    400,
+  );
+  assert.equal((await guest("/identities?ids=invalid")).status, 400);
+
   assert.equal(
     (await owner("/platform/users?q=@" + b.username)).data.items.length,
     1,
@@ -79,6 +93,9 @@ test("only verified configured owner grants or revokes badges; profile edits and
       .get().n,
     2,
   );
+  db.prepare(
+    "UPDATE entity_details SET data=? WHERE kind='user-verification' AND entity_id=?",
+  ).run(JSON.stringify({ verified: true }), String(b.id));
   db.prepare("UPDATE users SET privacy='hidden' WHERE id=?").run(b.id);
   assert.equal((await owner(route, { verified: true }, "PATCH")).status, 404);
   assert.equal((await owner("/platform/users?q=Updated")).data.items.length, 0);

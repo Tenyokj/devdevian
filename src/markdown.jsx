@@ -1,3 +1,4 @@
+import { UserName } from "./user-name";
 import { mentionMatches } from "../mention-syntax.mjs";
 import React, { useState, useEffect } from "react";
 import { api } from "./data";
@@ -65,7 +66,7 @@ function Mention({ href, children }) {
       title={person?.name}
     >
       {person?.avatar && <img src={"/api/uploads/" + person.avatar} alt="" />}
-      {children}
+      <UserName userId={person?.id}>{children}</UserName>
     </a>
   );
 }

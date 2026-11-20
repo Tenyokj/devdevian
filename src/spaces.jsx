@@ -1,3 +1,4 @@
+import { UserName } from "./user-name";
 import {
   MediaPicker,
   formObject,
@@ -225,7 +226,12 @@ export function CommunityHeader({
               <Users size={14} />
               {community.members} members
             </span>
-            <span>Owner: {community.owner_name}</span>
+            <span>
+              Owner:{" "}
+              <UserName userId={community.owner_id}>
+                {community.owner_name}
+              </UserName>
+            </span>
             {community.is_member && (
               <span>{community.posts} conversations</span>
             )}
@@ -333,7 +339,7 @@ function ManageAccess({ community, close, refresh }) {
       <ErrorMessage error={error} />
       {items.map((r) => (
         <div className="access-request" key={r.id}>
-          <span>{r.name}</span>
+          <UserName userId={r.user_id}>{r.name}</UserName>
           <button
             className="small-action"
             disabled={busy}
@@ -471,7 +477,7 @@ function ValidatorEditor({ community }) {
       {items.map((p) => (
         <div className="validator-row" key={p.id}>
           <span>
-            {p.name}
+            <UserName userId={p.id}>{p.name}</UserName>
             <small>@{p.username}</small>
           </span>
           <button
@@ -505,7 +511,8 @@ function OwnershipTransfer({ community }) {
       />
       {person && (
         <div className="form-note">
-          Transfer this community to {person.name}?
+          Transfer this community to{" "}
+          <UserName userId={person.id}>{person.name}</UserName>?
           <button
             className="button secondary danger-button"
             onClick={async () => {

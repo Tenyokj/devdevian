@@ -1,3 +1,4 @@
+import { UserName } from "./user-name";
 import { CodeTokens, useCodeTokens } from "./code-color";
 import { ReviewFlowPanel, RevisionAddressButton } from "./review-flow";
 import {
@@ -529,8 +530,12 @@ export function CodeReview({
                 className="line-feedback-author"
                 onClick={() => go("member/" + item.user_id)}
               >
-                <Avatar name={item.name} userId={item.user_id} image={item.author_avatar} />
-                {item.name}
+                <Avatar
+                  name={item.name}
+                  userId={item.user_id}
+                  image={item.author_avatar}
+                />
+                <UserName userId={item.user_id}>{item.name}</UserName>
               </button>
               <time>{dateStamp(item.created)}</time>
             </header>

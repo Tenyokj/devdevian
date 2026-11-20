@@ -125,7 +125,7 @@ export function registerModeration(app, db, required) {
     const reports = pageRows(
       db,
       req,
-      `SELECT r.*,p.title post_title,p.body post_body,p.locked_at,p.archived_at,p.lock_reason,p.removed_at,p.community_id,(SELECT name FROM private_communities WHERE id=p.community_id) community_name,u.name reporter_name,author.name author_name FROM reports r JOIN posts p ON p.id=r.post_id JOIN users u ON u.id=r.user_id JOIN users author ON author.id=p.user_id WHERE ${moderationScope(req)} AND ${status} ORDER BY CASE WHEN r.status='open' THEN 0 ELSE 1 END,r.id DESC`,
+      `SELECT r.*,p.title post_title,p.body post_body,p.locked_at,p.archived_at,p.lock_reason,p.removed_at,p.community_id,(SELECT name FROM private_communities WHERE id=p.community_id) community_name,u.name reporter_name,author.id author_id,author.name author_name FROM reports r JOIN posts p ON p.id=r.post_id JOIN users u ON u.id=r.user_id JOIN users author ON author.id=p.user_id WHERE ${moderationScope(req)} AND ${status} ORDER BY CASE WHEN r.status='open' THEN 0 ELSE 1 END,r.id DESC`,
       [],
       12,
     );

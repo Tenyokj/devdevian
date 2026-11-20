@@ -1,3 +1,4 @@
+import { UserName } from "./user-name";
 import React, { useEffect, useState } from "react";
 import { Users } from "lucide-react";
 import { api } from "./data";
@@ -42,7 +43,9 @@ export function ProjectContributors({ projectId }) {
           <a href={`#member/${u.id}`} key={u.id}>
             <Avatar name={u.name} userId={u.id} image={u.avatar} />
             <span>
-              <strong>{u.name}</strong>
+              <strong>
+                <UserName userId={u.id}>{u.name}</UserName>
+              </strong>
               <small>@{u.username}</small>
               <em>{u.roles.split(",").join(" · ")}</em>
             </span>

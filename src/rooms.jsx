@@ -1,3 +1,4 @@
+import { UserName } from "./user-name";
 import { ProjectContributors } from "./project-contributors";
 import { ProjectParticipation } from "./project-access";
 import React, { useEffect, useState } from "react";
@@ -61,7 +62,9 @@ function DecisionHistory({ project, id, close }) {
       {data?.items.map((d) => (
         <article className="room-decision" key={d.id}>
           <small>
-            v{d.version} · {d.author_name} · {dateStamp(d.created)}
+            v{d.version} ·{" "}
+            <UserName userId={d.user_id}>{d.author_name}</UserName> ·{" "}
+            {dateStamp(d.created)}
             {d.archived ? " · Archived" : ""}
           </small>
           <h3>{d.title}</h3>
@@ -134,7 +137,7 @@ function TaskColumn({
               />
               {t.assignee_name ? (
                 <span>
-                  {t.assignee_name}
+                  <UserName userId={t.assignee_id}>{t.assignee_name}</UserName>
                   <small>@{t.assignee_username}</small>
                 </span>
               ) : (
@@ -513,7 +516,8 @@ export function RoomSurface({
                 )}
                 <div className="room-decision-footer">
                   <span>
-                    {d.author_name} · {dateStamp(d.updated_at)}
+                    <UserName userId={d.user_id}>{d.author_name}</UserName> ·{" "}
+                    {dateStamp(d.updated_at)}
                   </span>
                   <button onClick={() => setHistory(d.id)}>
                     <History size={14} />
@@ -568,7 +572,9 @@ export function RoomSurface({
                   }
                 />
                 <div>
-                  <strong>{e.actor_name}</strong>
+                  <strong>
+                    <UserName userId={e.actor_id}>{e.actor_name}</UserName>
+                  </strong>
                   <p>
                     {e.type.replaceAll("_", " ")}
                     {e.revision_number ? " · v" + e.revision_number : ""}

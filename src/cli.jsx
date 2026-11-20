@@ -1,3 +1,4 @@
+import { UserName } from "./user-name";
 import React, { useEffect, useState } from "react";
 import { api, dateStamp } from "./data";
 import { ErrorMessage } from "./ui";
@@ -63,7 +64,10 @@ export function CliApproval({ user, requireUser, code }) {
       ) : device ? (
         <>
           <p>
-            Connecting as <strong>@{user.username}</strong>
+            Connecting as{" "}
+            <strong>
+              <UserName userId={user.id}>@{user.username}</UserName>
+            </strong>
           </p>
           <div className="cli-device-code">
             <strong>{device.name}</strong>

@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.9.2 — Verification across the forum
+
+- Share one blue identity badge renderer across conversations, replies, reviews, projects, events, notifications, members, mentions and extension authors.
+- Bounded, deduplicated identity batches keep visible marks current without one request per name. Hidden/deleted identities stay private; checks grant no additional access.
+
 ## 1.9.1 — Verified profiles
 
 - Blue name badges and a blue Founder role for the configured, confirmed platform owner.

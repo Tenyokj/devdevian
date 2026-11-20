@@ -1,3 +1,4 @@
+import { UserName } from "./user-name";
 import React, { useState, useEffect, useRef } from "react";
 import {
   ChevronDown,
@@ -651,7 +652,7 @@ export function PeoplePicker({
                 )}
               </span>
               <span>
-                {p.name}
+                <UserName userId={p.id}>{p.name}</UserName>
                 <small>@{p.username}</small>
               </span>
             </button>
@@ -681,7 +682,7 @@ export function TeamEditor({ initial = [] }) {
       />
       {team.map((m, i) => (
         <div className="link-row" key={m.user_id}>
-          <span>{m.name}</span>
+          <UserName userId={m.user_id}>{m.name}</UserName>
           <input
             required
             maxLength={80}
@@ -784,7 +785,7 @@ export function MentionTextarea(props) {
                 )}
               </span>
               <span>
-                {p.name}
+                <UserName userId={p.id}>{p.name}</UserName>
                 <small>@{p.username}</small>
               </span>
             </button>

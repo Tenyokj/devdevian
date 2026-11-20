@@ -1,3 +1,4 @@
+import { UserName } from "./user-name";
 import React, { useState, useEffect, useCallback } from "react";
 import {
   Search,
@@ -181,7 +182,13 @@ export function GlobalSearch({ close, topics, onNavigate }) {
                 )}
               </span>
               <span>
-                <strong>{r.title}</strong>
+                <strong>
+                  {r.type === "person" ? (
+                    <UserName userId={r.id}>{r.title}</UserName>
+                  ) : (
+                    r.title
+                  )}
+                </strong>
                 <p>{r.excerpt}</p>
                 <small>
                   {r.community_name

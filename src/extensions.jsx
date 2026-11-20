@@ -1,3 +1,4 @@
+import { UserName } from "./user-name";
 import { ExtensionUpdates, ExtensionHistory } from "./extension-updates";
 import { consumeExtensionResume } from "./extension-drafts";
 import { PublishExtension } from "./extension-publish";
@@ -214,7 +215,12 @@ function ThemeCard({ item, onOpen, active }) {
             </div>
           )}
           <div className="extension-card-meta">
-            <span>By @{item.author.username || item.author.name}</span>
+            <span>
+              By{" "}
+              <UserName userId={item.author.id}>
+                @{item.author.username || item.author.name}
+              </UserName>
+            </span>
             <span className={"extension-badge " + item.review}>
               {item.review === "reviewed" ? "Reviewed" : "Community"}
             </span>
@@ -258,9 +264,16 @@ function ThemeCard({ item, onOpen, active }) {
         <p>{item.description}</p>
         <div className="extension-card-meta">
           <span>
-            {item.builtin
-              ? "By Devdevian"
-              : `By @${item.author.username || item.author.name}`}
+            {item.builtin ? (
+              "By Devdevian"
+            ) : (
+              <>
+                By{" "}
+                <UserName userId={item.author.id}>
+                  @{item.author.username || item.author.name}
+                </UserName>
+              </>
+            )}
           </span>
           <span className={"extension-badge " + item.review}>
             {item.review === "reviewed" ? <ShieldCheck size={13} /> : null}

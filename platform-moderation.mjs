@@ -164,7 +164,7 @@ export function registerPlatformModeration(
       .get(q, q).n;
     const items = db
       .prepare(
-        "SELECT p.id,p.title,p.created,p.removed_at,p.locked_at,u.name author_name,u.username author_username FROM posts p JOIN users u ON u.id=p.user_id WHERE " +
+        "SELECT p.id,p.user_id,p.title,p.created,p.removed_at,p.locked_at,u.name author_name,u.username author_username FROM posts p JOIN users u ON u.id=p.user_id WHERE " +
           where +
           " ORDER BY p.id DESC LIMIT 12 OFFSET ?",
       )

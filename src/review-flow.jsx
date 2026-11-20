@@ -1,3 +1,4 @@
+import { UserName } from "./user-name";
 import React, { useEffect, useRef, useState } from "react";
 import { api, dateStamp } from "./data";
 import { Modal, ErrorMessage, MD } from "./ui";
@@ -325,7 +326,9 @@ function RequestCard({ row, user, open, view, postOwner }) {
   return (
     <article className="rf-card">
       <div className="rf-row">
-        <strong>@{row.reviewer_username}</strong>
+        <strong>
+          <UserName userId={row.reviewer_id}>@{row.reviewer_username}</UserName>
+        </strong>
         <span className={"rf-state rf-" + row.state}>
           {flowLabels[row.state]}
         </span>
@@ -676,7 +679,8 @@ export function ReviewProjectActivity({ projectId }) {
       {data?.items.map((e) => (
         <article className="rf-card" key={e.id}>
           <strong>
-            {e.actor_name} · {flowLabels[e.type] || e.type.replaceAll("_", " ")}
+            <UserName userId={e.actor_id}>{e.actor_name}</UserName> ·{" "}
+            {flowLabels[e.type] || e.type.replaceAll("_", " ")}
           </strong>
           <p>
             <a href={"#post/" + e.post_id}>{e.post_title}</a>

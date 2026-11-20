@@ -1,3 +1,4 @@
+import { UserName } from "./user-name";
 import { FeedbackModeration } from "./feedback-thread";
 import {
   Select,
@@ -345,7 +346,10 @@ export function Moderation({ user, go, scope = "all" }) {
                   </p>
                   <p>{r.reason}</p>
                   <small>
-                    Reported by {r.reporter_name} · Author: {r.author_name} ·{" "}
+                    Reported by{" "}
+                    <UserName userId={r.user_id}>{r.reporter_name}</UserName> ·
+                    Author:{" "}
+                    <UserName userId={r.author_id}>{r.author_name}</UserName> ·{" "}
                     {dateStamp(r.created)}
                   </small>
                   {r.review_note && (
@@ -396,8 +400,12 @@ export function Moderation({ user, go, scope = "all" }) {
               data.log.map((entry) => (
                 <div key={entry.id}>
                   <span>
-                    <strong>{entry.actor_name}</strong> ·{" "}
-                    {entry.action.replaceAll("_", " ")}
+                    <strong>
+                      <UserName userId={entry.actor_id}>
+                        {entry.actor_name}
+                      </UserName>
+                    </strong>{" "}
+                    · {entry.action.replaceAll("_", " ")}
                     <small>
                       {entry.post_title}
                       {entry.reason ? " — " + entry.reason : ""}

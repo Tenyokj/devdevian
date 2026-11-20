@@ -1,3 +1,4 @@
+import { UserName } from "./user-name";
 import React, { useEffect, useState } from "react";
 import { api, dateStamp } from "./data";
 import { MD, Modal, ErrorMessage } from "./ui";
@@ -356,7 +357,9 @@ export function Contributions({ project, user, onChange, targetPost = null }) {
           <header>
             <span className="contribution-state">{labels[c.state]}</span>
             <small>
-              v{c.revision} · {c.author_name} · {dateStamp(c.updated_at)}
+              v{c.revision} ·{" "}
+              <UserName userId={c.user_id}>{c.author_name}</UserName> ·{" "}
+              {dateStamp(c.updated_at)}
             </small>
           </header>
           <h3>
@@ -460,7 +463,8 @@ export function Contributions({ project, user, onChange, targetPost = null }) {
                 .map((e) => (
                   <div className="contribution-decision" key={e.id}>
                     <strong>
-                      {labels[e.state]} · {e.actor_name}
+                      {labels[e.state]} ·{" "}
+                      <UserName userId={e.actor_id}>{e.actor_name}</UserName>
                     </strong>
                     <small>{dateStamp(e.created)}</small>
                     {e.body && <MD>{e.body}</MD>}

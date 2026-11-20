@@ -243,12 +243,9 @@ export function registerReviewFlow(
         )
         .get(username);
       if (reviewer && postParticipation(db, p.id, reviewer).read_only)
-        return res
-          .status(403)
-          .json({
-            error:
-              "This reviewer needs approval to participate in the project.",
-          });
+        return res.status(403).json({
+          error: "This reviewer needs approval to participate in the project.",
+        });
       if (!reviewer || !canRead(db, reviewer, p))
         return res
           .status(404)
@@ -596,7 +593,7 @@ export function registerReviewFlow(
     const page = pageRows(
       db,
       req,
-      `SELECT e.id,e.type,e.post_id,e.snapshot_id,e.request_id,e.review_id,e.created,u.name actor_name,p.title post_title,s.number revision_number FROM review_flow_events e JOIN posts p ON p.id=e.post_id JOIN project_work_requests w ON w.post_id=p.id AND w.linked=1 JOIN users u ON u.id=e.actor_id LEFT JOIN review_revisions s ON s.id=e.snapshot_id WHERE w.project_id=? AND p.removed_at IS NULL AND ${scopeSQL("p", req.user)} ORDER BY e.id DESC`,
+      `SELECT e.id,e.type,e.post_id,e.snapshot_id,e.request_id,e.review_id,e.created,e.actor_id,u.name actor_name,p.title post_title,s.number revision_number FROM review_flow_events e JOIN posts p ON p.id=e.post_id JOIN project_work_requests w ON w.post_id=p.id AND w.linked=1 JOIN users u ON u.id=e.actor_id LEFT JOIN review_revisions s ON s.id=e.snapshot_id WHERE w.project_id=? AND p.removed_at IS NULL AND ${scopeSQL("p", req.user)} ORDER BY e.id DESC`,
       [req.params.id],
     );
     res.json({

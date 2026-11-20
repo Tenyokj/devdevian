@@ -1,3 +1,4 @@
+import { UserName } from "./user-name";
 import { VerificationManager } from "./verification";
 import React, { useState, useEffect } from "react";
 import { ShieldCheck, LockKeyhole, ExternalLink } from "lucide-react";
@@ -206,9 +207,24 @@ export function PlatformModeration({ user, go }) {
                 <div>
                   <h3>{item.name || item.title}</h3>
                   <p>
-                    {tab === "extensions"
-                      ? `v${item.version} · @${item.author.username || item.author.name} · ${item.review}`
-                      : `By ${item.author_name} · ${item.removed_at ? "Hidden" : "Visible"} · ${item.locked_at ? "Replies paused" : "Replies open"}`}
+                    {tab === "extensions" ? (
+                      <>
+                        v{item.version} ·{" "}
+                        <UserName userId={item.author.id}>
+                          @{item.author.username || item.author.name}
+                        </UserName>{" "}
+                        · {item.review}
+                      </>
+                    ) : (
+                      <>
+                        By{" "}
+                        <UserName userId={item.user_id}>
+                          {item.author_name}
+                        </UserName>{" "}
+                        · {item.removed_at ? "Hidden" : "Visible"} ·{" "}
+                        {item.locked_at ? "Replies paused" : "Replies open"}
+                      </>
+                    )}
                   </p>
                   {item.security?.warnings.map((w) => (
                     <p className={"security-signal " + w.severity} key={w.code}>

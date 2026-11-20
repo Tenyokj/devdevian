@@ -1,3 +1,4 @@
+import { UserName } from "./user-name";
 import {
   Select,
   TaxonomyPicker,
@@ -199,7 +200,11 @@ export function NotificationCenter({ user, onNavigate }) {
                     image={item.actor_avatar}
                   />
                   <span>
-                    <strong>{item.actor_name}</strong>{" "}
+                    <strong>
+                      <UserName userId={item.actor_id}>
+                        {item.actor_name}
+                      </UserName>
+                    </strong>{" "}
                     {messages[item.type] || "shared an update"}
                     <b>{item.post_title}</b>
                     <small>{dateStamp(item.created)}</small>

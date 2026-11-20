@@ -33,6 +33,7 @@ export function VerificationManager() {
         method: "PATCH",
         body: { verified: !u.verified },
       });
+      window.dispatchEvent(new Event("devdevian-verification"));
       setItems((old) =>
         old.map((x) => (x.id === u.id ? { ...x, ...saved } : x)),
       );

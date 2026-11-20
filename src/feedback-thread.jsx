@@ -1,3 +1,4 @@
+import { UserName } from "./user-name";
 import React, { useState, useEffect, useCallback } from "react";
 import { api, dateStamp } from "./data";
 import { MD, Avatar, Modal, ErrorMessage } from "./ui";
@@ -228,8 +229,14 @@ export function FeedbackReplies({
               }
             >
               <header>
-                <Avatar name={r.name} userId={r.user_id} image={r.author_avatar} />
-                <strong>{r.name}</strong>
+                <Avatar
+                  name={r.name}
+                  userId={r.user_id}
+                  image={r.author_avatar}
+                />
+                <strong>
+                  <UserName userId={r.user_id}>{r.name}</UserName>
+                </strong>
                 <time>{dateStamp(r.created)}</time>
               </header>
               {r.deleted_at ? (
