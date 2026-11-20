@@ -1,3 +1,4 @@
+import { identityBadge, registerVerification } from "./verification.mjs";
 import { InputError } from "./validation.mjs";
 import {
   preferences,
@@ -313,11 +314,13 @@ export function registerEnhancements(app, db, required, seed) {
     }
     return clean;
   }
+  registerVerification(app, db, required);
   function enrich(kind, item, cache = null) {
     const readDetails = (k, id) =>
       cache?.get(k + ":" + id) ?? details(db, k, id);
     if (!item?.id) return item;
     const d = readDetails(kind, item.id);
+    const badge = kind === "user" ? identityBadge(db, item.id) : null;
     return {
       ...item,
       ...d,
@@ -355,7 +358,14 @@ export function registerEnhancements(app, db, required, seed) {
             })),
           }
         : {}),
-      ...(kind === "user" ? { avatar: d.avatar, banner: d.banner } : {}),
+      ...(kind === "user"
+        ? {
+            avatar: d.avatar,
+            banner: d.banner,
+            ...badge,
+            ...(badge.founder ? { role: "Founder" } : {}),
+          }
+        : {}),
     };
   }
   app.put("/api/details/:kind/:id", required, (req, res) => {

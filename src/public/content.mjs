@@ -4,6 +4,19 @@ export const launchFilm = "https://www.youtube.com/watch?v=qjFs2yy5uz0";
 export const repository = "https://github.com/Tenyokj/devdevian";
 export const updates = [
   {
+    id: "verified-profiles-1-9-1",
+    channel: "Browser + API",
+    version: "1.9.1",
+    title: "A clearer identity.",
+    summary: "Blue profile checks, managed by the Devdevian owner.",
+    points: [
+      "A blue check beside the name, with a distinct Founder role for the configured platform owner.",
+      "Owner-only verification decisions. A badge grants no moderation, private-community or GitHub permissions.",
+    ],
+    link: "/docs/portfolio",
+    label: "Profile guide",
+  },
+  {
     id: "developer-portfolio-1-9-0",
     channel: "Browser + API",
     version: "1.9.0",

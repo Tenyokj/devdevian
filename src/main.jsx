@@ -1,3 +1,4 @@
+import { BadgeCheck } from "lucide-react";
 import { Portfolio } from "./portfolio";
 import { GitHubWriteback } from "./github-writeback";
 import { useProfileExtensionPanels } from "./profile-extension-panels";
@@ -2773,7 +2774,25 @@ function Profile({
           />
           <div className="profile-main">
             <div>
-              <h1>{p.name}</h1>
+              <h1 className="profile-identity-name">
+                {p.name}
+                {p.verified && (
+                  <BadgeCheck
+                    className="identity-verified"
+                    size={28}
+                    aria-label={
+                      p.founder ? "Devdevian founder" : "Verified by Devdevian"
+                    }
+                    role="img"
+                  >
+                    <title>
+                      {p.founder
+                        ? "Devdevian founder"
+                        : "Verified by Devdevian"}
+                    </title>
+                  </BadgeCheck>
+                )}
+              </h1>
               {own && p.privacy === "hidden" && (
                 <p className="profile-privacy-note">
                   Profile hidden from other accounts · visible to you
@@ -2783,7 +2802,11 @@ function Profile({
                 @{p.username || "builder_" + p.id}
               </span>
               <p>
-                {p.role || "Developer"}
+                {p.founder ? (
+                  <span className="identity-founder">Founder</span>
+                ) : (
+                  p.role || "Developer"
+                )}
                 {p.location && (
                   <>
                     <span>·</span>

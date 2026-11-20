@@ -1,3 +1,4 @@
+import { VerificationManager } from "./verification";
 import React, { useState, useEffect } from "react";
 import { ShieldCheck, LockKeyhole, ExternalLink } from "lucide-react";
 import { api, dateTime } from "./data";
@@ -30,7 +31,7 @@ export function PlatformModeration({ user, go }) {
     );
   }
   useEffect(() => {
-    if (!allowed || tab === "reports") return;
+    if (!allowed || ["reports", "users"].includes(tab)) return;
     let alive = true;
     setData(null);
     api(
@@ -132,6 +133,7 @@ export function PlatformModeration({ user, go }) {
           ["extensions", "Extension reviews"],
           ["content", "Public content"],
           ["reports", "Public reports & log"],
+          ["users", "Verified profiles"],
         ].map(([key, label]) => (
           <button
             key={key}
@@ -153,7 +155,9 @@ export function PlatformModeration({ user, go }) {
           {notice}
         </p>
       )}
-      {tab === "reports" ? (
+      {tab === "users" ? (
+        <VerificationManager />
+      ) : tab === "reports" ? (
         <Moderation user={user} go={go} scope="public" />
       ) : (
         <>

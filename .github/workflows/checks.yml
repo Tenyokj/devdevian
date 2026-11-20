@@ -30,6 +30,7 @@ jobs:
       - run: node scripts/workspace-browser-check.mjs
       - run: node scripts/review-flow-browser-check.mjs
       - run: node scripts/rooms-browser-check.mjs
+      - run: node scripts/verification-browser-check.mjs
       - run: node scripts/portfolio-browser-check.mjs
       - run: node scripts/github-writeback-browser-check.mjs
       - run: node scripts/devlogs-browser-check.mjs
@@ -54,6 +55,7 @@ jobs:
             .test-data/workspaces-browser/
             .test-data/review-flow-browser/
             .test-data/rooms-browser/
+            .test-data/verification-browser/
             .test-data/portfolio-browser/
             .test-data/github-writeback-browser/
             .test-data/devlogs-browser/

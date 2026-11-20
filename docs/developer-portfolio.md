@@ -68,3 +68,9 @@ The additive `portfolio_schema` and `portfolio_profiles` tables and Devlogs auth
 - [Human code reviews](/docs/review-flow)
 - [Extensions and Developer Insights](/docs/extensions)
 - [Profile privacy and authentication](/docs/authentication)
+
+## Profile verification
+
+A blue check beside the profile name means the Devdevian owner has verified that profile. It does not grant moderator, private-community or GitHub permissions, and is not a guarantee about published content. Only the configured, email-confirmed platform owner can grant or revoke it in Owner console → Verified profiles. Public profiles can be searched by name or username. Every decision is retained separately from editable profile details.
+
+The founder check and Founder role are derived from the configured owner identity, never from a display name, username or user-editable role. Users cannot grant verification through profile editing or extensions. Hidden and deleted accounts are excluded from the verification directory.

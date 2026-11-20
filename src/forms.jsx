@@ -1184,7 +1184,7 @@ export function ProfileEditor({ user, close, done }) {
           <Field label="What do you do?">
             <input
               name="role"
-              defaultValue={user.role}
+              defaultValue={user.founder ? "Founder" : user.role}
               maxLength={100}
               placeholder="Full-stack developer"
             />

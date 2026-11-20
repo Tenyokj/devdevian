@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.9.1 — Verified profiles
+
+- Blue name badges and a blue Founder role for the configured, confirmed platform owner.
+- Owner-only public-profile verification search, grant and revoke actions with durable decision records; profile edits cannot forge badges.
+- Verification grants no moderation, private-community or GitHub permissions. CLI unchanged.
+
 ## 1.9.0 — Developer portfolio
 
 - Profiles open on Overview with up to six ordered featured projects, conversations and accepted answers.

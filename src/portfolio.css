@@ -356,3 +356,19 @@
     transform: none;
   }
 }
+
+.profile-identity-name {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.identity-verified {
+  color: #3295ff;
+  flex-shrink: 0;
+  vertical-align: middle;
+  filter: drop-shadow(0 0 8px #3295ff35);
+}
+.identity-founder {
+  color: #3295ff;
+  font-weight: 650;
+}
