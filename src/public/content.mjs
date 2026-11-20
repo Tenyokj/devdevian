@@ -4,6 +4,21 @@ export const launchFilm = "https://www.youtube.com/watch?v=qjFs2yy5uz0";
 export const repository = "https://github.com/Tenyokj/devdevian";
 export const updates = [
   {
+    id: "developer-portfolio-1-9-0",
+    channel: "Browser + API",
+    version: "1.9.0",
+    title: "Your work has a home.",
+    summary:
+      "A developer profile built around the work you share, review and finish.",
+    points: [
+      "Feature up to six public projects, conversations or accepted answers, in your own order.",
+      "Explore accepted contributions, published review outcomes, line feedback and project Devlogs in dedicated tabs.",
+      "Public work only, with live visibility checks and version-protected edits. Developer Insights keeps its separate tab.",
+    ],
+    link: "/docs/portfolio",
+    label: "Developer portfolio guide",
+  },
+  {
     id: "github-writeback-1-8-0",
     channel: "Browser + API + CLI",
     version: "1.8.0",

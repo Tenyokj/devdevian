@@ -4,6 +4,7 @@ process.env.VERCEL = "1";
 process.env.DEVDEVIAN_EXPLICIT_ENV = "1";
 try {
   const actions = new Set([
+    "--prepare-portfolio",
     "--prepare-writeback",
     "--prepare-devlogs",
     "--prepare-extensions",
@@ -24,7 +25,22 @@ try {
     throw Error(
       "Use no argument to finalize, or one supported --prepare-* action. No migration was run.",
     );
-  if (process.argv.includes("--prepare-writeback")) {
+  if (process.argv.includes("--prepare-portfolio")) {
+    const { openDatabase } = await import("../database.mjs");
+    const { preparePortfolio } = await import("../portfolio.mjs");
+    const db = await openDatabase();
+    try {
+      if (
+        db.prepare("SELECT version FROM app_schema WHERE id=1").get()
+          ?.version !== 7
+      )
+        throw Error("Portfolio requires schema v7.");
+      preparePortfolio(db);
+    } finally {
+      db.close();
+    }
+    console.log("Portfolio prepared; global schema preserved.");
+  } else if (process.argv.includes("--prepare-writeback")) {
     const { openDatabase } = await import("../database.mjs");
     const { prepareWriteback } = await import("../github-writeback.mjs");
     const db = await openDatabase();

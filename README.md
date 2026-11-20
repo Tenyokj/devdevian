@@ -157,3 +157,5 @@ The software is licensed under the **GNU General Public License, version 3 only*
 GitHub Issues can become room tasks with explicit previews and private sharing consent. Link PRs to tasks and exact contribution revisions, and inspect current checks in the browser or terminal. [Workflow guide](docs/github-room-work.md) · [Security verification](docs/security-review-0.7.md).
 
 **GitHub writeback:** turn your conversation into an issue or share its outcome in an issue/PR, with an explicit identity and text preview in the browser or terminal. [Permissions and recovery](https://devdevian.vercel.app/docs/github-writeback).
+
+**Developer portfolio:** feature public projects, conversations and accepted answers; explore accepted contributions, review outcomes and published Devlogs. [Portfolio guide](https://devdevian.vercel.app/docs/portfolio).

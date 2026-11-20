@@ -1,3 +1,4 @@
+import { Portfolio } from "./portfolio";
 import { GitHubWriteback } from "./github-writeback";
 import { useProfileExtensionPanels } from "./profile-extension-panels";
 import { PlatformModeration } from "./platform-moderation";
@@ -2715,17 +2716,17 @@ function Profile({
   edit,
   logout,
 }) {
-  const [tab, setTab] = useState("Conversations");
+  const [tab, setTab] = useState("Overview");
   const profilePanels = useProfileExtensionPanels(user?.id);
   useEffect(() => {
-    setTab("Conversations");
+    setTab("Overview");
   }, [p.id]);
   useEffect(() => {
     if (
       tab.startsWith("extension:") &&
       !profilePanels.some((panel) => tab === "extension:" + panel.id)
     )
-      setTab("Conversations");
+      setTab("Overview");
   }, [tab, profilePanels]);
   const [confirmSignout, setConfirmSignout] = useState(false);
   const authored = posts.filter((post) => post.user_id === p.id);
@@ -2830,6 +2831,10 @@ function Profile({
       <div className="profile-tabs feed-tabs">
         {(own
           ? [
+              "Overview",
+              "Contributions",
+              "Reviews",
+              "Devlogs",
               "Conversations",
               "Participated",
               "Projects",
@@ -2837,7 +2842,15 @@ function Profile({
               "Communities",
               "Extensions",
             ]
-          : ["Conversations", "Projects", "Extensions"]
+          : [
+              "Overview",
+              "Contributions",
+              "Reviews",
+              "Devlogs",
+              "Conversations",
+              "Projects",
+              "Extensions",
+            ]
         ).map((t) => (
           <button
             key={t}
@@ -2870,6 +2883,16 @@ function Profile({
           </button>
         )}
       </div>
+      {["Overview", "Contributions", "Reviews", "Devlogs"].includes(tab) && (
+        <Portfolio
+          key={p.id + ":" + user?.id + ":" + tab}
+          personId={p.id}
+          own={own}
+          section={tab.toLowerCase()}
+          go={go}
+          onSection={setTab}
+        />
+      )}
       {profilePanels.map(
         (panel) =>
           tab === "extension:" + panel.id && (
@@ -2929,6 +2952,7 @@ function Profile({
         <ProfileExtensions personId={p.id} own={own} go={go} />
       )}
       {!tab.startsWith("extension:") &&
+        !["Overview", "Contributions", "Reviews", "Devlogs"].includes(tab) &&
         tab !== "Participated" &&
         tab !== "Extensions" && (
           <Pagination

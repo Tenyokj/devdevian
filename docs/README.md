@@ -60,3 +60,5 @@ Documentation describes the current implementation. Free provider quotas, consol
 - [Project Devlogs](devlogs.md): progress updates, private drafts, publication and browser/CLI workflows.
 
 - [GitHub writeback: explicit issue/comment previews, permissions and retry recovery](github-writeback.md)
+
+- [Developer portfolio: featured work, evidence and privacy](developer-portfolio.md)

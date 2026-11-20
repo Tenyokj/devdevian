@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.9.0 — Developer portfolio
+
+- Profiles open on Overview with up to six ordered featured projects, conversations and accepted answers.
+- Dedicated Contributions, Reviews and Devlogs tabs use retained public records and bounded pagination.
+- Public-only visibility is enforced for every viewer; hidden/deleted profiles and private/removed project parents remain excluded.
+- Version-protected selection edits, additive backup-first schema and encrypted restoration checks. CLI stays0.26 alpha.
+
 ## 1.8.0 — GitHub writeback
 
 - Create issues and publish issue/PR outcome comments from an explicit browser or CLI preview, as the connected GitHub user.

@@ -62,3 +62,7 @@ Owner console and extension trust: `platform-owner.mjs` (verified server-configu
 ## GitHub writeback
 
 `github-writeback.mjs` owns immutable previews, source access and durable send claims; `github-app-core.mjs` restricts the POST transport. `src/github-writeback.jsx` serves browser previews. `packages/cli/bin/devdevian.mjs` and the TUI share the same endpoints. `tests/github-writeback.test.mjs` and `scripts/github-writeback-browser-check.mjs` exercise isolated providers, never real GitHub writes.
+
+## Developer portfolio
+
+`portfolio.mjs` owns the public-only source projection, featured selection and version checks. `src/portfolio.jsx` provides Overview, owner curation and paged contributions/reviews/Devlogs; profile tabs live in `src/main.jsx`. `tests/portfolio.test.mjs` covers privacy, CAS and encrypted restoration; `scripts/portfolio-browser-check.mjs` checks curation and public visitor/mobile behavior.
