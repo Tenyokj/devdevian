@@ -1636,7 +1636,12 @@ export function App() {
                     ))}
                   {page === "live" && (
                     <Suspense fallback={<p role="status">Opening Live…</p>}>
-                      <LiveWorkspace id={id} user={user} go={go} />
+                      <LiveWorkspace
+                        key={(user?.id || "guest") + ":" + (id || "home")}
+                        id={id}
+                        user={user}
+                        go={go}
+                      />
                     </Suspense>
                   )}
                   {page === "platform" && (
