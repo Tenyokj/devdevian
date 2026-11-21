@@ -1,3 +1,4 @@
+import { LiveLauncher } from "./live-launcher";
 import { UserName } from "./user-name";
 import { Portfolio } from "./portfolio";
 import { GitHubWriteback } from "./github-writeback";
@@ -43,8 +44,11 @@ import React, {
   useCallback,
   useRef,
   useLayoutEffect,
+  lazy,
+  Suspense,
 } from "react";
 import { createRoot, hydrateRoot } from "react-dom/client";
+const LiveWorkspace = lazy(() => import("./live"));
 import {
   Compass,
   MessagesSquare,
@@ -625,6 +629,13 @@ export function App() {
                 {page === key && <span className="nav-active-mark" />}
               </a>
             ))}
+            <a
+              href="#live"
+              className={"nav-item " + (page === "live" ? "active" : "")}
+            >
+              <Radio size={19} />
+              <span>Live sessions</span>
+            </a>
             <div className="nav-rule" />
             <a
               href="#saved"
@@ -1623,6 +1634,11 @@ export function App() {
                         }}
                       />
                     ))}
+                  {page === "live" && (
+                    <Suspense fallback={<p role="status">Opening Live…</p>}>
+                      <LiveWorkspace id={id} user={user} go={go} />
+                    </Suspense>
+                  )}
                   {page === "platform" && (
                     <PlatformModeration user={user} go={go} />
                   )}
@@ -1641,6 +1657,7 @@ export function App() {
                     />
                   )}
                   {![
+                    "live",
                     "platform",
                     "moderation",
                     "following",
@@ -2119,6 +2136,7 @@ function PostDetail({
         <ArrowLeft size={15} />
         {p.community_id ? p.community_name : "Public feed"} · #{topic}
       </a>
+      <LiveLauncher post={p} user={user} go={go} />
       <article className="post-detail">
         <div className="detail-top">
           <span className={"kind-badge " + t.color}>{t.label}</span>

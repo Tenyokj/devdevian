@@ -23,6 +23,7 @@ import { pipeline } from "node:stream/promises";
 const MAGIC = Buffer.from("DEVBACKUP1\n");
 const ephemeral = new Set([
   "sessions",
+  "live_presence",
   "cli_devices",
   "cli_tokens",
   "device_accounts",

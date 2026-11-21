@@ -4,6 +4,7 @@ process.env.VERCEL = "1";
 process.env.DEVDEVIAN_EXPLICIT_ENV = "1";
 try {
   const actions = new Set([
+    "--prepare-live",
     "--prepare-portfolio",
     "--prepare-writeback",
     "--prepare-devlogs",
@@ -25,7 +26,22 @@ try {
     throw Error(
       "Use no argument to finalize, or one supported --prepare-* action. No migration was run.",
     );
-  if (process.argv.includes("--prepare-portfolio")) {
+  if (process.argv.includes("--prepare-live")) {
+    const { openDatabase } = await import("../database.mjs");
+    const { prepareLive } = await import("../live.mjs");
+    const db = await openDatabase();
+    try {
+      if (
+        db.prepare("SELECT version FROM app_schema WHERE id=1").get()
+          ?.version !== 7
+      )
+        throw Error("Live requires schema v7.");
+      prepareLive(db);
+    } finally {
+      db.close();
+    }
+    console.log("Live prepared; global schema preserved.");
+  } else if (process.argv.includes("--prepare-portfolio")) {
     const { openDatabase } = await import("../database.mjs");
     const { preparePortfolio } = await import("../portfolio.mjs");
     const db = await openDatabase();
@@ -87,9 +103,8 @@ try {
     console.log("Extensions prepared; global schema preserved.");
   } else if (process.argv.includes("--prepare-participation")) {
     const { openDatabase } = await import("../database.mjs");
-    const { prepareParticipation } = await import(
-      "../project-participation-schema.mjs"
-    );
+    const { prepareParticipation } =
+      await import("../project-participation-schema.mjs");
     const db = await openDatabase();
     try {
       if (

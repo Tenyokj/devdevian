@@ -1,3 +1,4 @@
+import { LiveLauncher } from "./live-launcher";
 import { UserName } from "./user-name";
 import { ProjectContributors } from "./project-contributors";
 import { ProjectParticipation } from "./project-access";
@@ -400,6 +401,11 @@ export function RoomSurface({
           <RefreshCw size={17} />
         </button>
       </div>
+      <LiveLauncher
+        post={{ id: project.post_id, title: project.name }}
+        user={user}
+        go={go}
+      />
       <ProjectParticipation project={project} user={user} onChange={done} />
       <ProjectContributors projectId={project.id} />
       {room.data.paused && (

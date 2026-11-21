@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.0.0 — Devdevian Live
+
+- Invitation-only collaborative code sessions connected to conversations and project Rooms, with editor/viewer roles, shared cursors and session chat.
+- CodeMirror syntax highlighting and Yjs merging; serial bounded synchronization, reconnection with pending edits, hidden/idle pauses and live permission revocation. Code is never executed.
+- Compare the original, freeze a code snapshot with an outcome, and explicitly publish one ordinary reply in the source audience.
+- Additive backup-first schema; encrypted restoration preserves sessions and removes ephemeral presence. CLI stays0.26 alpha.
+
 ## 1.9.2 — Verification across the forum
 
 - Share one blue identity badge renderer across conversations, replies, reviews, projects, events, notifications, members, mentions and extension authors.

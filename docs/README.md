@@ -13,6 +13,8 @@ Devdevian is an open-source developer forum. The hosted early release is at [dev
 
 ## Using the forum
 
+- [Devdevian Live](live.md): invitation-only shared code, cursors, chat, access rules and saved outcomes.
+
 - [Project participation](project-participation.md): open work, approved contributors, observer rights and private community boundaries.
 - [My work](my-work.md): next actions, assigned tasks, results and local continuation in browser and CLI.
 

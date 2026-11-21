@@ -23,6 +23,7 @@ export const docGroups = [
     "Build together",
     [
       ["rooms", "Projects & Rooms", "docs/rooms.md"],
+      ["live", "Live collaboration", "docs/live.md"],
       ["devlogs", "Project Devlogs", "docs/devlogs.md"],
       [
         "participation",

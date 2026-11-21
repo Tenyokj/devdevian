@@ -19,6 +19,7 @@ on:
           - github-app
           - github-work
           - participation
+          - live
           - portfolio
           - writeback
           - devlogs
@@ -149,3 +150,10 @@ jobs:
           TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
           TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
         run: node scripts/migrate.mjs --prepare-portfolio
+
+      - name: Prepare additive Live after verified backup
+        if: github.event_name == 'workflow_dispatch' && inputs.workspace_action == 'live'
+        env:
+          TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
+          TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
+        run: node scripts/migrate.mjs --prepare-live

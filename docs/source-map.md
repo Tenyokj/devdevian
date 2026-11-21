@@ -66,3 +66,7 @@ Owner console and extension trust: `platform-owner.mjs` (verified server-configu
 ## Developer portfolio
 
 `portfolio.mjs` owns the public-only source projection, featured selection and version checks. `src/portfolio.jsx` provides Overview, owner curation and paged contributions/reviews/Devlogs; profile tabs live in `src/main.jsx`. `tests/portfolio.test.mjs` covers privacy, CAS and encrypted restoration; `scripts/portfolio-browser-check.mjs` checks curation and public visitor/mobile behavior.
+
+## Live collaboration
+
+`live.mjs` owns additive session storage, source permissions, Yjs validation, participant roles, bounded presence/chat, atomic mutations and outcome publication. `src/live-launcher.jsx` connects discussions and Rooms; lazy `src/live.jsx` provides the workspace, `src/live-editor.jsx` binds CodeMirror to Yjs, and `src/live-transport.mjs` handles synchronization and offline retry. `tests/live.test.mjs` exercises convergence, access, corruption limits and recovery; `scripts/live-browser-check.mjs` drives two browser accounts through the real workflow.

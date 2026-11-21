@@ -1,3 +1,4 @@
+import { registerLive } from "./live.mjs";
 import { registerPortfolio } from "./portfolio.mjs";
 import { registerDevlogs } from "./devlogs.mjs";
 import { registerDeveloperInsights } from "./developer-insights.mjs";
@@ -553,6 +554,7 @@ export async function createApp({ migrationOnly = false } = {}) {
     registerExtensions(app, db, required, { migrate: migrationOnly });
     registerDeveloperInsights(app, db);
     registerPortfolio(app, db, required, { migrate: migrationOnly });
+    registerLive(app, db, required, { migrate: migrationOnly });
     if (!db.schemaCurrent)
       db.exec(`
   CREATE INDEX IF NOT EXISTS memberships_item ON memberships(kind,item,user_id);

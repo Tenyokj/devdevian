@@ -793,6 +793,19 @@ export function registerEnhancements(app, db, required, seed) {
       });
     db.exec("BEGIN");
     try {
+      if (db.liveReady) {
+        for (const table of ["live_messages", "live_presence", "live_members"])
+          db.prepare(
+            `DELETE FROM ${table} WHERE session_id IN (SELECT id FROM live_sessions WHERE host_id=?)`,
+          ).run(req.user.id);
+        db.prepare("DELETE FROM live_sessions WHERE host_id=?").run(
+          req.user.id,
+        );
+        db.prepare("DELETE FROM live_presence WHERE user_id=?").run(
+          req.user.id,
+        );
+        db.prepare("DELETE FROM live_members WHERE user_id=?").run(req.user.id);
+      }
       if (db.portfolioReady)
         db.prepare("DELETE FROM portfolio_profiles WHERE user_id=?").run(
           req.user.id,

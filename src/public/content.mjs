@@ -4,6 +4,16 @@ export const launchFilm = "https://www.youtube.com/watch?v=qjFs2yy5uz0";
 export const repository = "https://github.com/Tenyokj/devdevian";
 export const updates = [
   {
+    id: "devdevian-live-2-0-0", channel: "Browser + API", version: "2.0.0",
+    title: "A second pair of hands.",
+    summary: "Go from a conversation to working through the code together.",
+    points: [
+      "Invite editors or observers to a shared code workspace with cursors and a private session chat.",
+      "Merge concurrent edits, reconnect with pending changes and compare the starting point with the current result.",
+      "Finish with a saved code snapshot and summary. Publish the result to the source conversation only after confirming the preview.",
+    ], link: "/docs/live", label: "Live collaboration guide",
+  },
+  {
     id: "verified-profiles-1-9-1",
     channel: "Browser + API",
     version: "1.9.1",
