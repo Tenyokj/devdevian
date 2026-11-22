@@ -2,6 +2,8 @@
 
 Live connects an existing conversation to a shared coding session. Invited developers edit the same small code document, see each other's cursors, and discuss changes beside the editor. A session keeps its own chat and participant list. It does not execute code, create a remote terminal, or upload your local project.
 
+[Watch Devdevian Live: A second pair of hands — 90-second film](https://www.youtube.com/watch?v=rCj-GBH760E). See shared editing, session chat and a saved outcome in action.
+
 ## Start from a conversation
 
 1. Sign in and open the conversation you want to work through.

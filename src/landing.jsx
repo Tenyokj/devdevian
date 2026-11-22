@@ -1,5 +1,5 @@
 import FAQItem from "./public/accordion";
-import { launchFilm } from "./public/content.mjs";
+import { liveFilm } from "./public/content.mjs";
 import { CLISection, CLIReview, PublicActivity } from "./landing-cli";
 import WorkspaceShowcase from "./landing-workspaces";
 import LiveShowcase from "./landing-live";
@@ -334,9 +334,9 @@ export default function Landing() {
                 </a>
                 <a
                   className="landing-text-link launch-film-link"
-                  href={launchFilm}
+                  href={liveFilm}
                 >
-                  Watch the new film · 2 min <ArrowUpRight size={17} />
+                  Watch the Live film · 90 sec <ArrowUpRight size={17} />
                 </a>
                 <span className="development-note">
                   <CircleDot size={13} /> In active development · Fully open

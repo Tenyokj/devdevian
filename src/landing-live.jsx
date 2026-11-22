@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Radio, ArrowUpRight, Users, Code2, CheckCircle2 } from "lucide-react";
+import { liveFilm } from "./public/content.mjs";
 import "./landing-live.css";
 const views = [
   {
@@ -43,6 +44,9 @@ export default function LiveShowcase() {
         <div className="landing-live-actions">
           <a className="landing-button" href="/app#live">
             Open Live sessions <ArrowUpRight size={18} />
+          </a>
+          <a className="landing-text-link" href={liveFilm}>
+            Watch Live in action · 90 sec <ArrowUpRight size={17} />
           </a>
           <a className="landing-text-link" href="/docs/live">
             How Live works <ArrowUpRight size={17} />

@@ -10,7 +10,7 @@
 
 - Added a dedicated Live sessions section near the top of the landing page, with shared-code and published-outcome views.
 - Added fresh isolated demonstration screenshots and expanded Live discovery in the documentation and footer.
-- The Live launch film is prepared locally; its YouTube URL will be added after publication.
+- [The Live launch film](https://www.youtube.com/watch?v=rCj-GBH760E) is available on YouTube and linked from the landing page and Live guide.
 
 ## 2.0.0 — Devdevian Live
 
