@@ -52,6 +52,14 @@ try {
     p.getByText("Invitation ready.", { exact: false }),
   ).toBeVisible();
   await q.goto(url);
+  await q.getByRole("button", { name: /^Notifications/ }).click();
+  await expect(
+    q.getByText("invited you to a Live session", { exact: false }),
+  ).toBeVisible();
+  await q
+    .locator(".notification-item")
+    .filter({ hasText: "Cancellation, together" })
+    .click();
   await expect(
     q.getByRole("heading", { name: "Cancellation, together", exact: true }),
   ).toBeVisible();
@@ -118,12 +126,59 @@ try {
   await q.waitForTimeout(1500);
   await peer.setOffline(false);
   await expect(a).toContainText("offline note", { timeout: 30000 });
+  // Only sync is interrupted: reload can fetch an authorized fresh snapshot.
+  // A local recovery is not silently applied, and restoring preserves peer edits.
+  await q.route("**/api/live/*/sync", (route) => route.abort());
+  await b.click();
+  await b.press("ControlOrMeta+End");
+  await b.pressSequentially("\n// recovered after reload", { delay: 5 });
+  await q.waitForTimeout(250);
+  q.on("dialog", (dialog) => dialog.accept());
+  await q.reload();
+  await expect(
+    q.getByRole("button", { name: "Review local changes" }),
+  ).toBeVisible();
+  await expect(b).not.toContainText("recovered after reload");
+  await a.click();
+  await a.press("ControlOrMeta+End");
+  await a.pressSequentially("\n// changed while disconnected", { delay: 5 });
+  await expect(
+    p
+      .locator(".live-connection")
+      .filter({ hasText: "Connected · changes sync in a few seconds" }),
+  ).toBeVisible({ timeout: 15000 });
+  await q.unroute("**/api/live/*/sync");
+  await q.getByRole("button", { name: "Review local changes" }).click();
+  await expect(
+    q.getByRole("heading", { name: "Unsent local code" }),
+  ).toBeVisible();
+  await q.getByRole("button", { name: "Restore and sync" }).click();
+  await expect(a).toContainText("recovered after reload", { timeout: 30000 });
+  await expect(b).toContainText("changed while disconnected", {
+    timeout: 30000,
+  });
+  await expect(
+    q.getByRole("button", { name: "Review local changes" }),
+  ).toHaveCount(0);
+  // Preserve unsent edits when permission changes: recovery stays copy-only.
+  await q.route("**/api/live/*/sync", (route) => route.abort());
+  await b.click();
+  await b.press("ControlOrMeta+End");
+  await b.pressSequentially("\n// copy-only recovery", { delay: 5 });
   // Host downgrade takes effect while the other editor is open.
   await p.getByRole("button", { name: /People \(/ }).click();
   await p.getByLabel("Access for @livepeer").selectOption("viewer");
+  await q.unroute("**/api/live/*/sync");
   await expect(b).toHaveAttribute("contenteditable", "false", {
     timeout: 15000,
   });
+  await q.reload();
+  await q.getByRole("button", { name: "Review local changes" }).click();
+  await expect(
+    q.getByRole("button", { name: "Restore and sync" }),
+  ).toBeDisabled();
+  await q.getByRole("button", { name: "Discard local copy" }).click();
+  await expect(a).not.toContainText("copy-only recovery");
   await p.getByRole("button", { name: "Save & finish", exact: true }).click();
   await p
     .getByLabel("Session outcome")

@@ -4,14 +4,32 @@ export const launchFilm = "https://www.youtube.com/watch?v=qjFs2yy5uz0";
 export const repository = "https://github.com/Tenyokj/devdevian";
 export const updates = [
   {
-    id: "devdevian-live-2-0-0", channel: "Browser + API", version: "2.0.0",
+    id: "live-invitations-recovery-2-1-0",
+    channel: "Browser + API",
+    version: "2.1.0",
+    title: "Pick up where you left off.",
+    summary: "Find your invitation. Recover your unsent code.",
+    points: [
+      "Live invitations arrive in your notifications with the session title, participant role and a direct join action.",
+      "Review unsent code found on your device after a reload. Merge its editing history with current shared changes, or copy and discard it.",
+      "Recovery stays local to your account and session; signing out clears it. Browser storage is a fallback, not a guaranteed offline backup.",
+    ],
+    link: "/docs/live",
+    label: "Live invitations and recovery",
+  },
+  {
+    id: "devdevian-live-2-0-0",
+    channel: "Browser + API",
+    version: "2.0.0",
     title: "A second pair of hands.",
     summary: "Go from a conversation to working through the code together.",
     points: [
       "Invite editors or observers to a shared code workspace with cursors and a private session chat.",
       "Merge concurrent edits, reconnect with pending changes and compare the starting point with the current result.",
       "Finish with a saved code snapshot and summary. Publish the result to the source conversation only after confirming the preview.",
-    ], link: "/docs/live", label: "Live collaboration guide",
+    ],
+    link: "/docs/live",
+    label: "Live collaboration guide",
   },
   {
     id: "verified-profiles-1-9-1",

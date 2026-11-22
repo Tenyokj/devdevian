@@ -18,6 +18,7 @@ import { Avatar, ErrorMessage, Empty, MD, Modal } from "./ui";
 import { UserName } from "./user-name";
 import { LiveEditor, StaticCode } from "./live-editor";
 import { createLiveTransport } from "./live-transport.mjs";
+import { liveDrafts } from "./live-drafts.mjs";
 import "./live.css";
 function SessionHome({ user }) {
   const [data, setData] = useState(null),
@@ -96,6 +97,9 @@ export default function LiveWorkspace({ id, user, go }) {
     [chat, setChat] = useState(""),
     [accessLost, setAccessLost] = useState(false),
     [notice, setNotice] = useState("");
+  const [recoveries, setRecoveries] = useState([]),
+    [recovery, setRecovery] = useState(null);
+  const draftStore = useRef(null);
   const controller = useRef(null),
     messageKey = useRef(crypto.randomUUID()),
     bottom = useRef(null);
@@ -120,12 +124,26 @@ export default function LiveWorkspace({ id, user, go }) {
     api("/live/" + id, { signal: c.signal })
       .then((initial) => {
         if (!alive) return;
+        try {
+          draftStore.current = liveDrafts(user.id, id);
+          setRecoveries(draftStore.current.list());
+        } catch {
+          setNotice(
+            "Local recovery is unavailable in this browser. Copy unsaved code before leaving.",
+          );
+        }
         setData(initial);
         setSummary(initial.session.summary);
         setCode("");
         setMessages(initial.messages);
         provider = createLiveTransport({
           data: initial,
+          drafts: draftStore.current,
+          onDraftError: () =>
+            alive &&
+            setNotice(
+              "Could not save a local recovery copy. Copy your code before leaving.",
+            ),
           user,
           request: (body, signal) =>
             api("/live/" + id + "/sync", { method: "POST", body, signal }),
@@ -305,6 +323,80 @@ export default function LiveWorkspace({ id, user, go }) {
           Your access changed. Sending has stopped. Copy any unsaved local code
           before leaving.
         </p>
+      )}
+      {recoveries.length > 0 && (
+        <section className="live-recovery" aria-label="Unsent local changes">
+          <div>
+            <strong>Unsent changes found on this device</strong>
+            <p>
+              Review before restoring. A recovery merges edits with the current
+              shared code.
+            </p>
+          </div>
+          <button
+            className="button secondary"
+            onClick={() => setRecovery(recoveries[0])}
+          >
+            Review local changes
+          </button>
+        </section>
+      )}
+      {recovery && (
+        <Modal
+          title="Recover unsent changes"
+          onClose={() => setRecovery(null)}
+          wide
+        >
+          <h2>Your local recovery copy</h2>
+          <p>
+            Saved {dateStamp(new Date(recovery.updated).toISOString())}. Kept on
+            this device for up to seven days; signing out clears it.
+          </p>
+          <h3>Current shared code</h3>
+          <pre className="live-draft-code">{code}</pre>
+          <h3>Unsent local code</h3>
+          <pre className="live-draft-code">{recovery.code}</pre>
+          <p>
+            Restore merges the saved code history with the latest session. Check
+            the result before finishing. Closed or read-only sessions allow
+            copying only.
+          </p>
+          <div className="live-recovery-actions">
+            <button
+              className="button secondary"
+              onClick={() => copy(recovery.code)}
+            >
+              Copy local code
+            </button>
+            <button
+              className="button secondary"
+              onClick={() => {
+                draftStore.current.discard(recovery);
+                setRecoveries(draftStore.current.list());
+                setRecovery(null);
+              }}
+            >
+              Discard local copy
+            </button>
+            <button
+              className="button primary"
+              disabled={!editable}
+              onClick={() => {
+                try {
+                  if (transport.restore(recovery.state))
+                    draftStore.current.discard(recovery);
+                  setRecoveries(draftStore.current.list());
+                  setRecovery(null);
+                } catch (e) {
+                  setNotice(e.message);
+                  setRecovery(null);
+                }
+              }}
+            >
+              Restore and sync
+            </button>
+          </div>
+        </Modal>
       )}
       <p className="live-sharing-note">
         The host can publish the final code and summary back to this

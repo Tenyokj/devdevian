@@ -1,3 +1,4 @@
+import { clearLiveDrafts } from "./live-drafts.mjs";
 import { LiveLauncher } from "./live-launcher";
 import { UserName } from "./user-name";
 import { Portfolio } from "./portfolio";
@@ -246,6 +247,7 @@ export function App() {
   const requestVersion = useRef(0);
   const accountIdentity = useRef(null);
   const clearAccountData = useCallback(() => {
+    if (accountIdentity.current) clearLiveDrafts(accountIdentity.current);
     setPosts([]);
     setCommunities([]);
     setProjects([]);

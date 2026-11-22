@@ -9,7 +9,9 @@ Live connects an existing conversation to a shared coding session. Invited devel
 3. Give the session a title, choose a language, and review the starting code. A conversation's existing snippet is offered when present; you can change the starting text before creating the session.
 4. Choose **Open Live workspace**. The starting code is saved separately. Edits inside Live never replace the original post or its review snapshot.
 5. Open **People**, enter an exact permanent username, and invite that person as an editor or viewer.
-6. Copy the invitation link. Share it yourself with that person, or ask them to open **Live sessions** in the sidebar to find the invitation.
+6. The invited person receives an in-app notification with the session title, their role and **Join session**. They can also find it under **Live sessions**. Copy the invitation link if you want to share it directly; a link alone does not grant access.
+
+A repeated invitation with the same role does not create another notification. Changing the role refreshes it. Removing someone hides that invitation, including its unread count; existing source permissions are still checked. Recipients can pause Live invitations in **Settings → Notifications**. These are in-app notifications, not emails or operating-system push messages.
 
 A project Room offers the same entry point, attached to that project's introduction conversation. There is no separate project permission system for Live: existing community access and project participation continue to apply.
 
@@ -51,7 +53,15 @@ This first version synchronizes through bounded HTTPS requests to the existing A
 
 Only one synchronization request runs per client at a time. Pending document changes remain in memory and are merged again after a temporary network failure; retries are safe because Yjs updates are idempotent. Retry delays increase after failures. The browser pauses reads while its tab is hidden, and pauses after ten minutes without interaction. Returning to the tab or interacting reconnects it.
 
-**Important:** pending edits are not a durable local backup. Closing the tab, reloading, signing out or restarting the browser can lose unsent local changes. The unload warning helps when the browser supports it; use **Copy code** before leaving during a connection problem. Chat text stays in the composer until a successful send; message retries reuse an operation key to prevent duplicates.
+## Recover unsent changes
+
+Unsent code edits are copied into browser storage on this device, scoped to your account and session. After reloading and opening an authorized session, **Unsent changes found on this device** offers **Review local changes**. Nothing is restored automatically.
+
+The preview shows current shared code and your saved local code. **Restore and sync** merges the saved Yjs editing history with the latest document, retaining concurrent edits instead of replacing the entire document. Review the merged result before finishing. **Copy local code** and **Discard local copy** are also available. Closed sessions and viewers cannot restore into shared code, but can copy a recovery while they still have session access.
+
+Each open workspace owns its own recovery record: another tab acknowledging its changes cannot clear yours. Acknowledged copies are removed; abandoned copies expire after seven days. Signing out or switching accounts clears the departing account’s copies. The text is stored locally, without separate encryption; use a trusted device.
+
+Browser storage may be disabled, cleared or full. A warning appears if a copy cannot be saved; **Copy code** remains the fallback. Recovery covers code only, not an unsent chat composer or outcome summary. It is a convenience, not a replacement for source control or guaranteed offline storage. Chat text stays in the composer until a successful send; message retries reuse an operation key to prevent duplicates.
 
 If access is revoked, sending stops. The UI keeps the already-visible local code available for copying, but the server will not provide new session content. Previously viewed content cannot be remotely erased from someone's browser or clipboard.
 
@@ -82,7 +92,7 @@ All participants should understand that the host can publish the final code and 
 
 These limits constrain resource use; they are not a guarantee that a free hosting plan can serve arbitrary concurrency. A large group, multiple active tabs or a long editing history can hit a limit. The UI backs off after request failures. If document history becomes full, save/copy the code and start a new session rather than silently dropping earlier updates. Older chat history loads in bounded batches of 50 messages.
 
-The first release does not include voice/video, code execution, repository filesystem access, durable offline editing, a session recording, or a full IDE. The npm CLI remains a separate client; interactive Live editing is currently available in the browser.
+The first release does not include voice/video, code execution, repository filesystem access, a full offline workspace, a session recording, or a full IDE. The npm CLI remains a separate client; interactive Live editing is currently available in the browser.
 
 ## Server preparation and recovery
 

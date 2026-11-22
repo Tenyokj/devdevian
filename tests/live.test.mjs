@@ -212,10 +212,20 @@ test("Live enforces invitations, source audience, read-only project participatio
     ).status,
     200,
   );
+  assert.ok(
+    (await s.member("/notifications")).data.items.some(
+      (n) => n.live_session_id === privateSession,
+    ),
+  );
   db.prepare("DELETE FROM memberships WHERE user_id=? AND kind='group'").run(
     s.memberId,
   );
   assert.equal((await s.member("/live/" + privateSession)).status, 404);
+  assert.ok(
+    !(await s.member("/notifications")).data.items.some(
+      (n) => n.live_session_id === privateSession,
+    ),
+  );
   db.prepare("UPDATE posts SET removed_at=CURRENT_TIMESTAMP WHERE id=?").run(
     s.publicId,
   );
@@ -423,4 +433,47 @@ test("Deleting an account removes its hosted Live sessions and revokes its invit
     0,
   );
   assert.equal((await s.a(`/live/${shared}`)).status, 200);
+});
+test("Live notifications use current roles and hide revoked invitations, with recipient preferences", async (t) => {
+  const { s, db } = await setup(t);
+  const id = (await create(s.a, s.publicId)).data.id;
+  const invite = (role) =>
+    s.a(`/live/${id}/members`, { username: "livepeer", role }, "PATCH");
+  assert.equal((await invite("editor")).status, 200);
+  let notices = (await s.b("/notifications")).data;
+  let item = notices.items.find((n) => n.live_session_id === id);
+  assert.ok(item, JSON.stringify(notices));
+  assert.equal(item.live_role, "editor");
+  assert.equal(item.live_title, "Let’s solve the retry problem");
+  const first = item.id;
+  await invite("editor");
+  assert.equal(
+    (await s.b("/notifications")).data.items.find(
+      (n) => n.live_session_id === id,
+    ).id,
+    first,
+  );
+  await invite("viewer");
+  assert.equal(
+    (await s.b("/notifications")).data.items.find(
+      (n) => n.live_session_id === id,
+    ).live_role,
+    "viewer",
+  );
+  await invite("remove");
+  notices = (await s.b("/notifications")).data;
+  assert.ok(!notices.items.some((n) => n.live_session_id === id));
+  assert.equal(notices.unread_count, 0);
+  db.prepare(
+    "INSERT INTO user_settings(user_id,data) VALUES(?,?) ON CONFLICT(user_id) DO UPDATE SET data=excluded.data",
+  ).run(s.other, JSON.stringify({ notify_live: false }));
+  await invite("editor");
+  assert.equal(
+    db
+      .prepare(
+        "SELECT COUNT(*) n FROM notifications WHERE recipient_id=? AND type='live_invite'",
+      )
+      .get(s.other).n,
+    0,
+  );
 });

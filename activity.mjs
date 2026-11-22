@@ -124,11 +124,22 @@ export function registerActivity(app, db, required) {
     }
   }
   app.get("/api/notifications", required, (req, res) => {
-    const from = ` FROM notifications n JOIN users u ON u.id=n.actor_id LEFT JOIN posts p ON p.id=n.post_id LEFT JOIN events e ON e.id=n.event_id WHERE n.recipient_id=? AND (n.post_id IS NULL OR ${scopeSQL("p", req.user)})`;
+    // The event key identifies a session; current membership and source scope are
+    // checked at read time, including unread counts, after an invitation is revoked.
+    const liveJoin = db.liveReady
+      ? " LEFT JOIN live_sessions ls ON n.type='live_invite' AND n.event_key='live:'||ls.id LEFT JOIN live_members lm ON lm.session_id=ls.id AND lm.user_id=n.recipient_id"
+      : "";
+    const liveFilter = db.liveReady
+      ? " AND (n.type<>'live_invite' OR lm.user_id IS NOT NULL)"
+      : " AND n.type<>'live_invite'";
+    const liveFields = db.liveReady
+      ? "ls.id live_session_id,ls.title live_title,ls.closed_at live_closed_at,lm.role live_role,"
+      : "";
+    const from = ` FROM notifications n JOIN users u ON u.id=n.actor_id LEFT JOIN posts p ON p.id=n.post_id LEFT JOIN events e ON e.id=n.event_id ${liveJoin} WHERE n.recipient_id=? AND (n.post_id IS NULL OR ${scopeSQL("p", req.user)})${liveFilter}`;
     const result = pageRows(
       db,
       req,
-      `SELECT (SELECT pr.id FROM projects pr WHERE pr.post_id=n.post_id) project_id,n.id,n.type,n.post_id,n.event_id,n.reply_id,n.code_review_id,n.feedback_reply_id,n.created,n.read_at,u.name actor_name,(SELECT json_extract(photo.data,'$.avatar') FROM entity_details photo WHERE photo.kind='user' AND photo.entity_id=CAST(u.id AS TEXT)) actor_avatar,u.id actor_id,COALESCE(p.title,e.title) post_title` +
+      `SELECT ${liveFields}(SELECT pr.id FROM projects pr WHERE pr.post_id=n.post_id) project_id,n.id,n.type,n.post_id,n.event_id,n.reply_id,n.code_review_id,n.feedback_reply_id,n.created,n.read_at,u.name actor_name,(SELECT json_extract(photo.data,'$.avatar') FROM entity_details photo WHERE photo.kind='user' AND photo.entity_id=CAST(u.id AS TEXT)) actor_avatar,u.id actor_id,COALESCE(p.title,e.title) post_title` +
         from +
         " ORDER BY n.id DESC",
       [req.user.id],

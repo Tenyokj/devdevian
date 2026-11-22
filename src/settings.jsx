@@ -155,6 +155,11 @@ export function Settings({
               "Updates to projects you follow or participate in.",
             ],
             [
+              "notify_live",
+              "Live invitations",
+              "Session invitations and changes to your participant role.",
+            ],
+            [
               "notify_events",
               "Event changes",
               "Changes, cancellations and restoration of events you attend.",

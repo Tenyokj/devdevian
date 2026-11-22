@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.1.0 — Live invitations and recovery
+
+- In-app Live invitations show the inviter, session and current role, with direct navigation. No-op invites are deduplicated; revoked invitations disappear from history and unread counts. A separate notification preference controls delivery.
+- Recover unsent code after reload with explicit comparison, copy/discard and Yjs history merging. Device-local copies are isolated by account/session/workspace instance, expire after seven days and clear on sign-out/account change. Browser-storage failures show a copy-code fallback.
+- Existing Live schema and CLI remain unchanged. Recovery does not cover unsent chat or outcome-summary drafts.
+
 ## 2.0.1 — 2026-11-22
 
 - Added a dedicated Live sessions section near the top of the landing page, with shared-code and published-outcome views.

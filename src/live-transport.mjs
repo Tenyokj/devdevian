@@ -23,6 +23,8 @@ export function createLiveTransport({
   onSync,
   onStatus,
   onText,
+  drafts,
+  onDraftError,
 }) {
   const doc = new Y.Doc();
   Y.applyUpdate(doc, fromBase64(data.state), "remote");
@@ -44,17 +46,32 @@ export function createLiveTransport({
     failures = 0,
     channel = null,
     retryAt = 0,
-    lastAction = Date.now();
+    lastAction = Date.now(),
+    draftSaved = false;
   const code = doc.getText("code");
   const localUpdate = (update, origin) => {
     onText?.(code.toString());
     if (origin !== "remote") {
       pending.push(update);
       if (pending.length > 40) pending = [Y.mergeUpdates(pending)];
+      persist();
       onStatus("Saving changes…");
       schedule(600);
     }
   };
+  function persist() {
+    try {
+      drafts?.save(
+        toBase64(Y.encodeStateAsUpdate(doc)),
+        code.toString(),
+        revision,
+      );
+      draftSaved = true;
+    } catch {
+      draftSaved = false;
+      onDraftError?.();
+    }
+  }
   doc.on("update", localUpdate);
   function schedule(ms) {
     if (stopped) return;
@@ -138,6 +155,16 @@ export function createLiveTransport({
       if (stopped) return;
       if (result.state) Y.applyUpdate(doc, fromBase64(result.state), "remote");
       revision = result.session.revision;
+      // Clear only this instance's record, after the server acknowledges its
+      // detached batch. An older recovery proposal remains until explicit choice.
+      if (pending.length) persist();
+      else {
+        try {
+          drafts?.clear();
+        } catch {
+          onDraftError?.();
+        }
+      }
       if (beat) {
         heartbeat = Date.now();
         lastCursor = cursorKey;
@@ -208,6 +235,25 @@ export function createLiveTransport({
     awareness,
     code,
     syncNow: () => schedule(0),
+    restore(state) {
+      const bytes = fromBase64(state),
+        check = new Y.Doc();
+      try {
+        Y.applyUpdate(check, Y.encodeStateAsUpdate(doc));
+        Y.applyUpdate(check, bytes);
+        if (
+          check.getText("code").length > 20000 ||
+          [...check.share.keys()].some((k) => k !== "code")
+        )
+          throw new Error(
+            "This draft cannot be merged. Copy its text instead.",
+          );
+        Y.applyUpdate(doc, bytes, "recovery");
+        return draftSaved;
+      } finally {
+        check.destroy();
+      }
+    },
     async flushPending() {
       const deadline = Date.now() + 12000;
       while (!stopped && (pending.length || running) && Date.now() < deadline) {

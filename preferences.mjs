@@ -7,6 +7,7 @@ export const preferenceDefaults = Object.freeze({
   notify_solutions: true,
   notify_projects: true,
   notify_events: true,
+  notify_live: true,
   show_event_reminders: true,
   compact_feed: false,
   reduce_motion: false,
@@ -22,20 +23,22 @@ export function preferences(db, id) {
 }
 export function notificationAllowed(db, id, type) {
   const p = preferences(db, id);
-  const key = type.startsWith("review_")
-    ? "notify_reviews"
-    : type === "mention"
-      ? "notify_mentions"
-      : type === "reply" || type === "feedback_reply"
-        ? "notify_replies"
-        : type.startsWith("solution") ||
-            ["feedback_resolved", "feedback_reopened"].includes(type)
-          ? "notify_solutions"
-          : type === "project_update"
-            ? "notify_projects"
-            : type.startsWith("event_")
-              ? "notify_events"
-              : null;
+  const key = type.startsWith("live_")
+    ? "notify_live"
+    : type.startsWith("review_")
+      ? "notify_reviews"
+      : type === "mention"
+        ? "notify_mentions"
+        : type === "reply" || type === "feedback_reply"
+          ? "notify_replies"
+          : type.startsWith("solution") ||
+              ["feedback_resolved", "feedback_reopened"].includes(type)
+            ? "notify_solutions"
+            : type === "project_update"
+              ? "notify_projects"
+              : type.startsWith("event_")
+                ? "notify_events"
+                : null;
   return p.notifications_enabled && (!key || p[key]);
 }
 export function validUsername(value) {

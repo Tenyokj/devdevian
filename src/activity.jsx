@@ -26,6 +26,7 @@ import { Modal, Avatar, Empty, Field, MD, ErrorMessage } from "./ui";
 import { api, dateStamp } from "./data";
 
 const messages = {
+  live_invite: "invited you to a Live session",
   review_requested: "requested your review",
   review_accepted: "accepted a review request",
   review_declined: "declined a review request",
@@ -99,13 +100,15 @@ export function NotificationCenter({ user, onNavigate }) {
       await refresh();
       setOpen(false);
       onNavigate(
-        item.type === "project_update" && item.project_id
-          ? `workspace/${item.project_id}/devlogs`
-          : item.event_id
-            ? `events/${item.event_id}`
-            : item.code_review_id
-              ? `post/${item.post_id}/review/${item.code_review_id}${item.feedback_reply_id ? "/reply/" + item.feedback_reply_id : ""}`
-              : `post/${item.post_id}${item.reply_id ? "/reply/" + item.reply_id : ""}`,
+        item.live_session_id
+          ? `live/${item.live_session_id}`
+          : item.type === "project_update" && item.project_id
+            ? `workspace/${item.project_id}/devlogs`
+            : item.event_id
+              ? `events/${item.event_id}`
+              : item.code_review_id
+                ? `post/${item.post_id}/review/${item.code_review_id}${item.feedback_reply_id ? "/reply/" + item.feedback_reply_id : ""}`
+                : `post/${item.post_id}${item.reply_id ? "/reply/" + item.reply_id : ""}`,
       );
     } catch (e) {
       setError(e.message);
@@ -206,7 +209,15 @@ export function NotificationCenter({ user, onNavigate }) {
                       </UserName>
                     </strong>{" "}
                     {messages[item.type] || "shared an update"}
-                    <b>{item.post_title}</b>
+                    <b>{item.live_title || item.post_title}</b>
+                    {item.live_session_id && (
+                      <small>
+                        {item.live_role} ·{" "}
+                        {item.live_closed_at
+                          ? "View saved session"
+                          : "Join session"}
+                      </small>
+                    )}
                     <small>{dateStamp(item.created)}</small>
                   </span>
                   {!item.read_at && <i className="unread-dot" />}

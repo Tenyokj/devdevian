@@ -2,7 +2,7 @@ import * as Y from "yjs";
 import { randomUUID, createHash } from "node:crypto";
 import { canRead } from "./spaces.mjs";
 import { postParticipation } from "./project-access.mjs";
-import { notifyReply } from "./activity.mjs";
+import { notify, notifyReply } from "./activity.mjs";
 import { consumeBudget } from "./limits.mjs";
 import { validUsername } from "./preferences.mjs";
 
@@ -556,9 +556,27 @@ export function registerLive(app, db, required, { migrate = false } = {}) {
             .get(req.live.id).n >= 12
         )
           return false;
+        const previous = db
+          .prepare(
+            "SELECT role FROM live_members WHERE session_id=? AND user_id=?",
+          )
+          .get(req.live.id, u.id);
         db.prepare(
           "INSERT INTO live_members(session_id,user_id,role,invited_by) VALUES(?,?,?,?) ON CONFLICT(session_id,user_id) DO UPDATE SET role=excluded.role",
         ).run(req.live.id, u.id, b.role, req.user.id);
+        if (previous?.role !== b.role) {
+          const key = `live:${req.live.id}`;
+          db.prepare(
+            "DELETE FROM notifications WHERE recipient_id=? AND event_key=?",
+          ).run(u.id, key);
+          notify(db, {
+            recipient: u.id,
+            actor: req.user.id,
+            post: req.live.post_id,
+            type: "live_invite",
+            key,
+          });
+        }
         return true;
       });
       if (!result)

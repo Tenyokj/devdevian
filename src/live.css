@@ -534,3 +534,38 @@
   line-height: 1.7;
   margin: 14px 0 20px;
 }
+.live-recovery {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.2rem;
+  margin: 1rem 0;
+  border: 1px solid #9f8cff70;
+  border-radius: 18px;
+  background: #9f8cff12;
+}
+.live-recovery p {
+  margin: 0.5rem 0 0;
+}
+.live-recovery-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+.live-draft-code {
+  max-height: 230px;
+  overflow: auto;
+  padding: 1rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  background: #0002;
+  border-radius: 12px;
+}
+@media (max-width: 650px) {
+  .live-recovery {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
