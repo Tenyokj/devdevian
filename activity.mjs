@@ -127,7 +127,7 @@ export function registerActivity(app, db, required) {
     // The event key identifies a session; current membership and source scope are
     // checked at read time, including unread counts, after an invitation is revoked.
     const liveJoin = db.liveReady
-      ? " LEFT JOIN live_sessions ls ON n.type='live_invite' AND n.event_key='live:'||ls.id LEFT JOIN live_members lm ON lm.session_id=ls.id AND lm.user_id=n.recipient_id"
+      ? " LEFT JOIN live_sessions ls ON n.type='live_invite' AND ls.id=substr(n.event_key,6) LEFT JOIN live_members lm ON lm.session_id=ls.id AND lm.user_id=n.recipient_id"
       : "";
     const liveFilter = db.liveReady
       ? " AND (n.type<>'live_invite' OR lm.user_id IS NOT NULL)"
