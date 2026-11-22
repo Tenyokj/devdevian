@@ -405,7 +405,9 @@ try {
     name: "Footer navigation",
     exact: true,
   });
-  await expect(footerDirectory.getByRole("link")).toHaveCount(14);
+  await expect(
+    footerDirectory.getByRole("link", { name: "Live sessions", exact: true }),
+  ).toHaveAttribute("href", "/app#live");
   await expect(
     footerDirectory.getByRole("link", {
       name: "CLI documentation",
