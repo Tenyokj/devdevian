@@ -2,6 +2,7 @@ import FAQItem from "./public/accordion";
 import { launchFilm } from "./public/content.mjs";
 import { CLISection, CLIReview, PublicActivity } from "./landing-cli";
 import WorkspaceShowcase from "./landing-workspaces";
+import LiveShowcase from "./landing-live";
 import StackRibbon from "./stack";
 import React, { useEffect, useRef, useState } from "react";
 import {
@@ -247,6 +248,7 @@ export default function Landing() {
             devdevian<span>.</span>
           </a>
           <div className="landing-nav-links">
+            <a href="#live">Live</a>
             <a href="#cli">CLI</a>
             <a href="#explore">Explore</a>
             <a href="#community">Communities</a>
@@ -330,7 +332,10 @@ export default function Landing() {
                 <a className="landing-button" href="/app">
                   Explore the forum <ArrowUpRight size={18} />
                 </a>
-                <a className="landing-text-link launch-film-link" href={launchFilm}>
+                <a
+                  className="landing-text-link launch-film-link"
+                  href={launchFilm}
+                >
                   Watch the new film · 2 min <ArrowUpRight size={17} />
                 </a>
                 <span className="development-note">
@@ -340,6 +345,8 @@ export default function Landing() {
               </div>
             </div>
           </section>
+
+          <LiveShowcase />
 
           <CLISection />
 
@@ -721,6 +728,7 @@ export default function Landing() {
                     ["Public feed", "/app#feed"],
                     ["Communities", "/app#communities"],
                     ["Projects", "/app#projects"],
+                    ["Live sessions", "/app#live"],
                     ["Events", "/app#events"],
                   ],
                 ],

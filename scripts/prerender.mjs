@@ -87,6 +87,8 @@ function collectDocCss(key) {
 }
 collectDocCss("src/docs/page.jsx");
 const vite = await createServer({
+  // Public assets use explicit build inputs, never local server credentials.
+  envDir: false,
   // This server renders HTML only; it never serves a development browser.
   optimizeDeps: { noDiscovery: true, include: [] },
   server: { middlewareMode: true, hmr: false, ws: false, watch: null },

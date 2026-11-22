@@ -3201,6 +3201,7 @@ if (!import.meta.env.SSR) {
       (!window.location.hash ||
         [
           "#cli",
+          "#live",
           "#possibilities",
           "#your-people",
           "#how-it-works",

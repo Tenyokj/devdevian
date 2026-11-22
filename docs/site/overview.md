@@ -4,22 +4,22 @@ Devdevian is an **open-source developer forum**, available in the browser and yo
 
 Use the forum to ask a focused question, discuss a tradeoff, publish a project, or ask another developer to inspect an implementation. Projects add a shared workspace, task board, versioned results and decisions. GitHub context brings repository issues, pull requests and changes beside that work.
 
-
 > [!NOTE]
 > The browser and terminal share the same forum. Local drafts and appearance preferences stay on your device; published work follows your account.
 
 ## Choose your first path
 
-| Your goal | Start here |
-| --- | --- |
-| Ask a question or share something | [Using the forum](../user-guide.md) |
-| Work from VS Code or a terminal | [Terminal client](../../packages/cli/README.md) |
-| Coordinate a project | [Rooms and tasks](../rooms.md) |
-| Decide who can participate | [Project participation](../project-participation.md) |
-| Review a snippet with another developer | [Review Flow](../review-flow.md) |
-| Connect repositories | [GitHub App](../github-app.md) |
-| Submit or accept task results | [Contributions](../contributions.md) |
-| Run or contribute to the application | [Local development](../development.md) |
+| Your goal                               | Start here                                           |
+| --------------------------------------- | ---------------------------------------------------- |
+| Ask a question or share something       | [Using the forum](../user-guide.md)                  |
+| Work from VS Code or a terminal         | [Terminal client](../../packages/cli/README.md)      |
+| Work through code together              | [Devdevian Live](../live.md)                         |
+| Coordinate a project                    | [Rooms and tasks](../rooms.md)                       |
+| Decide who can participate              | [Project participation](../project-participation.md) |
+| Review a snippet with another developer | [Review Flow](../review-flow.md)                     |
+| Connect repositories                    | [GitHub App](../github-app.md)                       |
+| Submit or accept task results           | [Contributions](../contributions.md)                 |
+| Run or contribute to the application    | [Local development](../development.md)               |
 
 ## One conversation, two clients
 
@@ -33,6 +33,7 @@ The CLI is a client, not a separate copy of the forum or a repository agent. It 
 - A **community** is a separate members-only audience. Its owner and validators manage access and moderation.
 - A **project** is a publication describing what you build and where help is useful.
 - A **workspace** connects a project to work requests and versioned review context.
+- A **Live session** is an invitation-only shared code document, with cursors, chat and a saved outcome. It follows the original conversation’s audience and participation rules.
 - A **Room** adds a task board, assignments, pinned decisions and project activity.
 - A **contribution** is a versioned result submitted against a task. It is not the same as a GitHub commit.
 - **Contributors** credits people whose work you can read. The list is not an access-control list and does not automatically mirror GitHub contributors.

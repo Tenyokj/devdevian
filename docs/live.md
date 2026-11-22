@@ -13,6 +13,14 @@ Live connects an existing conversation to a shared coding session. Invited devel
 
 A project Room offers the same entry point, attached to that project's introduction conversation. There is no separate project permission system for Live: existing community access and project participation continue to apply.
 
+## See the workflow
+
+![Two developers sharing code and discussing the result in Live](/screenshots/live-shared.webp)
+
+This screenshot uses isolated demonstration accounts. The code editor and chat are separate from the original post; the host decides whether to publish the final code and summary back to that conversation.
+
+![The saved Live result in its original discussion](/screenshots/live-result.webp)
+
 ## Invitations and roles
 
 A session link is a navigation link, not a bearer credential. Knowing the URL does not grant access. A person needs a signed-in account, an explicit session invitation, and current access to the source conversation.

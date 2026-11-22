@@ -1,6 +1,8 @@
 import { build } from "vite";
 import { mkdir, readFile, writeFile, rm } from "node:fs/promises";
 await build({
+  // Public assets use explicit build inputs, never local server credentials.
+  envDir: false,
   build: {
     manifest: true,
     rollupOptions: {
@@ -9,6 +11,8 @@ await build({
   },
 });
 await build({
+  // Public assets use explicit build inputs, never local server credentials.
+  envDir: false,
   build: {
     ssr: "src/public/conversation-server.jsx",
     outDir: "server-build",

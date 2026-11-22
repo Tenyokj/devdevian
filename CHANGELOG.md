@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.1 — 2026-11-22
+
+- Added a dedicated Live sessions section near the top of the landing page, with shared-code and published-outcome views.
+- Added fresh isolated demonstration screenshots and expanded Live discovery in the documentation and footer.
+- The Live launch film is prepared locally; its YouTube URL will be added after publication.
+
 ## 2.0.0 — Devdevian Live
 
 - Invitation-only collaborative code sessions connected to conversations and project Rooms, with editor/viewer roles, shared cursors and session chat.
