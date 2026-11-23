@@ -112,7 +112,9 @@ try {
     returnPath,
   );
   await page.goto(f.base + "/app#profile");
-  await expect(page).toHaveURL(f.base + returnPath);
+  // This navigation boots the application and loads the account before returning.
+  // Shared CI runners can take longer than the default five-second assertion.
+  await expect(page).toHaveURL(f.base + returnPath, { timeout: 15000 });
   await expect(page.getByLabel("Your reply", { exact: true })).toBeFocused();
   await expect(page.locator(".public-parent")).toContainText("Morgan Author");
   mkdirSync(".test-data/browser", { recursive: true });

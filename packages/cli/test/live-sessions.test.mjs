@@ -216,6 +216,9 @@ test(
     await wait("Invited sessions only");
     await command("/session " + continued.id);
     await wait("Next terminal step");
+    // The title can appear in the command prompt before the request finishes.
+    // Wait for the loaded session controls before sending the next keystroke.
+    await wait("host · Open · Enter read code");
     await send("\r");
     await wait("const retry = 4");
     await send("\x1b");
@@ -236,6 +239,7 @@ test(
     );
     await command("/session " + created.id);
     await wait("Terminal retry session");
+    await wait("host · Saved · Enter read code");
     await send("\x0b");
     await send("Continue from saved result");
     await send("\r");
