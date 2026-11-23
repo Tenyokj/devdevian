@@ -477,3 +477,118 @@ test("Live notifications use current roles and hide revoked invitations, with re
     0,
   );
 });
+test("Project Live history paginates only invited sessions from the introduction and currently linked work", async (t) => {
+  const { s, db } = await setup(t);
+  const id = (await create(s.a, s.publicId)).data.id;
+  const task = db
+    .prepare("SELECT post_id FROM project_work_requests WHERE project_id=?")
+    .get(s.publicProject).post_id;
+  const taskSession = (await create(s.a, task)).data.id;
+  let history = (await s.a(`/projects/${s.publicProject}/live?limit=1`)).data;
+  assert.equal(history.pagination.total, 2);
+  assert.equal(history.items.length, 1);
+  assert.equal(
+    (await s.b(`/projects/${s.publicProject}/live`)).data.items.length,
+    0,
+  );
+  await s.a(
+    `/live/${id}/members`,
+    { username: "livepeer", role: "viewer" },
+    "PATCH",
+  );
+  assert.equal(
+    (await s.b(`/projects/${s.publicProject}/live`)).data.items[0].id,
+    id,
+  );
+  const session = (await s.a(`/live/${id}`)).data.session;
+  await s.a(`/live/${id}/close`, {
+    summary: "Keep cancellation safe",
+    expected_revision: session.revision,
+  });
+  history = (
+    await s.a(`/projects/${s.publicProject}/live?state=saved&q=cancellation`)
+  ).data;
+  assert.equal(history.items.length, 1);
+  assert.equal(history.items[0].id, id);
+  assert.equal(
+    (await s.a(`/projects/${s.publicProject}/live?state=invalid`)).status,
+    400,
+  );
+  db.prepare("UPDATE project_work_requests SET linked=0 WHERE post_id=?").run(
+    task,
+  );
+  assert.ok(
+    !(await s.a(`/projects/${s.publicProject}/live`)).data.items.some(
+      (row) => row.id === taskSession,
+    ),
+  );
+  assert.equal((await s.b(`/projects/${s.privateProject}/live`)).status, 404);
+  db.prepare("UPDATE posts SET removed_at=CURRENT_TIMESTAMP WHERE id=?").run(
+    s.publicId,
+  );
+  assert.equal((await s.a(`/projects/${s.publicProject}/live`)).status, 404);
+});
+test("Continuing uses the frozen server code, creates only a new host, preserves the original and is idempotent", async (t) => {
+  const { s, db } = await setup(t),
+    id = (await create(s.a, s.publicId)).data.id;
+  const path = `/live/${id}/continue`,
+    op = crypto.randomUUID(),
+    body = {
+      title: "Next retry step",
+      operation_key: op,
+      code: "forged",
+      language: "json",
+    };
+  assert.equal((await s.a(path, body)).status, 409);
+  await s.a(
+    `/live/${id}/members`,
+    { username: "livepeer", role: "editor" },
+    "PATCH",
+  );
+  await s.a(`/live/${id}/messages`, {
+    body: "Original private chat",
+    operation_key: crypto.randomUUID(),
+  });
+  const snap = (await s.a(`/live/${id}`)).data;
+  await s.a(`/live/${id}/close`, {
+    summary: "A frozen outcome",
+    expected_revision: snap.session.revision,
+  });
+  const original = db.prepare("SELECT * FROM live_sessions WHERE id=?").get(id);
+  const result = await s.b(path, body);
+  assert.equal(result.status, 201, JSON.stringify(result.data));
+  const next = (await s.b(`/live/${result.data.id}`)).data;
+  assert.equal(next.code, snap.code);
+  assert.equal(next.session.initial_code, snap.code);
+  assert.equal(next.session.language, "typescript");
+  assert.equal(next.members.length, 1);
+  assert.equal(next.members[0].user_id, s.other);
+  assert.equal(next.messages.length, 0);
+  assert.notEqual(next.session.id, id);
+  assert.equal(next.session.closed_at, null);
+  assert.equal((await s.a(`/live/${next.session.id}`)).status, 404);
+  assert.equal((await s.b(path, body)).data.id, next.session.id);
+  assert.equal(
+    (await s.b(path, { ...body, title: "Changed payload" })).status,
+    409,
+  );
+  assert.deepEqual(
+    Object.fromEntries(
+      Object.entries(
+        db.prepare("SELECT * FROM live_sessions WHERE id=?").get(id),
+      ).filter(([key]) => key !== "_metadata"),
+    ),
+    Object.fromEntries(
+      Object.entries(original).filter(([key]) => key !== "_metadata"),
+    ),
+  );
+  await s.a(
+    `/live/${id}/members`,
+    { username: "livepeer", role: "remove" },
+    "PATCH",
+  );
+  assert.equal(
+    (await s.b(path, { ...body, operation_key: crypto.randomUUID() })).status,
+    404,
+  );
+});

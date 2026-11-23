@@ -236,6 +236,55 @@ try {
       .locator(".reply")
       .filter({ hasText: "Both changes preserve cancellation" }),
   ).toBeVisible();
+  await p.goto(f.base + `/app#workspace/${s.publicProject}/live`);
+  await expect(
+    p.getByRole("heading", {
+      name: "Work together. Keep the progress.",
+      exact: true,
+    }),
+  ).toBeVisible();
+  await p.getByLabel("Session status").selectOption("saved");
+  await p.getByLabel("Search sessions").fill("Cancellation");
+  const historyCard = p
+    .locator(".live-history .live-session-card")
+    .filter({ hasText: "Cancellation, together" });
+  await expect(historyCard).toHaveCount(1);
+  expect(
+    await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+  ).toBeTruthy();
+  await p.screenshot({
+    path: ".test-data/live-browser/project-history.png",
+    fullPage: true,
+  });
+  await historyCard.click();
+  const oldId = new URL(url).hash.split("/").at(-1);
+  const oldSnapshot = await (
+    await owner.request.get(f.base + "/api/live/" + oldId)
+  ).json();
+  await p
+    .getByRole("button", { name: "Continue from result", exact: false })
+    .click();
+  await expect(p.locator(".live-draft-code")).toContainText(
+    "recovered after reload",
+  );
+  await p.getByLabel("New session title").fill("Cancellation, next step");
+  await p
+    .getByRole("button", { name: "Create continued session", exact: true })
+    .click();
+  await expect(
+    p.getByRole("heading", { name: "Cancellation, next step", exact: true }),
+  ).toBeVisible();
+  const newId = new URL(p.url()).hash.split("/").at(-1);
+  expect(newId).not.toBe(oldId);
+  const newSnapshot = await (
+    await owner.request.get(f.base + "/api/live/" + newId)
+  ).json();
+  expect(newSnapshot.session.initial_code).toBe(oldSnapshot.code);
+  expect(newSnapshot.members).toHaveLength(1);
+  expect(newSnapshot.messages).toHaveLength(0);
+  expect((await peer.request.get(f.base + "/api/live/" + newId)).status()).toBe(
+    404,
+  );
   expect(errors).toEqual([]);
   console.log(
     "Live browser: two editors, concurrent changes, remote cursors, chat, original comparison, offline recovery, live downgrade, frozen outcome, published reply and mobile passed.",

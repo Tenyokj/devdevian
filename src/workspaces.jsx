@@ -1,3 +1,4 @@
+import { LiveHistory } from "./live-history";
 import { UserName } from "./user-name";
 import { Devlogs } from "./devlogs";
 import { GitHubHub } from "./github-app";
@@ -6,6 +7,7 @@ import { RoomSurface } from "./rooms";
 import { ReviewProjectActivity } from "./review-flow";
 import React, { useEffect, useRef, useState } from "react";
 import {
+  Radio,
   ArrowLeft,
   ArrowUpRight,
   Code2,
@@ -693,6 +695,7 @@ export function Workspace({
         "contributions",
         "github",
         "devlogs",
+        "live",
       ].includes(tab)
     )
       return () => controller.abort();
@@ -786,6 +789,7 @@ export function Workspace({
             ["overview", "Overview", LayoutDashboard],
             ["devlogs", "Devlogs", MessageSquare],
             ["room", "Room board", LayoutDashboard],
+            ["live", "Live sessions", Radio],
             ["decisions", "Decisions", CheckCircle2],
             ["contributions", "Contributions", GitPullRequest],
             ["github", "GitHub", GitPullRequest],
@@ -894,7 +898,14 @@ export function Workspace({
             </div>
           </>
         )}
-        {tab === "devlogs" ? (
+        {tab === "live" ? (
+          <LiveHistory
+            key={`${project.id}:${user?.id || "guest"}`}
+            project={project}
+            user={user}
+            go={go}
+          />
+        ) : tab === "devlogs" ? (
           <Devlogs
             key={`${project.id}:${user?.id || "guest"}`}
             project={project}

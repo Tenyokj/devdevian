@@ -1,3 +1,4 @@
+import { loadLive, liveId } from "./live-sessions.mjs";
 import { loadDevlogs } from "./devlogs.mjs";
 import { connectedGitHubReader, githubList } from "./github-connected.mjs";
 import { contributionRoot, requireContributions } from "./contributions.mjs";
@@ -27,6 +28,7 @@ export function assertSnippet(code, hash) {
     );
 }
 export const navigation = [
+  ["live-sessions", "Live sessions", "Invitations, history and saved results"],
   ["inbox", "Inbox", "Replies & mentions"],
   ["feed", "Public feed", "Developer commons"],
   ["open", "Open conversation", "Jump to a post"],
@@ -53,6 +55,8 @@ export const navigation = [
   ],
 ];
 export async function notificationRoute(api, item) {
+  if (item.live_session_id)
+    return { view: "live-session", id: liveId(item.live_session_id), page: 1 };
   if (item.type === "project_update" && item.project_id)
     return { view: "devlogs", id: item.project_id, page: 1 };
   if (item.code_review_id)
@@ -88,6 +92,42 @@ export async function notificationRoute(api, item) {
       };
 }
 export async function loadPage(api, route, signal) {
+  if (route.view === "live-sessions")
+    return {
+      ...(await loadLive(api, {
+        project: route.project,
+        page: route.page || 1,
+        state: route.state || "all",
+        query: route.query || "",
+        signal,
+      })),
+      title: "Live sessions",
+      subtitle:
+        "Invited sessions only · Enter inspect · X actions · editing in browser",
+    };
+  if (route.view === "live-session") {
+    const d = await api(`/live/${liveId(route.id)}`, { signal });
+    return {
+      ...d,
+      items: [
+        {
+          id: d.session.id,
+          title: d.session.title,
+          body:
+            "Read-only snapshot · shared editing opens in your browser.\n\n" +
+            (d.session.summary || "") +
+            "\n\n```" +
+            d.session.language +
+            "\n" +
+            d.code +
+            "\n```",
+        },
+      ],
+      title: d.session.title,
+      subtitle: `${d.session.role} · ${d.session.closed_at ? "Saved" : "Open"} · Enter read code · X invitations/browser`,
+    };
+  }
+
   const github = route.connected ? connectedGitHubReader(api) : githubReader;
   if (
     [
@@ -563,6 +603,9 @@ export function contentLines(route, data) {
       "/decisions [ID]  Pinned decisions · X edit/history/archive",
       "/room-activity [ID] Tasks, decisions and reviews",
       "/writeback ID [issue|comment]  Preview a GitHub publication",
+      "/live [PROJECT_ID] Sessions & invitations; Enter inspect; X actions",
+      "/session UUID    Read a session snapshot; X opens the shared browser",
+      "/live-create POST_ID  Preview a selected project file before creating",
       "/devlogs ID       Project progress updates · X write/drafts",
       "/devlog ID        Write a project Devlog",
       "/pin             Pin a decision in the current room (owner)",

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.2.0 — Live project history and terminal management
+
+- Project Live section with invited-only history, title/outcome search, status filters, pagination and saved summaries; introduction and currently linked requests share one history.
+- Continue a saved server snapshot as a new session without changing the original or copying chat/participants. Current source permissions, quotas and creation idempotency remain enforced.
+- CLI0.27 alpha adds list/project/show/open/create/invite/remove/continue commands and TUI history, read-only snapshots and confirmed file/invitation/continuation workflows. Shared editing remains in the browser. No schema migration.
+
 ## 2.1.0 — Live invitations and recovery
 
 - In-app Live invitations show the inviter, session and current role, with direct navigation. No-op invites are deduplicated; revoked invitations disappear from history and unread counts. A separate notification preference controls delivery.

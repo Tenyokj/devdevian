@@ -4,6 +4,23 @@ export function contextActions({ route, data, selected, user, live }) {
   const actions = catalogActions(route, data, user),
     post = data?.post;
   const add = (id, label) => actions.push({ id, label });
+  if (route.view === "project") add("project-live", "Live session history");
+  if (route.view === "live-sessions") {
+    if (selected) add("live-inspect", "Inspect session");
+    for (const state of ["all", "open", "saved"])
+      add("live-filter-" + state, "Show " + state + " sessions");
+    add("sync", "Refresh sessions");
+    return actions;
+  }
+  if (route.view === "live-session") {
+    add("live-browser", "Open shared workspace in browser");
+    if (data?.session?.can_manage && !data.session.closed_at)
+      add("live-invite", "Invite participant");
+    if (data?.session?.can_continue)
+      add("live-continue", "Continue from saved result");
+    add("sync", "Refresh snapshot");
+    return actions;
+  }
   if (route.view === "work" && selected?.type) {
     add("work-open", selected.action || "Open item");
     if (selected.project_id) {

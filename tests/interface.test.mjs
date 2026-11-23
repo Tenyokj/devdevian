@@ -166,6 +166,7 @@ test("developer interface smoke test in a simulated DOM", async () => {
     });
   };
   const vite = await createServer({
+    envDir: false, // Simulated UI tests never load local server credentials.
     server: { middlewareMode: true, hmr: false, ws: false },
     optimizeDeps: { noDiscovery: true, include: [] },
     appType: "custom",
@@ -567,6 +568,7 @@ test("developer interface smoke test in a simulated DOM", async () => {
 
 test("Markdown safely renders code and links without executing HTML", async () => {
   const vite = await createServer({
+    envDir: false, // Simulated UI tests never load local server credentials.
     server: { middlewareMode: true, hmr: false, ws: false },
     optimizeDeps: { noDiscovery: true, include: [] },
     appType: "custom",

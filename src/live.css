@@ -569,3 +569,48 @@
     align-items: stretch;
   }
 }
+.live-history {
+  margin-top: 2rem;
+}
+.live-history-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 1rem;
+}
+.live-history-heading p {
+  color: var(--text-muted);
+  max-width: 65ch;
+}
+.live-history-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin: 1.4rem 0;
+}
+.live-history-filters label {
+  display: grid;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: min(220px, 100%);
+}
+.live-history .live-session-card small {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+.live-history .live-session-card p {
+  margin: 0.7rem 0 0;
+  overflow-wrap: anywhere;
+}
+.live-history-filters select {
+  width: 100%;
+  padding: 12px 14px;
+  min-height: 46px;
+  font: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}

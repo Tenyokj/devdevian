@@ -1,6 +1,6 @@
 import * as Y from "yjs";
 import { randomUUID, createHash } from "node:crypto";
-import { canRead } from "./spaces.mjs";
+import { canRead, pageRows, scopeSQL } from "./spaces.mjs";
 import { postParticipation } from "./project-access.mjs";
 import { notify, notifyReply } from "./activity.mjs";
 import { consumeBudget } from "./limits.mjs";
@@ -220,18 +220,62 @@ export function registerLive(app, db, required, { migrate = false } = {}) {
       writable(req.livePost, req.user),
     can_chat: !req.live.closed_at && writable(req.livePost, req.user),
     can_manage: req.live.host_id === req.user.id,
+    can_continue: !!req.live.closed_at && writable(req.livePost, req.user),
     post_title: req.livePost.title,
     private: !!req.livePost.community_id,
   });
+  // Lists expose only sessions the requester was invited to. Project ownership
+  // does not grant access to another host's private session or its chat.
+  function history(req, project = null) {
+    const conditions = [
+      "m.user_id=?",
+      "p.removed_at IS NULL",
+      scopeSQL("p", req.user),
+    ];
+    const params = [req.user.id];
+    if (project) {
+      conditions.push(
+        "(s.post_id=? OR EXISTS(SELECT 1 FROM project_work_requests w WHERE w.project_id=? AND w.post_id=s.post_id AND w.linked=1))",
+      );
+      params.push(project.post_id, project.id);
+    }
+    const state = req.query.state || "all";
+    if (!["all", "open", "saved"].includes(state))
+      throw new LiveError("Choose all, open or saved sessions.", 400);
+    if (state !== "all")
+      conditions.push(
+        state === "open" ? "s.closed_at IS NULL" : "s.closed_at IS NOT NULL",
+      );
+    if (req.query.q) {
+      conditions.push(
+        "(instr(lower(s.title),lower(?))>0 OR instr(lower(s.summary),lower(?))>0)",
+      );
+      const q = String(req.query.q).slice(0, 200);
+      params.push(q, q);
+    }
+    return pageRows(
+      db,
+      req,
+      `SELECT s.id,s.post_id,s.title,s.language,s.closed_at,s.created,s.host_id,s.published_reply_id,substr(s.summary,1,300) summary,u.name host_name,m.role,p.title post_title,(SELECT COUNT(*) FROM live_members participants WHERE participants.session_id=s.id) participant_count FROM live_sessions s JOIN live_members m ON m.session_id=s.id JOIN posts p ON p.id=s.post_id JOIN users u ON u.id=s.host_id WHERE ${conditions.join(" AND ")} ORDER BY s.created DESC,s.id DESC`,
+      params,
+      12,
+    );
+  }
   app.get("/api/live", required, ready, (req, res) => {
     res.set("Cache-Control", "no-store");
-    const rows = db
-      .prepare(
-        "SELECT s.id,s.post_id,s.title,s.language,s.closed_at,s.created,s.host_id,u.name host_name,m.role FROM live_sessions s JOIN live_members m ON m.session_id=s.id AND m.user_id=? JOIN users u ON u.id=s.host_id ORDER BY s.created DESC,s.id DESC LIMIT 40",
-      )
-      .all(req.user.id);
+    res.json({ ...history(req), capabilities: { live_sessions: 1 } });
+  });
+  app.get("/api/projects/:id/live", required, ready, (req, res) => {
+    res.set("Cache-Control", "no-store");
+    const project = db
+      .prepare("SELECT id,post_id,name FROM projects WHERE id=?")
+      .get(req.params.id);
+    const post = project && source(project.post_id, req.user);
+    if (!post) return res.status(404).json({ error: "Project not found." });
     res.json({
-      items: rows.filter((s) => source(s.post_id, req.user)).slice(0, 20),
+      ...history(req, project),
+      project,
+      can_create: writable(post, req.user),
     });
   });
   app.get("/api/posts/:id/live", required, ready, (req, res) => {
@@ -245,7 +289,7 @@ export function registerLive(app, db, required, { migrate = false } = {}) {
       .all(req.user.id, p.id);
     res.json({ items, can_create: writable(p, req.user) });
   });
-  app.post("/api/posts/:id/live", required, ready, (req, res) => {
+  function createSession(req, res) {
     const p = source(req.params.id, req.user),
       b = req.body;
     if (!p) return res.status(404).json({ error: "Conversation not found." });
@@ -288,6 +332,7 @@ export function registerLive(app, db, required, { migrate = false } = {}) {
       return res.status(400).json({ error: "Code is too large." });
     const id = randomUUID();
     const created = atomic(db, () => {
+      if (req.live) fresh(req);
       const current = source(p.id, req.user);
       if (!current || !writable(current, req.user))
         throw new LiveError("Conversation access changed.");
@@ -336,10 +381,36 @@ export function registerLive(app, db, required, { migrate = false } = {}) {
         error: "Close an existing session first (up to four open sessions).",
       });
     res.status(201).json({ id: created });
-  });
+  }
+  app.post("/api/posts/:id/live", required, ready, createSession);
+  app.post(
+    "/api/live/:session/continue",
+    required,
+    ready,
+    target,
+    (req, res) => {
+      if (!req.live.closed_at)
+        return res
+          .status(409)
+          .json({
+            error: "Save the original session before continuing its result.",
+          });
+      // Read the frozen server snapshot, never a client-supplied replacement.
+      const code = liveDocument(req.live.state).code;
+      req.body = {
+        title: req.body?.title,
+        operation_key: req.body?.operation_key,
+        code,
+        language: req.live.language,
+      };
+      req.params.id = req.live.post_id;
+      return createSession(req, res);
+    },
+  );
   app.get("/api/live/:session", required, ready, target, (req, res) =>
     res.json({
       session: dto(req),
+      code: liveDocument(req.live.state).code,
       state: req.live.state,
       members: members(req.live.id),
       presence: presence(req.live.id),

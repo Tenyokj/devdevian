@@ -4,6 +4,14 @@ The CLI is a separately versioned Devdevian client. Its npm version does not hav
 
 Every published npm artifact has a unique immutable version. We record each version here, even when several ship in one working session. A GitHub release can summarize a day's work and link to the individual entries; it does not need to be created for every npm publication. An unfinished change stays under **Unreleased** until its package version is assigned. Alpha packages use the `alpha` npm tag.
 
+## 0.27.0-alpha.1 — Live session management
+
+- `live list|project|show|open` exposes invited sessions, bounded history, status/search filters and read-only snapshots. `/live [PROJECT_ID]` and `/session UUID` bring the same workflow into the live terminal.
+- `live create POST_ID --file PATH --title TITLE` previews only an explicitly selected bounded file inside the project root; credentials, symlinks and binary files are excluded. `/live-create POST_ID` offers the same confirmed workflow in the TUI.
+- Host-only `live invite` / `live remove` and TUI invitations preserve current source access and project participation checks. Live inbox entries open the session snapshot.
+- `live continue SESSION_ID` and TUI continuation preview the frozen server code, create a new host-only session, and preserve the original. Use `--operation KEY` to explicitly retry script creation/continuation with the same payload after uncertain network outcomes.
+- Shared editing remains in the browser; the CLI does not execute code or run a collaborative terminal editor. Companion browser/API2.2.0. npm publication is separate from source readiness.
+
 ## 0.25.0-alpha.1 — Project Devlogs
 
 - `/devlogs ID`, `/devlog ID` and project/room context actions open the shared journal, owner-only drafts, Markdown reader and publication workflow.

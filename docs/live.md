@@ -17,6 +17,39 @@ A repeated invitation with the same role does not create another notification. C
 
 A project Room offers the same entry point, attached to that project's introduction conversation. There is no separate project permission system for Live: existing community access and project participation continue to apply.
 
+## Project session history
+
+Open a project's workspace and choose **Live sessions**. The history includes sessions attached to its introduction and currently linked work-request conversations. Search session titles and saved outcomes; filter **All**, **Open** or **Saved**, and page through the results. Cards show the host, your role, participant count, source conversation and saved summary when present.
+
+Only sessions you are currently invited to appear. Owning a project does not grant access to another host's session or private chat. The project parent and each source conversation must remain readable. Unlinking a work request removes its sessions from that project's history; it does not delete them or remove them from an invited participant's own Live list.
+
+## Continue a saved outcome
+
+Open a saved session and choose **Continue from result**. Review the saved server code, choose a title and confirm **Create continued session**. The new session receives that frozen code as its starting point and uses the same source conversation and language. Existing source participation rules still apply.
+
+The original session, summary and published reply remain unchanged. The new host is the only initial participant: chat, invitations and the previous result's published status are not copied. Invite collaborators again. This creates a fresh working session; it does not reopen the immutable saved result or create an automatic version-history graph.
+
+## Manage Live from the terminal
+
+CLI **0.27 alpha** adds session management and read-only snapshots. Shared collaborative editing opens in your browser; the CLI does not execute the selected code.
+
+```sh
+devdevian live list --state open --query "retry"
+devdevian live project 12 --page 2
+devdevian live create 42 --file src/retry.ts --title "Retry together" --language typescript
+devdevian live invite SESSION_UUID --username teammate --role viewer
+devdevian live show SESSION_UUID
+devdevian live open SESSION_UUID
+devdevian live continue SAVED_SESSION_UUID --title "Next step"
+devdevian live remove SESSION_UUID --username teammate
+```
+
+Commands that change server state require a preview and confirmation unless `--yes` is explicit. Only the selected file inside the current project (or `--project PATH`) is read; credential files, symlinks, binary files and code over 20,000 characters are rejected. Use `--json` for structured output and `live open ... --no-open` to print the browser URL without launching it.
+
+Creation and continuation accept `--operation KEY` for an explicit retry with the same payload after an uncertain network response. Use a unique 8–80-character key for each intended creation. Inviting an unchanged role is already idempotent. No command automatically retries a write.
+
+Inside the TUI, `/live [PROJECT_ID]` opens history, `/session UUID` inspects a session and `/live-create POST_ID` previews a selected file. **X** shows available filters, browser editing, invitations and continuation. Invitations in Inbox now open their session snapshot. See the [CLI guide](cli.md) and [package](https://www.npmjs.com/package/@tenyokjs/devdevian-cli).
+
 ## See the workflow
 
 ![Two developers sharing code and discussing the result in Live](/screenshots/live-shared.webp)
@@ -114,7 +147,8 @@ Backups retain collaborative document state, invitations, messages and outcomes.
 
 All endpoints require the same signed-in identity as the forum. Session membership never replaces source authorization.
 
-- `GET /api/live`: bounded recent session/invitation list.
+- `GET /api/live`: paginated invited-session history; `state=all|open|saved`, `q`, `page` and bounded `limit`.
+- `GET /api/projects/:id/live`: the same invited history scoped to the readable project introduction and currently linked requests.
 - `GET /api/posts/:id/live`: accessible sessions for one conversation.
 - `POST /api/posts/:id/live`: create with an operation key, title, language and starting code.
 - `GET /api/live/:session`: initial document, members, recent presence and first message batch.
@@ -122,6 +156,7 @@ All endpoints require the same signed-in identity as the forum. Session membersh
 - `PATCH /api/live/:session/members`: host-only exact-username invitation, role change or removal.
 - `POST /api/live/:session/messages`: idempotent chat send.
 - `POST /api/live/:session/close`: host-only outcome and exact document revision.
+- `POST /api/live/:session/continue`: create an independently invited session from frozen server code, with a title and operation key.
 - `POST /api/live/:session/publish`: host-only explicit publication to the original conversation.
 
 The implementation is in `live.mjs`, `src/live.jsx`, `src/live-editor.jsx`, `src/live-transport.mjs` and `src/live-launcher.jsx`. The regression suite drives concurrent API updates and a real two-account browser workflow. See [the source map](source-map.md), [Projects & Rooms](rooms.md), [participation rules](project-participation.md) and [security reporting](../SECURITY.md).

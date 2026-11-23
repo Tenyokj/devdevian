@@ -344,3 +344,25 @@ Use `/devlogs PROJECT_ID` to read progress, and `/devlog PROJECT_ID` to write a 
 ## Send outcomes to GitHub
 
 In a conversation use X → Create GitHub issue / Share outcome, or `/writeback POST_ID issue|comment`. Ctrl+S prepares a preview showing your connected GitHub account and destination. Explicitly confirm before sending. Script commands: `devdevian github writeback issue|comment POST_ID --target URL --title "..." --body-file outcome.md`, followed by `devdevian github writeback send OPERATION_ID`. `status OPERATION_ID` and `list` inspect saved operations. Uncertain operations are never automatically resent. [Complete guide](https://devdevian.vercel.app/docs/github-writeback).
+
+
+### Devdevian Live
+
+Use the same account and invitation permissions as the browser. Terminal snapshots are read-only; `open` launches shared editing in your browser.
+
+```sh
+devdevian live list --state saved --query "retry"
+devdevian live project 12 --page 2
+devdevian live create 42 --file src/retry.ts --title "Cancellation, together" --language typescript
+devdevian live invite SESSION_UUID --username teammate --role editor
+devdevian live show SESSION_UUID
+devdevian live open SESSION_UUID
+devdevian live continue SAVED_SESSION_UUID --title "The next step"
+devdevian live remove SESSION_UUID --username teammate
+```
+
+Without `--yes`, mutations show a preview and require confirmation in a terminal. Noninteractive scripts must supply `--yes` deliberately. Creation and continuation accept `--operation KEY` (8–80 characters); reuse the same key and payload to check an uncertain creation result, rather than generating another session. Files are relative to the current directory or `--project PATH`; only the explicit selected file is read, with existing credential/symlink/binary exclusions and a 20,000-character code bound.
+
+In the TUI, use `/live`, `/live PROJECT_ID`, `/session SESSION_UUID`, and `/live-create POST_ID`. **X** opens status filters, browser editing, invitations or continuation when permitted. Continuing starts from saved server code, does not modify the original, and does not copy its chat or participants.
+
+[Live user and API guide](https://devdevian.vercel.app/docs/live).

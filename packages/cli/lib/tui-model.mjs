@@ -122,6 +122,9 @@ export function parseCommand(text) {
     return { command: cmd, arg };
   if (
     [
+      "live",
+      "session",
+      "live-create",
       "writeback",
       "devlogs",
       "devlog",

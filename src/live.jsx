@@ -19,20 +19,9 @@ import { UserName } from "./user-name";
 import { LiveEditor, StaticCode } from "./live-editor";
 import { createLiveTransport } from "./live-transport.mjs";
 import { liveDrafts } from "./live-drafts.mjs";
+import { LiveHistory } from "./live-history";
 import "./live.css";
-function SessionHome({ user }) {
-  const [data, setData] = useState(null),
-    [error, setError] = useState("");
-  useEffect(() => {
-    if (!user) return;
-    const c = new AbortController();
-    api("/live", { signal: c.signal })
-      .then(setData)
-      .catch((e) => {
-        if (!c.signal.aborted) setError(e.message);
-      });
-    return () => c.abort();
-  }, [user?.id]);
+function SessionHome({ user, go }) {
   return (
     <section className="live-home">
       <div className="live-home-hero">
@@ -51,34 +40,7 @@ function SessionHome({ user }) {
           Find a conversation <ArrowUpRight size={17} />
         </a>
       </div>
-      <ErrorMessage error={error} />
-      <h2>Your sessions & invitations</h2>
-      {!user ? (
-        <Empty
-          title="Sign in to join Live"
-          description="Your invitations and saved sessions will appear here."
-        />
-      ) : data?.items.length === 0 ? (
-        <Empty
-          icon={Radio}
-          title="Your first session starts with a conversation."
-          description="Open a discussion → Live sessions → Start a session, then invite someone by their username."
-        />
-      ) : (
-        data?.items.map((s) => (
-          <a href={"#live/" + s.id} key={s.id} className="live-session-card">
-            <Radio size={22} />
-            <span>
-              <strong>{s.title}</strong>
-              <small>
-                <UserName userId={s.host_id}>{s.host_name}</UserName> ·{" "}
-                {s.closed_at ? "Saved" : "Open"} · {s.role}
-              </small>
-            </span>
-            <ArrowUpRight size={18} />
-          </a>
-        ))
-      )}
+      <LiveHistory user={user} go={go} />
     </section>
   );
 }
@@ -100,6 +62,8 @@ export default function LiveWorkspace({ id, user, go }) {
   const [recoveries, setRecoveries] = useState([]),
     [recovery, setRecovery] = useState(null);
   const draftStore = useRef(null);
+  const [continuation, setContinuation] = useState(null);
+  const continuationKey = useRef(crypto.randomUUID());
   const controller = useRef(null),
     messageKey = useRef(crypto.randomUUID()),
     bottom = useRef(null);
@@ -184,7 +148,7 @@ export default function LiveWorkspace({ id, user, go }) {
   useEffect(() => {
     bottom.current?.scrollIntoView({ block: "nearest", behavior: "auto" });
   }, [messages.length]);
-  if (!id) return <SessionHome user={user} />;
+  if (!id) return <SessionHome user={user} go={go} />;
   if (!user)
     return (
       <Empty
@@ -202,6 +166,7 @@ export default function LiveWorkspace({ id, user, go }) {
             ? "Couldn’t open this session."
             : "Opening your shared workspace…"}
         </h2>
+
         <ErrorMessage error={error} />
         <a href="#live" className="button secondary">
           Your sessions
@@ -279,6 +244,29 @@ export default function LiveWorkspace({ id, user, go }) {
           </p>
         </div>
         <div className="live-header-actions">
+          {s.closed_at && s.can_continue && (
+            <button
+              className="button primary"
+              disabled={busy || accessLost}
+              onClick={async () => {
+                setBusy(true);
+                setError("");
+                try {
+                  const snapshot = await api("/live/" + id);
+                  setContinuation(snapshot);
+                  continuationKey.current = crypto.randomUUID();
+                  setDialog("continue");
+                } catch (e) {
+                  setError(e.message);
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              Continue from result <ArrowUpRight size={16} />
+            </button>
+          )}
+
           <button
             className="button secondary"
             onClick={() => copy(location.origin + "/app#live/" + id)}
@@ -313,6 +301,58 @@ export default function LiveWorkspace({ id, user, go }) {
         </span>
       </div>
       <ErrorMessage error={error} />
+      {dialog === "continue" && continuation && (
+        <Modal
+          title="Continue from a saved result"
+          onClose={() => setDialog("")}
+          wide
+        >
+          <h2>A new session. The same starting point.</h2>
+          <p>
+            The saved server snapshot becomes the new starting code. The
+            original session stays unchanged. Participants and chat are not
+            copied; invite your collaborators again.
+          </p>
+          <pre className="live-draft-code">{continuation.code}</pre>
+          <ErrorMessage error={error} />
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault();
+              const title = new FormData(e.currentTarget).get("title");
+              setBusy(true);
+              setError("");
+              try {
+                const r = await api(`/live/${id}/continue`, {
+                  method: "POST",
+                  body: { title, operation_key: continuationKey.current },
+                });
+                go("live/" + r.id);
+              } catch (e) {
+                setError(e.message);
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            <label>
+              New session title
+              <input
+                name="title"
+                required
+                minLength={3}
+                maxLength={100}
+                defaultValue={(s.title + " · continued").slice(0, 100)}
+                onChange={() => {
+                  continuationKey.current = crypto.randomUUID();
+                }}
+              />
+            </label>
+            <button className="button primary" disabled={busy}>
+              Create continued session
+            </button>
+          </form>
+        </Modal>
+      )}
       {notice && (
         <p className="form-success" role="status">
           {notice}

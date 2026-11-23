@@ -1,3 +1,10 @@
+import {
+  liveURL,
+  liveId,
+  liveCreatePlan,
+  liveInvitePlan,
+  liveContinuePlan,
+} from "./live-sessions.mjs";
 import { devlogPlan } from "./devlogs.mjs";
 import {
   participationPlan,
@@ -585,6 +592,19 @@ function listRows(route, data, index, width, colors, density = "comfortable") {
           .filter((e) => e.revision === item.revision)
           .map((e) => `\n${e.actor_name} · ${e.state}: ${e.body}`)
           .join("");
+    } else if (
+      route.view === "live-sessions" ||
+      route.view === "live-session"
+    ) {
+      title = item.title;
+      meta =
+        route.view === "live-session"
+          ? "Read-only code snapshot"
+          : `${item.closed_at ? "Saved" : "Open"} · ${item.role} · ${item.participant_count} participants`;
+      body =
+        item.summary ||
+        item.post_title ||
+        "Enter to read · X to open in browser";
     } else if (route.view === "devlogs") {
       title = item.title;
       meta = `${item.status === "draft" ? "Private draft" : "Published"} · v${item.version} · ${stamp(item.published_at || item.created)}`;
@@ -2217,6 +2237,39 @@ function App({ initialConfig, flags, root, initialAppearance }) {
           setYes(false);
           return;
         }
+        if (form.mode === "live-create") {
+          const plan = await liveCreatePlan(api, form.postId, {
+            ...form.values,
+            root,
+            operationKey: form.operationKey,
+          });
+          setPreview({ ...plan, flow: true });
+          setScroll(0);
+          setYes(false);
+          return;
+        }
+        if (form.mode === "live-invite") {
+          const plan = await liveInvitePlan(
+            api,
+            form.liveId,
+            form.values.username,
+            form.values.role,
+          );
+          setPreview({ ...plan, flow: true });
+          setScroll(0);
+          setYes(false);
+          return;
+        }
+        if (form.mode === "live-continue") {
+          const plan = await liveContinuePlan(api, form.liveId, {
+            title: form.values.title,
+            operationKey: form.operationKey,
+          });
+          setPreview({ ...plan, flow: true });
+          setScroll(0);
+          setYes(false);
+          return;
+        }
         let payload = { ...form.plan.payload, ...form.values };
         if (form.mode === "participation")
           payload = participationPayload(
@@ -2500,6 +2553,14 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       setPreview(null);
       setForm(null);
       setScroll(0);
+      if (form.mode?.startsWith("live-")) {
+        navigate(
+          { view: "live-session", id: response.id || form.liveId, page: 1 },
+          { replace: true },
+        );
+        setNotice("Live session updated. Shared editing opens in the browser.");
+        return;
+      }
       if (form.mode === "writeback") {
         navigate(
           { view: "post", id: form.postId, tab: "overview", page: 1 },
@@ -2614,6 +2675,15 @@ function App({ initialConfig, flags, root, initialAppearance }) {
           tab: selected.kind === "review" ? "feedback" : "overview",
           page: 1,
         });
+      return;
+    }
+    if (route.view === "live-sessions") {
+      if (selected)
+        navigate({ view: "live-session", id: selected.id, page: 1 });
+      return;
+    }
+    if (route.view === "live-session") {
+      if (selected) readItem(selected);
       return;
     }
     if (route.view === "devlogs") {
@@ -3577,6 +3647,55 @@ function App({ initialConfig, flags, root, initialAppearance }) {
       setCommandCursor(graphemes(`/state ${selected.id} `).length);
       return;
     }
+    if (id === "project-live") {
+      navigate({ view: "live-sessions", project: route.id, page: 1 });
+      return;
+    }
+    if (id === "live-inspect") {
+      if (selected)
+        navigate({ view: "live-session", id: selected.id, page: 1 });
+      return;
+    }
+    if (id.startsWith("live-filter-")) {
+      navigate({ ...route, state: id.slice(12), page: 1 });
+      return;
+    }
+    if (id === "live-browser") {
+      openBrowser(liveURL(config.origin, route.id));
+      return;
+    }
+    if (id === "live-invite" || id === "live-continue") {
+      const continuing = id === "live-continue";
+      openForm({
+        kind: "flow",
+        mode: continuing ? "live-continue" : "live-invite",
+        title: continuing
+          ? "Continue from saved result"
+          : "Invite a participant",
+        liveId: route.id,
+        operationKey: crypto.randomUUID(),
+        plan: { payload: {} },
+        audience:
+          "Invited participants only · source #" + current.session.post_id,
+        fields: continuing
+          ? [{ key: "title", label: "New session title", min: 3, max: 100 }]
+          : [
+              { key: "username", label: "Permanent username", min: 3, max: 30 },
+              {
+                key: "role",
+                label: "Access",
+                options: [
+                  ["editor", "Editor"],
+                  ["viewer", "Viewer"],
+                ],
+              },
+            ],
+        values: continuing
+          ? { title: (current.session.title + " · continued").slice(0, 100) }
+          : { username: "", role: "editor" },
+      });
+      return;
+    }
     if (id === "read") {
       if (current?.post) {
         readItem(selected);
@@ -3775,6 +3894,58 @@ function App({ initialConfig, flags, root, initialAppearance }) {
           parsed.arg,
           parsed.command === "decisions" ? "room-decisions" : parsed.command,
         );
+        return;
+      }
+      if (parsed.command === "live") {
+        navigate({
+          view: "live-sessions",
+          ...(parsed.arg ? { project: workspaceId(parsed.arg) } : {}),
+          page: 1,
+        });
+        return;
+      }
+      if (parsed.command === "session") {
+        navigate({ view: "live-session", id: liveId(parsed.arg), page: 1 });
+        return;
+      }
+      if (parsed.command === "live-create") {
+        const post = workspaceId(parsed.arg),
+          source = await api(`/posts/${post}`);
+        openForm({
+          kind: "flow",
+          mode: "live-create",
+          title: "Start a Live session",
+          postId: post,
+          operationKey: crypto.randomUUID(),
+          plan: { url: `/posts/${post}/live`, method: "POST", payload: {} },
+          audience: "Invited participants only · source #" + post,
+          fields: [
+            { key: "title", label: "Session title", min: 3, max: 100 },
+            {
+              key: "file",
+              label: "File inside this project",
+              min: 1,
+              max: 500,
+              hint: "Explicit relative path; environment and credential files are excluded.",
+            },
+            {
+              key: "language",
+              label: "Language",
+              options: [
+                "typescript",
+                "javascript",
+                "python",
+                "json",
+                "text",
+              ].map((v) => [v, v]),
+            },
+          ],
+          values: {
+            title: source.title.slice(0, 100),
+            file: "",
+            language: "typescript",
+          },
+        });
         return;
       }
       if (parsed.command === "devlogs") {
@@ -5297,7 +5468,20 @@ function App({ initialConfig, flags, root, initialAppearance }) {
                   ? "DEVLOG PREVIEW"
                   : preview.roomRoute
                     ? "ROOM CHANGE"
-                    : "EXACT REVIEW REQUEST",
+                    : form?.mode?.startsWith("live-")
+                      ? "LIVE SESSION PREVIEW"
+                      : "EXACT REVIEW REQUEST",
+              ...(form?.mode?.startsWith("live-")
+                ? [
+                    "Audience: " + preview.audience,
+                    ...(preview.code !== undefined
+                      ? [
+                          "Saved code (participants and chat are not copied):",
+                          preview.code,
+                        ]
+                      : []),
+                  ]
+                : []),
               ...flowPreview(payload),
             ]
           : []),

@@ -5,6 +5,21 @@ export const launchFilm = "https://www.youtube.com/watch?v=qjFs2yy5uz0";
 export const repository = "https://github.com/Tenyokj/devdevian";
 export const updates = [
   {
+    id: "live-history-terminal-2-2-0",
+    channel: "Browser + API + CLI",
+    version: "2.2.0",
+    title: "One project. Every next step.",
+    summary:
+      "Find your Live sessions and bring your terminal into the workflow.",
+    points: [
+      "Search and filter invited sessions in a project's Live history, including its introduction and linked work requests.",
+      "Continue a saved code snapshot in a new session. The original stays unchanged; invite your collaborators again.",
+      "Manage sessions from CLI0.27 and inspect code in the TUI. Shared editing opens in the browser.",
+    ],
+    link: "/docs/live",
+    label: "Live history and CLI guide",
+  },
+  {
     id: "live-invitations-recovery-2-1-0",
     channel: "Browser + API",
     version: "2.1.0",

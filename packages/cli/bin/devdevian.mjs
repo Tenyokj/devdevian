@@ -1,4 +1,12 @@
 #!/usr/bin/env node
+import {
+  loadLive,
+  liveId,
+  liveURL,
+  liveCreatePlan,
+  liveInvitePlan,
+  liveContinuePlan,
+} from "../lib/live-sessions.mjs";
 import { devlogPlan, loadDevlogs, devlogId } from "../lib/devlogs.mjs";
 import { extensionPublication } from "../lib/extensions.mjs";
 import {
@@ -89,6 +97,8 @@ const options = {
   topic: { type: "string" },
   section: { type: "string" },
   mode: { type: "string" },
+  language: { type: "string" },
+  role: { type: "string" },
   members: { type: "string" },
   state: { type: "string" },
   query: { type: "string" },
@@ -202,6 +212,13 @@ const help = `Devdevian CLI ${version} · alpha
   devdevian room link-pr PROJECT_ID POST_ID PR_URL [--contribution ID] [--share-private]
   devdevian room github PROJECT_ID POST_ID [--json]
   devdevian room github-history PROJECT_ID POST_ID [--page 2]
+  devdevian live list [--state open|saved] [--query "retry"]
+  devdevian live project PROJECT_ID [--page 2]
+  devdevian live show|open SESSION_ID
+  devdevian live create POST_ID --file src/retry.ts --title "Retry together"
+  devdevian live invite SESSION_ID --username NAME --role editor|viewer
+  devdevian live remove SESSION_ID --username NAME
+  devdevian live continue SESSION_ID [--title "Next step"]
   devdevian devlogs PROJECT_ID [--status draft]
   devdevian devlog create|edit PROJECT_ID [DEVLOG_ID] --title "..." --body-file update.md [--status draft|published]
   devdevian devlog publish|open|discard PROJECT_ID DEVLOG_ID
@@ -584,6 +601,103 @@ async function execute(args, flags) {
     );
   const api = client(config.origin, config.token),
     page = positive(flags.page || "1", "Page");
+  if (command === "live") {
+    const action = args[1] || "list";
+    if (action === "list" || action === "project") {
+      const d = await loadLive(api, {
+        project: action === "project" ? workspaceId(args[2]) : null,
+        page,
+        state: flags.state || "all",
+        query: flags.query || "",
+      });
+      if (flags.json) show(d, true);
+      else {
+        for (const s of d.items)
+          out(
+            `${s.id} · ${s.closed_at ? "Saved" : "Open"} · ${s.role}\n${s.title} · ${s.participant_count} participants\n${s.summary || s.post_title}\n${liveURL(config.origin, s.id)}`,
+          );
+        if (!d.items.length) out("No matching invited sessions.");
+        if (d.pagination)
+          out(
+            `Page ${d.pagination.page}/${d.pagination.pages} · ${d.pagination.total} sessions`,
+          );
+      }
+      return;
+    }
+    if (action === "show" || action === "open") {
+      const id = liveId(args[2]),
+        d = await api(`/live/${id}`),
+        url = liveURL(config.origin, id);
+      if (action === "open") {
+        show({ url }, flags.json);
+        if (!flags["no-open"]) openBrowser(url);
+      } else if (flags.json)
+        show(
+          {
+            session: d.session,
+            code: d.code,
+            members: d.members,
+            messages: d.messages,
+            url,
+          },
+          true,
+        );
+      else
+        out(
+          `${d.session.title} · ${d.session.role} · ${d.session.closed_at ? "Saved" : "Open"}\n${d.session.summary || ""}\n\n${d.code}\n\n${url}\nRead-only terminal snapshot. Shared editing opens in your browser.`,
+        );
+      return;
+    }
+    const plan =
+      action === "create"
+        ? await liveCreatePlan(api, args[2], {
+            file: flags.file,
+            title: flags.title,
+            language: flags.language || "typescript",
+            root: flags.project,
+            operationKey: flags.operation,
+          })
+        : action === "invite" || action === "remove"
+          ? await liveInvitePlan(
+              api,
+              args[2],
+              flags.username,
+              action === "remove" ? "remove" : flags.role || "editor",
+            )
+          : action === "continue"
+            ? await liveContinuePlan(api, args[2], {
+                title: flags.title,
+                operationKey: flags.operation,
+              })
+            : null;
+    if (!plan)
+      throw Error(
+        "Use live list|project|show|open|create|invite|remove|continue.",
+      );
+    await confirm(
+      {
+        audience: plan.audience,
+        ...plan.payload,
+        ...(plan.code !== undefined ? { saved_code: plan.code } : {}),
+        ...(action === "continue"
+          ? { participants: "Not copied; invite collaborators again" }
+          : {}),
+      },
+      flags,
+    );
+    const result = await api(plan.url, {
+      method: plan.method,
+      body: plan.payload,
+    });
+    show(
+      {
+        ...result,
+        ...(result.id ? { url: liveURL(config.origin, result.id) } : {}),
+      },
+      flags.json,
+    );
+    return;
+  }
   if (command === "github" && args[1] === "writeback") {
     const action = args[2];
     if (action === "list") {
