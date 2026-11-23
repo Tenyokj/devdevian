@@ -39,7 +39,7 @@
     "@lezer/highlight": "^1.2.5",
     "css-tree": "3.2.1",
     "express": "^5.1.0",
-    "highlight.js": "^11.11.1",
+    "highlight.js": "^11.12.0",
     "lib0": "^0.2.120",
     "libsql": "^0.5.29",
     "lowlight": "^3.3.0",
